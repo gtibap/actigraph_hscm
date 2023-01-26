@@ -16,7 +16,7 @@ def plot_data(df, fig_title):
         df_night_part0 = df.loc[(df['Date']==day_now) & (df[' Time']>='22:00:00'), ['Date',' Time',' Axis1','Axis2','Axis3','Vector Magnitude']]
         df_night_part1 = df.loc[(df['Date']==day_next) & (df[' Time']<='10:00:00'), ['Date',' Time',' Axis1','Axis2','Axis3','Vector Magnitude']]
 
-        df_night = df_night_part0.append(df_night_part1)
+        df_night = pd.concat([df_night_part0, df_night_part1], ignore_index=True) 
 
         df_night.plot(x=' Time', y='Vector Magnitude', title='', ax=axes[row,col])
         col+=1
@@ -48,7 +48,7 @@ def getSelectedData(df, time0, time1, same_day):
             df_night_part0 = df.loc[(df['Date']==day_now) & (df[' Time']>=time0), ['Date',' Time',' Axis1','Axis2','Axis3','Vector Magnitude']]
             df_night_part1 = df.loc[(df['Date']==day_next) & (df[' Time']<=time1), ['Date',' Time',' Axis1','Axis2','Axis3','Vector Magnitude']]
 
-            df_night = df_night_part0.append(df_night_part1)
+            df_night = pd.concat([df_night_part0,df_night_part1],  ignore_index=True)
             df_night['night']=cont_nights
             # print('night number ', cont_nights)
             # print(df_night.info())
@@ -84,7 +84,7 @@ def getSelectedData(df, time0, time1, same_day):
 def plot_nights(df1,df2):
     nights_list = df1['night'].unique().tolist()
     # print('nights: ', nights_list)
-    fig, axes = plt.subplots(nrows=2, ncols=1, subplot_kw={'ylim': (0,150)})
+    fig, axes = plt.subplots(nrows=2, ncols=1, subplot_kw={'ylim': (0,250)})
     
     for night_num in nights_list[:1]:
         df1_night = df1.loc[(df1['night']==night_num), ['Date',' Time',' Axis1','Axis2','Axis3','Vector Magnitude']]
@@ -93,6 +93,71 @@ def plot_nights(df1,df2):
         df2_night.plot(x=' Time', y='Vector Magnitude', ax=axes[1], label='magnitude (thigh)')
         # df_night.plot(x=' Time', y='Vector Magnitude', , ax=axes[row,col])
     return
+
+
+def non_motion_periods(mag_col):
+    # nights_list = df['night'].unique().tolist()
+    min_value = 3
+    # for night_num in nights_list[:1]:
+    # mag_col = df.loc[(df['night']==night_num), ['Vector Magnitude']]
+
+    mag_col['active'] = mag_col['Vector Magnitude'] > min_value
+
+    active_arrray = mag_col['active'].to_numpy()
+    print(active_arrray)
+    changes_array = active_arrray[:-1] != active_arrray[1:]
+    print(changes_array)
+    idx_changes = np.flatnonzero(changes_array)
+    print(idx_changes)
+    # print(active_arrray[idx_changes])
+    intervals = idx_changes[1:]-idx_changes[:-1]
+    print(intervals)
+
+    initial_value = [idx_changes[0] + 1]
+    if active_arrray[idx_changes[0]]==False:
+        duration_active = intervals[::2]
+        duration_inactive = np.concatenate([initial_value, intervals[1::2]])
+    else:
+        duration_active = np.concatenate([initial_value, intervals[1::2]])
+        duration_inactive = intervals[::2]
+
+    print(duration_active)
+    print(duration_inactive)
+    
+    return duration_active, duration_inactive
+
+
+# histograms
+def activityHistogram(activity, inactivity):
+
+    # print(type(activity))
+    binwidth=1
+    # plt.hist(activity, bins=range(min(activity), max(activity) + binwidth, binwidth))
+    # plt.hist(inactivity, bins=range(min(inactivity), max(inactivity) + binwidth, binwidth))
+    plt.hist(inactivity)  # density=False would make counts
+    plt.ylabel('Probability')
+    plt.xlabel('Data')
+    plt.show()
+
+    return
+
+
+
+
+        # print(mag_col.info())
+        # print(mag_col.describe())
+        # print(mag_col.head)
+        # mag_array = mag_col.to_numpy()
+        # print('vector magnitud: ', len(mag_array), mag_array[0], mag_array[0][0])
+        # # find first value non-zero in the list
+        # min_value = 3
+        # count=0
+        # while mag_array[count][0] < min_value:
+        #     count+=1
+        # print('count: ', count)
+        # ts=0
+
+    
 
 # def plot_seaborn(df, fig_title):
 
@@ -104,7 +169,7 @@ if __name__== '__main__':
 
     # the header in line 10 of the csv file
     header_location=10
-    df1 = pd.read_csv("Turner_Chest1secDataTable.csv", header=header_location, decimal=',', usecols=['Date',' Time',' Axis1','Axis2','Axis3','Vector Magnitude'])
+    df1 = pd.read_csv("../data/p00/Turner Chest1secDataTable.csv", header=header_location, decimal=',', usecols=['Date',' Time',' Axis1','Axis2','Axis3','Vector Magnitude'])
     # print(df.empty)
     # print(df.shape)
     print(df1.columns)
@@ -133,13 +198,16 @@ if __name__== '__main__':
     # plot_data(df2, 'thigh')
     # plt.show()
 
-    # time_start='22:00:00'
-    # time_end='10:00:00'
-    # same_day=False
+    time_start='22:00:00'
+    time_end='10:00:00'
+    same_day=False
 
-    time_start='04:45:00'
-    time_end='05:45:00'
-    same_day=True
+    # time_start='04:45:00'
+    # time_end='05:45:00'
+    # same_day=True
+
+    
+
 
     df_chest = getSelectedData(df1, time_start, time_end, same_day)
     df_thigh = getSelectedData(df2, time_start, time_end, same_day)
@@ -147,9 +215,14 @@ if __name__== '__main__':
     # print(df1_nights.info())
     # print(df1_nights.head)
 
-    plot_nights(df_chest, df_thigh)
-    # plot_data(df2, 'thigh')
-    plt.show()
+    # plot_nights(df_chest, df_thigh)
+    # plt.show()
+
+    nights_list = df_chest['night'].unique().tolist()
+    for night_num in nights_list[:1]:
+        mag_col = df_chest.loc[(df_chest['night']==night_num), ['Vector Magnitude']]
+        activity, inactivity = non_motion_periods(mag_col)
+        activityHistogram(activity, inactivity)
 
 
     # fig, axes = plt.subplots(nrows=3, ncols=3, subplot_kw={'ylim': (0,250)})
