@@ -2,6 +2,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+from matplotlib.lines import Line2D
+import datetime
 
 def plot_data(df, fig_title):
     dates_list = df['Date'].unique().tolist()
@@ -84,15 +86,103 @@ def getSelectedData(df, time0, time1, same_day):
 def plot_nights(df1,df2):
     nights_list = df1['night'].unique().tolist()
     # print('nights: ', nights_list)
-    fig, axes = plt.subplots(nrows=2, ncols=1, subplot_kw={'ylim': (0,250)})
-    
+    fig, axes = plt.subplots(nrows=2, ncols=1)
+    # fig.suptitle('Vector Magnitude', fontsize=12)
+    # fig.subplots_adjust(wspace=0, hspace=10)
+    # fig, axes = plt.subplots(subplot_kw={'ylim': (0,150)})
+
+    ax1 = axes[0]
+    # ax1.set_ylabel('counts')
+    # ax1.set_xlabel('')
+    # ax1.set_ylim(0, 200)
+    # ax1.legend(["chest"])
+
+    ax2 = axes[1]
+    # ax2.set_ylabel('counts')
+    # ax2.set_ylim(0, 200)
+    # ax2.legend(["thigh"])
+
+
     for night_num in nights_list[:1]:
         df1_night = df1.loc[(df1['night']==night_num), ['Date',' Time',' Axis1','Axis2','Axis3','Vector Magnitude']]
         df2_night = df2.loc[(df2['night']==night_num), ['Date',' Time',' Axis1','Axis2','Axis3','Vector Magnitude']]
-        df1_night.plot(x=' Time', y='Vector Magnitude', ax=axes[0], label='magnitude (chest)')
-        df2_night.plot(x=' Time', y='Vector Magnitude', ax=axes[1], label='magnitude (thigh)')
+
+        print('length column Time:', len(df1_night[' Time']))
+        xmin = 0 
+        xmax = len(df1_night[' Time'])
+
+        # presenting xticks in hh:mm format
+        xdelta = 3600 # seconds in one hour
+        xticks = np.arange(xmin,xmax,xdelta)
+        hours = np.floor(xticks/3600).astype(int)
+        mins  = np.floor(np.remainder(xticks,3600)/60).astype(int)
+        xlabels = [str(i)+':'+str(j) for i, j in zip(hours, mins)]
+        xlabels_2 = xlabels.copy()
+        xlabels_2[0] = xlabels[0]+'\n22h00'
+        xlabels_2[-1] = xlabels[-1]+'\n10h00'
+        print(hours)
+        print(mins)
+        print(xlabels)
+        # xlabels = np.around(xrange/3600,decimals=2)
+        ymin = 0
+        ymax = 210
+        ylabel = 'counts (1s epoch)'
+        xlabel = 'time (hh:mm)'
+        # bx1=df1_night.plot(x=' Time', y='Vector Magnitude', ax=ax1, alpha=1.0, xlabel='', xticks=(np.arange(0, len(df1_night[' Time'])+1, 3600)))
+        bx1=df1_night.plot(x=' Time', y='Vector Magnitude', ax=ax1, alpha=1.0)
+        bx1.set_xlim([xmin, xmax])
+        bx1.set_ylim([ymin, ymax])
+        bx1.set_xticks(xticks)
+        bx1.set_xticklabels(xlabels)
+        bx1.set_ylabel(ylabel)
+        bx1.set_xlabel('')
+        bx1.set_title("Vector Magnitude")
+        bx1.legend(["chest"])
+        # bx1.set_xticklabels(np.arange(0, len(df1_night[' Time'])+1, 3600))
+        
+        # print([xlabels[0]+'\n22h00', xlabels[1:-1], xlabels[-1]+'\n10h00'])
+        # bx1.xlabel('')
+        bx2=df2_night.plot(x=' Time', y='Vector Magnitude', ax=ax2,  alpha=1.0)
+        bx2.set_xlim([xmin, xmax])
+        bx2.set_ylim([ymin, ymax])
+        bx2.set_xticks(xticks)
+        bx2.set_xticklabels(xlabels_2)
+        bx2.set_ylabel(ylabel)
+        bx2.set_xlabel(xlabel)
+        bx2.legend(["thigh"])
+        # bx2.set_title("Vector Magnitude : Thigh")
+
+        # bx2.set_xticks(np.arange(0, 12, step=0.2), np.arange(0, 12, step=0.2))
+        # xticks(np.arange(0, 1, step=0.2))
+        # bx2.xlabel('Time (h)')
+        # bx1=df1_night.plot(x=' Time', y='Vector Magnitude', alpha=0.5, ax=axes, label='chest')
+        # bx1.legend(["chest"])
+        # bx2=df2_night.plot(x=' Time', y='Vector Magnitude',  alpha=0.5, ax=axes, label='thigh')
+        # bx2.legend(["thigh"])
         # df_night.plot(x=' Time', y='Vector Magnitude', , ax=axes[row,col])
     return
+
+# def plot_nights_2(df1,df2):
+#     nights_list = df1['night'].unique().tolist()
+#     # print('nights: ', nights_list)
+#     fig, axes = plt.subplots(nrows=2, ncols=1, subplot_kw={'ylim': (0,250)})
+    
+#     ax1 = axes[0]
+#     ax1.set_ylabel('counts')
+#     ax1.set_ylim(0, 250)
+
+#     ax2 = axes[1]
+#     ax2.set_ylabel('counts')
+#     ax2.set_ylim(0, 250)
+
+#     for night_num in nights_list[:1]:
+#         df1_night = df1.loc[(df1['night']==night_num), ['Date',' Time',' Axis1','Axis2','Axis3','Vector Magnitude']]
+#         df2_night = df2.loc[(df2['night']==night_num), ['Date',' Time',' Axis1','Axis2','Axis3','Vector Magnitude']]
+        
+#         df1_night.plot(x=' Time', y='Vector Magnitude', ax=ax1, label='magnitude (chest)')
+#         df2_night.plot(x=' Time', y='Vector Magnitude', ax=ax2, label='magnitude (thigh)')
+#         # df_night.plot(x=' Time', y='Vector Magnitude', , ax=axes[row,col])
+#     return
 
 
 def non_motion_periods(mag_col):
@@ -137,7 +227,6 @@ def activityHistogram(activity, inactivity):
     plt.hist(inactivity)  # density=False would make counts
     plt.ylabel('Probability')
     plt.xlabel('Data')
-    plt.show()
 
     return
 
@@ -173,7 +262,7 @@ if __name__== '__main__':
     # print(df.empty)
     # print(df.shape)
     print(df1.columns)
-    # print(df.head)
+    print(df1.head)
     print(df1.info())
     
     df2 = pd.read_csv("../data/p00/Turner Thigh1secDataTable.csv", header=header_location, decimal=',', usecols=['Date',' Time',' Axis1','Axis2','Axis3','Vector Magnitude'])
@@ -206,8 +295,6 @@ if __name__== '__main__':
     # time_end='05:45:00'
     # same_day=True
 
-    
-
 
     df_chest = getSelectedData(df1, time_start, time_end, same_day)
     df_thigh = getSelectedData(df2, time_start, time_end, same_day)
@@ -215,14 +302,28 @@ if __name__== '__main__':
     # print(df1_nights.info())
     # print(df1_nights.head)
 
-    # plot_nights(df_chest, df_thigh)
+    plot_nights(df_chest, df_thigh)
+    plt.show()
+
+
+
+    # plt.figure(1)
+    # nights_list = df_chest['night'].unique().tolist()
+    # for night_num in nights_list[:1]:
+    #     mag_col = df_chest.loc[(df_chest['night']==night_num), ['Vector Magnitude']]
+    #     activity, inactivity = non_motion_periods(mag_col)
+    #     plt.subplot(211)
+    #     activityHistogram(activity, inactivity)
+
+    # nights_list = df_thigh['night'].unique().tolist()
+    # for night_num in nights_list[:1]:
+    #     mag_col = df_thigh.loc[(df_thigh['night']==night_num), ['Vector Magnitude']]
+    #     activity, inactivity = non_motion_periods(mag_col)
+    #     plt.subplot(212)
+    #     activityHistogram(activity, inactivity)
+
     # plt.show()
 
-    nights_list = df_chest['night'].unique().tolist()
-    for night_num in nights_list[:1]:
-        mag_col = df_chest.loc[(df_chest['night']==night_num), ['Vector Magnitude']]
-        activity, inactivity = non_motion_periods(mag_col)
-        activityHistogram(activity, inactivity)
 
 
     # fig, axes = plt.subplots(nrows=3, ncols=3, subplot_kw={'ylim': (0,250)})
