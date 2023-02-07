@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from matplotlib.lines import Line2D
 import datetime
+import seaborn as sns
 
 def plot_data(df, fig_title):
     dates_list = df['Date'].unique().tolist()
@@ -196,18 +197,18 @@ def non_motion_periods(mag_col):
     mag_col['active'] = mag_col['Vector Magnitude'] > min_value
     # boolean array where True means activity higher than min_value
     active_arrray = mag_col['active'].to_numpy()
-    print('active_arrray: ', active_arrray)
+    # print('active_arrray: ', active_arrray)
     # comparison of active _array (boolean vector) with itself but moved one position. The idea is to identify changes--True to False or False to True.
     changes_array = active_arrray[:-1] != active_arrray[1:]
     # changes_array is a boolean vector; True means a change; False means no change
-    print('changes: ', changes_array)
+    # print('changes: ', changes_array)
     # indices or location of Trues (changes) values 
     idx_changes = np.flatnonzero(changes_array)
-    print('idx_changes: ', idx_changes)
+    # print('idx_changes: ', idx_changes)
     # print(active_arrray[idx_changes])
     # distance between two consecutive changes (time in our case)
     intervals = idx_changes[1:]-idx_changes[:-1]
-    print('intervals: ', intervals)
+    # print('intervals: ', intervals)
 
     # period before the first detection of change in activity
     initial_value = [idx_changes[0] + 1]
@@ -221,8 +222,8 @@ def non_motion_periods(mag_col):
         duration_active = np.concatenate([initial_value, intervals[1::2]])
         duration_inactive = intervals[::2]
 
-    print('duration_active: ', duration_active)
-    print('duration_inactive: ', duration_inactive)
+    # print('duration_active: ', duration_active)
+    # print('duration_inactive: ', duration_inactive)
     
     return duration_active, duration_inactive
 
@@ -270,6 +271,45 @@ def activityHistogram(activity, inactivity):
         # print('count: ', count)
         # ts=0
 
+def function_boxplot(df_partial, max_val, title):
+    # print('maxlist: ', max_list)
+    ydelta = 60 # seconds in one minute
+    ymin = 0 
+    ymax = max_val + 30*ydelta
+    print('ymax: ', ymax)
+
+    # presenting yticks in minutes
+    yticks = np.arange(ymin,ymax,ydelta)
+    ylabels = [str(int(i/ydelta)) for i in yticks]
+    
+    # df_partial = df_freqs.loc[df_freqs['night']!=7]
+    # fig_1 = plt.figure()
+    # sns.catplot(data=df_partial, x="night", y="activity", kind="box")
+
+    print('df_partial.head: ', df_partial.head())
+    # fi/g_2 = plt.figure()
+    # sns.catplot(data=df_partial, x="night", y="inactivity", kind="box")
+    fig_boxplot = sns.boxplot(data=df_partial, x="night", y="inactivity",  
+    showcaps=True,
+    # flierprops={"marker": "o"},
+    boxprops={"facecolor": (.4, .6, .8, .5)},
+    medianprops={"color": "coral"},
+    )
+
+    delta_yticks = 30
+    fig_boxplot.set_yticks(yticks[::delta_yticks])
+    fig_boxplot.set_yticklabels(ylabels[::delta_yticks])
+    fig_boxplot.set_ylabel('minutes')
+    fig_boxplot.set_xlabel('night')
+    fig_boxplot.set_title(title)
+    # fig_boxplot.legend(["chest"])
+
+    # df_values = df_partial.loc[(df_partial['night']==3)]
+    # print('df_values: ', df_values.head())
+    # fig_0 = plt.figure()
+    # sns.histplot(data=df_values, x='inactivity', bins=100)
+    plt.show()
+    return
     
 
 # def plot_seaborn(df, fig_title):
@@ -330,23 +370,101 @@ if __name__== '__main__':
     # plt.show()
 
 
+    # histograms
 
-    plt.figure(1)
+    # plt.figure(1)
+    # nights_list = df_chest['night'].unique().tolist()
+    # for night_num in nights_list[:1]:
+    #     mag_col = df_chest.loc[(df_chest['night']==night_num), ['Vector Magnitude']]
+    #     activity, inactivity = non_motion_periods(mag_col)
+    #     plt.subplot(211)
+    #     activityHistogram(activity, inactivity)
+
+    # nights_list = df_thigh['night'].unique().tolist()
+    # for night_num in nights_list[:1]:
+    #     mag_col = df_thigh.loc[(df_thigh['night']==night_num), ['Vector Magnitude']]
+    #     activity, inactivity = non_motion_periods(mag_col)
+    #     plt.subplot(212)
+    #     activityHistogram(activity, inactivity)
+
+    # plt.show()
+    
+    #
+    # empty dataframe initialization
+    # df_all = pd.DataFrame(columns=names_columns)
+
+    max_list_chest=[]
+    max_list_thigh=[]
+    df_freqs = pd.DataFrame(columns=['night', 'location', 'activity','inactivity'])
+
     nights_list = df_chest['night'].unique().tolist()
-    for night_num in nights_list[:1]:
-        mag_col = df_chest.loc[(df_chest['night']==night_num), ['Vector Magnitude']]
-        activity, inactivity = non_motion_periods(mag_col)
-        plt.subplot(211)
-        activityHistogram(activity, inactivity)
+    for night_num in nights_list:
 
-    nights_list = df_thigh['night'].unique().tolist()
-    for night_num in nights_list[:1]:
-        mag_col = df_thigh.loc[(df_thigh['night']==night_num), ['Vector Magnitude']]
-        activity, inactivity = non_motion_periods(mag_col)
-        plt.subplot(212)
-        activityHistogram(activity, inactivity)
+        df_mag_chest = df_chest.loc[(df_chest['night']==night_num), ['Vector Magnitude']]
+        df_mag_thigh = df_thigh.loc[(df_chest['night']==night_num), ['Vector Magnitude']]
 
-    plt.show()
+        # chest        
+        # duration of continuous periods of actitity and inactivity in seconds
+        activity, inactivity = non_motion_periods(df_mag_chest)
+
+        df_a = pd.DataFrame(columns=['night', 'location', 'activity','inactivity'])
+        df_a['activity'] = activity
+        df_a['inactivity'] = inactivity
+        df_a['night'] = night_num
+        df_a['location'] = 'chest'
+
+        max_list_chest.append(df_a['inactivity'].max())
+        # print(df_a.head())
+        df_freqs=pd.concat([df_freqs, df_a], ignore_index=True)
+        # chest
+        # thigh        
+        # duration of continuous periods of actitity and inactivity in seconds
+        activity, inactivity = non_motion_periods(df_mag_thigh)
+
+        df_a = pd.DataFrame(columns=['night', 'location', 'activity','inactivity'])
+        df_a['activity'] = activity
+        df_a['inactivity'] = inactivity
+        df_a['night'] = night_num
+        df_a['location'] = 'thigh'
+
+        max_list_thigh.append(df_a['inactivity'].max())
+        # print(df_a.head())
+        df_freqs=pd.concat([df_freqs, df_a], ignore_index=True)
+        # thigh
+
+        # print('activity: ', len(activity), activity)
+        # print('inactivity: ', len(inactivity), inactivity)
+
+    # df_night = df.loc[(df['Date']==day_now) & (df[' Time']>=time0) & (df[' Time']<=time1), ['Date',' Time',' Axis1','Axis2','Axis3','Vector Magnitude']]
+
+    print('maxlistchest: ', max_list_chest)
+    print('maxlistthigh: ', max_list_thigh)
+
+    print('df_freqs.head: ', df_freqs.head())
+
+    max_yaxis = max(np.amax(max_list_chest[:-1]), np.amax(max_list_thigh[:-1]))
+
+    df_c = df_freqs.loc[(df_freqs['night']!=7) & (df_freqs['location']=='chest')]
+    function_boxplot(df_c, max_yaxis, 'inactivity periods recorded on the chest')
+
+    df_t = df_freqs.loc[(df_freqs['night']!=7) & (df_freqs['location']=='thigh')]
+    function_boxplot(df_t, max_yaxis, 'inactivity periods recorded on the thigh')
+
+
+        # plot them using box-plots
+
+        # plt.subplot(211)
+        # activityHistogram(activity, inactivity)
+
+    # nights_list = df_thigh['night'].unique().tolist()
+    # for night_num in nights_list[:1]:
+    #     mag_col = df_thigh.loc[(df_thigh['night']==night_num), ['Vector Magnitude']]
+    #     activity, inactivity = non_motion_periods(mag_col)
+        # plt.subplot(212)
+        # activityHistogram(activity, inactivity)
+
+    # plt.show()
+
 
 
 
