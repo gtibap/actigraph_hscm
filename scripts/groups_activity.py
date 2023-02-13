@@ -419,6 +419,7 @@ if __name__== '__main__':
         small_gap =  inactivity < min_gap
         print('small_gap: ', small_gap)
     
+        long_result = np.array([])
         new_activity = list()
         count_groups=0
         id_ac = 0
@@ -426,23 +427,52 @@ if __name__== '__main__':
             id_in = 0
         else:
             id_in = 1
+            # number of zeros; one zero per second
+            long_result = np.concatenate((long_result, np.zeros(inactivity[0], np.int8)), axis=None)
         
         print('id_in: ', id_in)
         while id_ac < (len(activity)-1):
             acc_temp = activity[id_ac]
+            acc_neta = activity[id_ac]
             # true means that the gap is less than min_gap
             while (id_in < len(small_gap)) and (small_gap[id_in]) and (id_ac < (len(activity)-1)):
                 id_ac+=1
                 acc_temp += activity[id_ac]
+                acc_neta += activity[id_ac] + inactivity[id_in]
                 id_in+=1
             new_activity.append(acc_temp)
+            # 1 per activity group per second
+            # longitudinal_result.append(acc_neta*[1])
+            long_result = np.concatenate((long_result, np.ones(acc_neta,np.int8)), axis=None)
+            # 0 per inactivity group per second
+            # longitudinal_result.append(inactivity[id_in]*[0])
+            long_result = np.concatenate((long_result, np.zeros(inactivity[id_in],np.int8)), axis=None)
             count_groups+=1
             id_ac+=1
             id_in+=1
-
+        
         print('count_groups: ', count_groups)
         print('new_activity: ', new_activity)
+        print('longitudinal_result: ', len(long_result))
+        print('sum: ', np.sum(activity)+np.sum(inactivity))
+        # print('inactivity: ', inactivity)
+        # print('new_inacti: ', inactivity[inactivitymin_gap])
         # print('iqual? : ', np.sum(activity), np.sum(new_activity))
+
+        delta=60 # seconds
+        new_long = []
+        for idx in np.arange(0, len(long_result), delta):
+            new_long.append(np.sum(long_result[idx:idx+delta]))
+
+        print('new_long: ', new_long)
+        plt.figure()
+        plt.plot(long_result)
+        plt.figure()
+        plt.plot(new_long)
+
+        # plt.hist(long_result)
+        # mu, sigma = 100, 15
+        plt.show()
 
 
 
