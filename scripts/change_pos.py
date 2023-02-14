@@ -160,6 +160,7 @@ def active_periods(mag_col):
     # boolean array where True means activity higher than min_value
     active_arrray = mag_col['Inclinometer Off'].to_numpy()
     print('Inclinometer Off: ', active_arrray)
+    print('size Inclinometer Off: ', len(active_arrray))
     # comparison of active _array (boolean vector) with itself but moved one position. The idea is to identify changes--True to False or False to True.
     changes_array = active_arrray[:-1] != active_arrray[1:]
     # changes_array is a boolean vector; True means a change; False means no change
@@ -188,10 +189,23 @@ def active_periods(mag_col):
         duration_inactive = intervals[::2]
         start_active = True
 
+    #  from last changed in the vector until the end of it. Minus 1 because we added 1 in initial_value
+    last_period = len(active_arrray) - idx_changes[-1] - 1 
+    
+    # if Inclinometer Off finished as 1
+    if active_arrray[-1] == True:
+        duration_active = np.concatenate([duration_active, last_period], axis=None)
+    else:
+        duration_inactive = np.concatenate([duration_inactive, last_period], axis=None)
+
+    # print('last period: ', last_period)
+    # print('last index change: ', idx_changes[-1])
+    # print('last value active_arrray: ', active_arrray[-1])
+    # print('size active + inactive: ', np.sum(duration_active)+np.sum(duration_inactive))
     # print('duration_active: ', duration_active)
     # print('duration_inactive: ', duration_inactive)
     # sum of 1 to idx_changes because the changes_array vector is one element smaller than active_arrray (original data)
-    return idx_changes+1, duration_active, duration_inactive, start_active
+    return duration_active, duration_inactive, start_active
 
 def linear_function(duration, weight):
     elements_list=[]
@@ -222,6 +236,19 @@ def pressure(duration_active, duration_inactive, start_active):
             values=vi+full_vector[-1]
             values[values<0]=0
             full_vector=np.concatenate((full_vector,values),axis=None)
+
+        # print('len acti: ', len(values_active), len(values_inactive))
+        # this section includes the last part of the signal (in some cases it is not included)
+        if len(values_active) > len(values_inactive):
+            values = values_active[-1]+full_vector[-1]
+            values[values<0]=0
+            full_vector=np.concatenate((full_vector,values[:-1]),axis=None)
+        elif len(values_active) < len(values_inactive):
+            values=values_inactive[-1]+full_vector[-1]
+            values[values<0]=0
+            full_vector=np.concatenate((full_vector,values[:-1]),axis=None)
+        else:
+            pass
     else:
         for va, vi in zip(values_active, values_inactive):
             # first data of inactivity
@@ -232,16 +259,51 @@ def pressure(duration_active, duration_inactive, start_active):
             values = va+full_vector[-1]
             values[values<0]=0
             full_vector=np.concatenate((full_vector,values),axis=None)
+
+        # print('len iiacti: ', len(values_active), len(values_inactive))
+        # this section includes the last part of the signal (in some cases it is not included)
+        if len(values_active) > len(values_inactive):
+            values = values_active[-1]+full_vector[-1]
+            values[values<0]=0
+            full_vector=np.concatenate((full_vector,values[:-1]),axis=None)
+        elif len(values_active) < len(values_inactive):
+            values=values_inactive[-1]+full_vector[-1]
+            values[values<0]=0
+            full_vector=np.concatenate((full_vector,values[:-1]),axis=None)
+        else:
+            pass
             
     return full_vector
+
+
+def plot_two_in_one(data1, data2):
+
+    t = np.arange(0, len(data1))
+    fig, ax1 = plt.subplots()
+
+    color = 'tab:green'
+    ax1.set_xlabel('time (s)')
+    ax1.set_ylabel('Pressure', color=color)
+    ax1.plot(t, data1, color=color)
+    ax1.tick_params(axis='y', labelcolor=color)
+
+    ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
+
+    color = 'tab:blue'
+    ax2.set_ylabel('Inclinometer Off', color=color)  # we already handled the x-label with ax1
+    ax2.plot(t, data2, color=color, alpha=0.5)
+    ax2.tick_params(axis='y', labelcolor=color)
+
+    fig.tight_layout()  # otherwise the right y-label is slightly clipped
+    plt.show()
 
 
 def indices_postures(df1):
     nights_list = df1['night'].unique().tolist()
 
-    for night_num in nights_list[1:2]:
+    for night_num in nights_list[:1]:
         df1_off = df1.loc[(df1['night']==night_num), [' Time','Inclinometer Off']]
-        indices, duration_active, duration_inactive, start_active = active_periods(df1_off)
+        duration_active, duration_inactive, start_active = active_periods(df1_off)
         # print('indices: ', indices)
         # print('start active: ', start_active)
         # print('duration_active: ', duration_active)
@@ -249,15 +311,21 @@ def indices_postures(df1):
 
         data_pressure = pressure(duration_active, duration_inactive, start_active)
 
-        df1_off.plot()
-        plt.figure()
-        plt.plot(data_pressure)
-        plt.show()
+        # df1_off.plot()
+        # plt.figure()
+        # plt.plot(data_pressure)
+        # plt.show()
+
+        inclinometer_off = df1_off['Inclinometer Off'].to_numpy()
+        plot_two_in_one(data_pressure, inclinometer_off)
+
+
 
         # print(df1_off.columns)
         # print(df1_off.head)
         # print(df1_off.info())
 
+        # print('data pressure: ', len(data_pressure))
 
 
     return
