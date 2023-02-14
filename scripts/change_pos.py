@@ -150,6 +150,117 @@ def plot_pos(df1):
         # df_night.plot(x=' Time', y='Vector Magnitude', , ax=axes[row,col])
     return
 
+def active_periods(mag_col):
+    # nights_list = df['night'].unique().tolist()
+    min_value = 3 # min intensity value
+    # for night_num in nights_list[:1]:
+    # mag_col = df.loc[(df['night']==night_num), ['Vector Magnitude']]
+
+    # mag_col['active'] = mag_col['Inclinometer Off'] > min_value
+    # boolean array where True means activity higher than min_value
+    active_arrray = mag_col['Inclinometer Off'].to_numpy()
+    print('Inclinometer Off: ', active_arrray)
+    # comparison of active _array (boolean vector) with itself but moved one position. The idea is to identify changes--True to False or False to True.
+    changes_array = active_arrray[:-1] != active_arrray[1:]
+    # changes_array is a boolean vector; True means a change; False means no change
+    # print('changes: ', changes_array)
+    # indices or location of Trues (changes) values
+    
+    idx_changes = np.flatnonzero(changes_array) 
+    # print('idx_changes: ', idx_changes)
+    # print(active_arrray[idx_changes])
+    # distance between two consecutive changes (time in our case)
+    intervals = idx_changes[1:]-idx_changes[:-1]
+    # print('intervals: ', intervals)
+
+    # period before the first detection of change in activity
+    initial_value = [idx_changes[0] + 1]
+    # if false means that the collected data start with inactivity. The first detected change is from inactivity to activity; therefore, the intervals[0] is the first period of activity
+    
+    if active_arrray[idx_changes[0]]==False:
+        # alternance between activity and inactivity
+        duration_active = intervals[::2]
+        duration_inactive = np.concatenate([initial_value, intervals[1::2]])
+        start_active = False
+    else:
+        # alternance between activity and inactivity
+        duration_active = np.concatenate([initial_value, intervals[1::2]])
+        duration_inactive = intervals[::2]
+        start_active = True
+
+    # print('duration_active: ', duration_active)
+    # print('duration_inactive: ', duration_inactive)
+    # sum of 1 to idx_changes because the changes_array vector is one element smaller than active_arrray (original data)
+    return idx_changes+1, duration_active, duration_inactive, start_active
+
+def linear_function(duration, weight):
+    elements_list=[]
+    for each_period in duration:
+        # starting in 1 is better than in 0
+        values_t = np.arange(1,each_period+1) * weight
+        elements_list.append(values_t)
+    return elements_list
+
+
+def pressure(duration_active, duration_inactive, start_active):
+    w_act =  1 # coefficient linear fuction y=(w_act)*t
+    w_ina = -10 # coefficient linear fuction y=(w_ina)*t
+    initial_value = 0 # initial pressure value
+    values_active = linear_function(duration_active, w_act)
+    values_inactive = linear_function(duration_inactive, w_ina)
+    
+    # vector initialization
+    full_vector = np.array([initial_value])
+    
+    if start_active == True:
+        for va, vi in zip(values_active, values_inactive):
+            # first data of activity
+            values = va+full_vector[-1]
+            values[values<0]=0
+            full_vector=np.concatenate((full_vector,values),axis=None)
+            # then data of inactivity
+            values=vi+full_vector[-1]
+            values[values<0]=0
+            full_vector=np.concatenate((full_vector,values),axis=None)
+    else:
+        for va, vi in zip(values_active, values_inactive):
+            # first data of inactivity
+            values=vi+full_vector[-1]
+            values[values<0]=0
+            full_vector=np.concatenate((full_vector,values),axis=None)
+            # then data of activity
+            values = va+full_vector[-1]
+            values[values<0]=0
+            full_vector=np.concatenate((full_vector,values),axis=None)
+            
+    return full_vector
+
+
+def indices_postures(df1):
+    nights_list = df1['night'].unique().tolist()
+
+    for night_num in nights_list[1:2]:
+        df1_off = df1.loc[(df1['night']==night_num), [' Time','Inclinometer Off']]
+        indices, duration_active, duration_inactive, start_active = active_periods(df1_off)
+        # print('indices: ', indices)
+        # print('start active: ', start_active)
+        # print('duration_active: ', duration_active)
+        # print('duration_inactive: ', duration_inactive)
+
+        data_pressure = pressure(duration_active, duration_inactive, start_active)
+
+        df1_off.plot()
+        plt.figure()
+        plt.plot(data_pressure)
+        plt.show()
+
+        # print(df1_off.columns)
+        # print(df1_off.head)
+        # print(df1_off.info())
+
+
+
+    return
 
 ####### main function ###########
 if __name__== '__main__':
@@ -175,9 +286,9 @@ if __name__== '__main__':
     # time_end='10:00:00'
     # same_day=False
 
-    time_start='09:00:00'
-    time_end='11:59:00'
-    same_day=True
+    time_start='22:00:00'
+    time_end='10:00:00'
+    same_day=False
 
 
     df_chest = getSelectedData(df1, time_start, time_end, same_day)
@@ -185,6 +296,8 @@ if __name__== '__main__':
 
     # print(df_chest.info())
 
-    plot_pos(df_chest)
-    plt.show()
+    # plot_pos(df_chest)
+    # plt.show()
+
+    indices_postures(df_chest)
     
