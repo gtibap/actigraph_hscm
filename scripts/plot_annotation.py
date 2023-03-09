@@ -1,5 +1,6 @@
 # plotting actigraphy data
 import numpy as np
+from numpy.fft import fft
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -7,6 +8,8 @@ from matplotlib.lines import Line2D
 import datetime
 import os
 import sys
+
+
 from functions_tools import getSelectedData
 from functions_tools import plot_night_zoom
 
@@ -40,27 +43,38 @@ def on_press(event):
         # xl.set_visible(not visible)
         xmin= idx_ini[idx_number] 
         xmax=idx_end[idx_number]  
-        delta_t = idx_end[idx_number]-idx_ini[idx_number]
+        # delta_t = idx_end[idx_number]-idx_ini[idx_number]
+        delta_t = xmax-xmin
 
-        print('min max: ', type(xmin), type(xmax), xmin, xmax)
-        print('vec_mag[xmin:xmax]: ', values_mag[xmin:xmax])
+        # print('min max: ', type(xmin), type(xmax), xmin, xmax)
+        # print('vec_mag[xmin:xmax]: ', values_mag[xmin:xmax])
         ampl = np.amax(values_mag[xmin:xmax])
+        # rms_t = np.sqrt(np.mean(values_mag[xmin:xmax]**2)) * delta_t
+        average_t = np.mean(values_mag[xmin:xmax]) * delta_t
 
-        print('xmin, xmax: ',xmin, xmax)
+        # print('xmin, xmax: ',xmin, xmax)
         
-        axes[0].set_xlim([xmin- 120, xmax+ 120]) # an additional window of 10 min (600s) to the left
-        axes[1].set_xlim([xmin- 120, xmax+ 120]) # an additional window of 10 min (600s) to the left
-        
-        axes[0].set_title("duration "+str(delta_t)+'s '+' amplitude:'+str(ampl))
+        # x-range of visualization 
+        width = 120
+        axes[0].set_xlim([xmin- width, xmax+ width]) # an additional window of 10 min (600s) to the left
+        axes[0].set_title("duration "+str(delta_t)+'s '+' amplitude:'+str(ampl) + ' rms:'+ str(round(average_t, 2)))
 
-        # hight = max(values_mag[xmin:xmax])
-        hight = -5
-        axes[0].plot(np.arange(xmin-1,xmax+1), hight*np.ones((xmax-xmin+2)) , 'm')
+        # underlining the current signal segment
+        offset = -5
+        axes[0].plot(np.arange(xmin-1,xmax+1), offset*np.ones((xmax-xmin+2)) , 'm')
 
+        # redrawing the plot
         fig.canvas.draw()
         
-        axes[0].plot(np.arange(xmin-1,xmax+1), hight*np.ones((xmax-xmin+2)) , 'w')
+        # white underlining the previous signal segment
+        axes[0].plot(np.arange(xmin-1,xmax+1), offset*np.ones((xmax-xmin+2)) , 'w')
         idx_number+=1
+
+    elif event.key == 'e':
+        print('espontaneous motion')
+        
+    
+
 
 
 def plot_active_seg(df_n):
@@ -74,7 +88,20 @@ def plot_active_seg(df_n):
 
     fig.canvas.mpl_connect('key_press_event', on_press)    
 
+    rms_values = window_rms(values_mag, 2)
+    
+    # X = fft(values_mag)
+    # N = len(X)
+    # n = np.arange(N)
+    # T = N/1
+    # freq = n/T 
+
+    # plt.figure()
+    # plt.stem(freq, np.abs(X), 'b', markerfmt=" ", basefmt="-b")
+    # plt.show()
+
     axes[0].plot(values_mag)
+    # axes[1].plot(rms_values)
     axes[1].plot(values_off)
     axes[2].plot(values_lyi)
     axes[3].plot(values_sit)
@@ -89,11 +116,15 @@ def plot_active_seg(df_n):
     axes[4].set_ylabel('inc. sta')
 
     plt.show()
-
-
-    
-    
+ 
     return
+
+
+def window_rms(a, window_size):
+  a2 = np.power(a,2)
+  window = np.ones(window_size)/float(window_size)
+  return np.sqrt(np.convolve(a2, window, 'valid'))
+
 
 ####### main function ###########
 if __name__== '__main__':
@@ -140,7 +171,9 @@ if __name__== '__main__':
                 idx_end = df_a['t_end'].to_numpy()
                 # print(df_n.info())
                 # print(df_a.info())
+
                 plot_active_seg(df_n)
+
 
                 # plot_night_zoom(df_n, incl_off, filename=sample)
             
