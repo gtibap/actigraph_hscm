@@ -54,7 +54,7 @@ def non_motion_periods(mag_col):
     return duration_active, duration_inactive, start_active
 
 
-def activity_sectors(df, vector_mag, min_value, min_gap):
+def activity_sectors(activity_arrray):
     
     # nights_list = df['night'].unique().tolist()
     # min_value = 3 # min intensity value
@@ -62,9 +62,9 @@ def activity_sectors(df, vector_mag, min_value, min_gap):
     # mag_col = df.loc[(df['night']==night_num), ['Vector Magnitude']]
     # min_gap = 10 # seconds
 
-    df['activity'] = df[vector_mag] > min_value
-    # boolean array where True means activity higher than min_value
-    activity_arrray = df['activity'].to_numpy()
+    # df['activity'] = df[vector_mag] > min_value
+    # # boolean array where True means activity higher than min_value
+    # activity_arrray = df['activity'].to_numpy()
     # print('active_arrray: ', active_arrray)
     # comparison of active _array (boolean vector) with itself but moved one position. The idea is to identify changes--True to False or False to True.
     
@@ -106,6 +106,11 @@ def activity_sectors(df, vector_mag, min_value, min_gap):
     # time-intervals motion and non-motion per night
     print('duration_active: ', duration_active)
     print('duration_inactive: ', duration_inactive)
+
+    return duration_active, duration_inactive, start_active, end_active
+
+
+def redefinition_activity(duration_active, duration_inactive, start_active, end_active, min_gap):
 
     # construction of a new_activity_array. In this case, we convert inactivity periods less than 10s to activity ones
     new_activity_array=np.array([])
@@ -151,8 +156,8 @@ def activity_sectors(df, vector_mag, min_value, min_gap):
 
 
     
-    print('len(new_activity_array): ', len(new_activity_array))
-    print('len(activity_array): ', len(activity_arrray))
+    # print('len(new_activity_array): ', len(new_activity_array))
+    # print('len(activity_array): ', len(activity_arrray))
 
     # fig, axes = plt.subplots(nrows=3, ncols=1, sharex=True)
     # axes[0].plot(df[vector_mag].to_numpy())
@@ -172,24 +177,48 @@ def activity_intervals(activity_vector):
     idx_changes = np.flatnonzero(changes_activity) + 1
 
     # at least three detected changes
-    if len(idx_changes) > 3:
-        if activity_vector[0]==False:
-            idx_ini=idx_changes[0::2]
-            idx_end=idx_changes[1::2]
-        else:
-            idx_ini=idx_changes[1::2]
-            idx_end=idx_changes[2::2]
-
-        # removing the initial index of the last sector if it has not finished
-        if activity_vector[-1]==True:
-            idx_ini=idx_ini[0:-1]
-        else:
-            pass
+    
+    if activity_vector[0]==False:
+        idx_ini=idx_changes[0::2]
+        idx_end=idx_changes[1::2]
     else:
-        idx_ini=[0]
-        idx_end=[0]
+        idx_ini=np.concatenate((0, idx_changes[1::2]), axis=None)
+        idx_end=idx_changes[0::2]
 
-    return idx_ini.astype(np.uint32), idx_end.astype(np.uint32)
+    # if the activity finished active (1), the last idx_end is the size of the activity array
+    if activity_vector[-1]==True:
+        idx_end=np.concatenate([idx_end, len(activity_vector)], axis=None)
+    else:
+        pass
+
+    return idx_ini, idx_end
+
+
+def non_activity_intervals(activity_vector):
+
+    changes_activity = activity_vector[:-1] != activity_vector[1:]
+    # changes_array is a boolean vector; True means a change; False means no change
+    # indices or location of Trues (changes) values; +1 because I want the index when the data already changed from left to right
+    idx_changes = np.flatnonzero(changes_activity) + 1
+
+    # at least three detected changes
+    
+    if activity_vector[0]==False:
+        idx_ini=np.concatenate((0, idx_changes[1::2]), axis=None)
+        idx_end=idx_changes[0::2]
+    else:
+        idx_ini=idx_changes[0::2]
+        idx_end=idx_changes[1::2]
+
+    # if the activity finished active (1), the last idx_end is the size of the activity array
+    if activity_vector[-1]==False:
+        idx_end=np.concatenate([idx_end, len(activity_vector)], axis=None)
+    else:
+        pass
+
+
+    return idx_ini, idx_end
+
 
 ####### main function ###########
 if __name__== '__main__':
@@ -226,7 +255,10 @@ if __name__== '__main__':
             # plot 'Vector Magnitude' night by night
             nights_list = df_nights['night'].unique().tolist()
             # print('nights: ', nights_list)
-            df_active_nights = pd.DataFrame(columns=['night','t_ini','t_end'])
+            
+            df_active_nights = pd.DataFrame()
+            df_non_active_nights = pd.DataFrame()
+
             for night_num in nights_list:
                 # print('night: ', night_num)
                 df_n = df_nights.loc[(df_nights['night']==night_num), [vec_mag]]
@@ -237,20 +269,46 @@ if __name__== '__main__':
                 # identifying sectors of activity per night where gaps of 10s of inactivity are considered part of the activity section
                 min_gap=10 # seconds
                 min_value=3 # Vector Magnitude should be greater than this value to be considered as a valid motor activity
-                activity_vector=activity_sectors(df_n, vec_mag, min_value, min_gap)
+
+                df_n['activity'] = df_n[vec_mag] > min_value
+                # boolean array where True means activity higher than min_value
+                activity_vector = df_n['activity'].to_numpy()
+
+                duration_active, duration_inactive, start_active, end_active=activity_sectors(activity_vector)
+
+                activity_vector=redefinition_activity(duration_active, duration_inactive, start_active, end_active, min_gap)
+
+                duration_active, duration_inactive, start_active, end_active=activity_sectors(activity_vector)
                 
+                #########
                 idx_ini, idx_end = activity_intervals(activity_vector)
-                print('idx_ini: ', len(idx_ini), idx_ini)
-                print('idx_end: ', len(idx_end), idx_end)
-                df_act_night = pd.DataFrame(columns=['night','t_ini','t_end'])
+
+                # print('idx_ini: ', len(idx_ini), idx_ini)
+                # print('idx_end: ', len(idx_end), idx_end)
+                
+                df_act_night = pd.DataFrame()
                 df_act_night['t_ini']=idx_ini
                 df_act_night['t_end']=idx_end
                 df_act_night['night']=night_num
+                df_act_night['duration']=duration_active
+
                 df_active_nights=pd.concat([df_active_nights, df_act_night], ignore_index=True)
+
+                #########
+                idx_ini, idx_end = non_activity_intervals(activity_vector)
+
+                df_non_act_night = pd.DataFrame()
+                df_non_act_night['t_ini']=idx_ini
+                df_non_act_night['t_end']=idx_end
+                df_non_act_night['night']=night_num
+                df_non_act_night['duration']=duration_inactive
+
+                df_non_active_nights=pd.concat([df_non_active_nights, df_non_act_night], ignore_index=True)
 
             # print(df_active_nights)
             # save on disk df_active_nights
             df_active_nights.to_csv(path_out+'active_'+sample, index=False)
+            df_non_active_nights.to_csv(path_out+'non_active_'+sample, index=False)
             
         except ValueError:
             print('Problem reading the file', sample, '... it is skipped.')

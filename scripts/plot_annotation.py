@@ -1,6 +1,7 @@
 # plotting actigraphy data
 import numpy as np
 from numpy.fft import fft
+from scipy.interpolate import UnivariateSpline
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -22,6 +23,7 @@ incl_lyi ='Inclinometer Lying'
 vec_mag  ='Vector Magnitude'
 
 fig, axes = plt.subplots(nrows=5, ncols=1, sharex=True)
+
 # xl = axes[1].set_xlabel('time (s)')
 idx_ini=np.array([])
 idx_end=np.array([])
@@ -52,10 +54,11 @@ def on_press(event):
         # rms_t = np.sqrt(np.mean(values_mag[xmin:xmax]**2)) * delta_t
         average_t = np.mean(values_mag[xmin:xmax]) * delta_t
 
+
         # print('xmin, xmax: ',xmin, xmax)
         
         # x-range of visualization 
-        width = 120
+        width = 240
         axes[0].set_xlim([xmin- width, xmax+ width]) # an additional window of 10 min (600s) to the left
         axes[0].set_title("duration "+str(delta_t)+'s '+' amplitude:'+str(ampl) + ' rms:'+ str(round(average_t, 2)))
 
@@ -88,20 +91,16 @@ def plot_active_seg(df_n):
 
     fig.canvas.mpl_connect('key_press_event', on_press)    
 
-    rms_values = window_rms(values_mag, 2)
+    # rms_values = window_rms(values_mag, 2)
     
-    # X = fft(values_mag)
-    # N = len(X)
-    # n = np.arange(N)
-    # T = N/1
-    # freq = n/T 
-
-    # plt.figure()
-    # plt.stem(freq, np.abs(X), 'b', markerfmt=" ", basefmt="-b")
-    # plt.show()
+    # x=np.arange(len(values_mag))
+    # f = UnivariateSpline(x, values_mag, s=10)
 
     axes[0].plot(values_mag)
-    # axes[1].plot(rms_values)
+    
+    # axes[1].plot(f(x))
+
+
     axes[1].plot(values_off)
     axes[2].plot(values_lyi)
     axes[3].plot(values_sit)
@@ -125,6 +124,10 @@ def window_rms(a, window_size):
   window = np.ones(window_size)/float(window_size)
   return np.sqrt(np.convolve(a2, window, 'valid'))
 
+
+def window_mean(a, window_size):
+  window = np.ones(window_size)/float(window_size)
+  return np.convolve(a, window, 'valid')
 
 ####### main function ###########
 if __name__== '__main__':
@@ -166,7 +169,9 @@ if __name__== '__main__':
             # print('nights: ', nights_list)
             for night_num in nights_list[:1]:
                 df_n = df_nights.loc[(df_nights['night']==night_num)]
-                df_a = df_active_nights.loc[(df_nights['night']==night_num)]
+
+
+                df_a = df_active_nights.loc[(df_active_nights['night']==night_num)]
                 idx_ini = df_a['t_ini'].to_numpy()
                 idx_end = df_a['t_end'].to_numpy()
                 # print(df_n.info())
