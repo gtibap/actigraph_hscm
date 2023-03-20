@@ -9,8 +9,8 @@ if __name__== '__main__':
     # read data Interface pressure
     path = '../data/interface_pressure/Gerardo_test/'
     filename='test_gerardo_1.csv'
-    filename_out_head = 'head_test_gerardo_1.csv'
-    filename_out_raw = 'raw_test_gerardo_1.'
+    head_file = 'head_'
+    raw_file = 'raw_'
 
     df = pd.DataFrame()
     # data_frame = np.array([],dtype=float)
@@ -40,14 +40,14 @@ if __name__== '__main__':
                     # print('df: ', df)
                     # np.concatenate([data_all,data_concat],a)
                     # data_frame = np.array([],dtype=float)
-                    print('data_frame:', data_frame.shape, '\n', data_frame)
+                    # print('data_frame:', data_frame.shape, '\n', data_frame)
                     if first_frame==True:
                         data_all=np.array([],dtype=float).reshape(0, data_frame.shape[0], data_frame.shape[1])
                         data_all = np.vstack([data_all, np.expand_dims(data_frame,axis=0)])
                         first_frame=False
                     else:
                         data_all = np.vstack([data_all, np.expand_dims(data_frame,axis=0)])
-                    print('data_all.shape: ', data_all.shape)
+                    # print('data_all.shape: ', data_all.shape)
                         
                     id_frame+=1
                 
@@ -57,7 +57,7 @@ if __name__== '__main__':
                 date_time = row[0].split()
                 # print(date_time, date_time.split())
                 day = date_time[0]
-                date = date_time[1] +'\\'+ date_time[2] +'\\'+ date_time[5]
+                date =  date_time[5] +'-'+ date_time[1] +'-'+ date_time[2]
                 hour = date_time[3]
                 am_pm = date_time[4]
 
@@ -76,4 +76,19 @@ if __name__== '__main__':
                     data_frame = np.vstack([data_frame, data_row])
                     # print(data_frame)                
                                     
-            
+        # the last frame
+        
+        cols_names= np.concatenate(['day','date','hour','am_pm'],axis=None)
+        cols_data = np.concatenate([day,date,hour,am_pm], axis=None)
+        df_row = pd.DataFrame([cols_data],columns=cols_names)
+
+        # print('df_row: ', df_row)
+        df = pd.concat([df,df_row],ignore_index=True)
+        data_all = np.vstack([data_all, np.expand_dims(data_frame,axis=0)])
+        # print('data_all.shape: ', data_all.shape)
+        # print(df)
+        # print('data_all.shape: ', data_all.shape)
+
+        df.to_csv(path+head_file+filename, index=False)
+        with open(path+raw_file+filename+'.npy', 'wb') as f:
+            np.save(f, data_all)
