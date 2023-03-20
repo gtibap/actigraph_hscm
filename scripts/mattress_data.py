@@ -1,13 +1,34 @@
 import numpy as np
 import pandas as pd
 import csv
+import datetime
+
+
+def hour_reformat(sel_hour):
+
+    hour_splitted = datetime.datetime.strptime(sel_hour, "%H:%M:%S:%f")
+
+    h=str(hour_splitted.hour).zfill(2)
+    m=str(hour_splitted.minute).zfill(2)
+    s=str(hour_splitted.second).zfill(2)
+    u_s = str(hour_splitted.microsecond)
+
+    hour_formatted=h+':'+m+':'+s+'.'+u_s
+    print(sel_hour, hour_formatted)
+    return hour_formatted
 
 ####### main function ###########
 if __name__== '__main__':
     # print('Interface Pressure Visualization')
     # read data Interface pressure
-    path = '../data/interface_pressure/Gerardo_test/'
-    filename='test_gerardo_1.csv'
+    # path = '../data/interface_pressure/Gerardo_test/'
+    # filename='test_gerardo_1.csv'
+    # head_file = 'head_'
+    # raw_file = 'raw_'
+
+    path = '../data/interface_pressure/Mattress_test/Gerardo_test/Mattress/'
+    filename_mattress_1='test_gerardo_1.csv'
+    filename_mattress_2='test_gerardo_2.csv'
     head_file = 'head_'
     raw_file = 'raw_'
 
@@ -19,6 +40,8 @@ if __name__== '__main__':
     first_frame=True
     first_line=True
     first_data_row=False
+
+    filename = filename_mattress_1
 
     id_frame=0
     with open(path+filename, 'r') as file:
@@ -57,7 +80,7 @@ if __name__== '__main__':
                 # print(date_time, date_time.split())
                 day = date_time[0]
                 date =  date_time[5] +'-'+ date_time[1] +'-'+ date_time[2]
-                hour = date_time[3]
+                hour = hour_reformat(date_time[3])
                 am_pm = date_time[4]
 
                 start_frame=False

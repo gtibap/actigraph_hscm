@@ -6,8 +6,14 @@ import csv
 if __name__== '__main__':
     # print('Interface Pressure Visualization')
     # read data Interface pressure
-    path = '../data/interface_pressure/Gerardo_test/'
-    filename='test_gerardo_1.csv'
+    # path = '../data/interface_pressure/Gerardo_test/'
+    # filename='test_gerardo_1.csv'
+    # head_file = 'head_'
+    # raw_file = 'raw_'
+
+    path = '../data/interface_pressure/Mattress_test/Gerardo_test/Mattress/'
+    filename_mattress_1='test_gerardo_1.csv'
+    filename_mattress_2='test_gerardo_2.csv'
     head_file = 'head_'
     raw_file = 'raw_'
 
@@ -19,6 +25,8 @@ if __name__== '__main__':
     first_frame=True
     first_line=True
     first_data_row=False
+
+    filename = filename_mattress_2
 
     id_frame=0
     with open(path+filename, 'r') as file:
