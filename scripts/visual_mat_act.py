@@ -1,21 +1,30 @@
 import numpy as np
 import pandas as pd
-import csv
-import cv2
 import matplotlib.pyplot as plt
 import datetime
 import sys
 
 ##########
 # global variables
-figure_1, ax_1 = plt.subplots(nrows=2, ncols=1, sharex=True, figsize=(8, 6))
+figure_1, ax_1 = plt.subplots(nrows=2, ncols=1, sharex=True)
 figure_2, ax_2 = plt.subplots(figsize=(6, 8))
+figure_3, ax_3 = plt.subplots(nrows=5, ncols=1, sharex=True)
+figure_4, ax_4 = plt.subplots(nrows=5, ncols=1, sharex=True)
+
 drawing = False
 x0=0
 y0=0
 x1=0
 y1=0
+id_frame=0
+id_frame_ini = 0
+id_frame_end = 0
 pressed_key='nan'
+incl_off ='Inclinometer Off'
+incl_sta ='Inclinometer Standing'
+incl_sit ='Inclinometer Sitting'
+incl_lyi ='Inclinometer Lying'
+vec_mag  ='Vector Magnitude'
 # global variables
 ##########
 
@@ -97,25 +106,55 @@ def average_data(df_head, raw_data):
     return df_ts, data_mean
 
 
-def plot_pressure(img):
-    global figure_2, ax_2
+def plot_inclinometers(df_sel, fig, ax, time, title):
 
-    ax_2.cla()
-    ax_2.imshow(img)
+    mag = df_sel[vec_mag].to_numpy()
+    off = df_sel[incl_off].to_numpy()
+    lyi = df_sel[incl_lyi].to_numpy()
+    sit = df_sel[incl_sit].to_numpy()
+    sta = df_sel[incl_sta].to_numpy()
 
-    figure_2.canvas.draw()
-    figure_2.canvas.flush_events()
+    for id in np.arange(5):
+        ax[id].cla()
+
+    ax[0].plot(mag)
+    ax[1].plot(off)
+    ax[2].plot(lyi)
+    ax[3].plot(sit)    
+    ax[4].plot(sta)   
+
+    # only one line may be specified; full height
+    for id in np.arange(5):
+        ax[id].axvline(x = time, color = 'r', label = 'axvline - full height')
+    
+
+    ax[0].set_title('actigraphy '+title)
+    ax[0].set_ylabel('mag')
+    ax[1].set_ylabel('off')
+    ax[2].set_ylabel('lyi')
+    ax[3].set_ylabel('sit')
+    ax[4].set_ylabel('sta')
+    ax[4].set_xlabel('time (s)')
+
+    fig.canvas.draw()
+    fig.canvas.flush_events()
 
     return
 
-def plot_actigraphy(img,chest,thigh,time):
+def plot_actigraphy(img, df_chest_a, df_thigh_a, time):
     global figure_1, figure_2, ax_1, ax_2
+
+    vm_chest = df_chest_a[vec_mag].to_numpy()
+    vm_thigh = df_thigh_a[vec_mag].to_numpy()
+    
+
     ax_1[0].cla()
     ax_1[1].cla()
     ax_2.cla()
 
-    ax_1[0].plot(thigh)
-    ax_1[1].plot(chest)
+    ax_1[0].plot(vm_chest)
+    ax_1[1].plot(vm_thigh)
+    
 
     # only one line may be specified; full height
     ax_1[0].axvline(x = time, color = 'r', label = 'axvline - full height')
@@ -123,8 +162,8 @@ def plot_actigraphy(img,chest,thigh,time):
 
     ax_2.imshow(img)
 
-    ax_1[0].legend(['thigh'])
-    ax_1[1].legend(['chest'])
+    ax_1[0].legend(['chest'])
+    ax_1[1].legend(['thigh'])
 
     ax_2.set_xlabel('pixel')
     ax_2.set_ylabel('pixel')
@@ -134,21 +173,28 @@ def plot_actigraphy(img,chest,thigh,time):
 
     figure_1.canvas.flush_events()
     figure_2.canvas.flush_events()
+    # plt.pause(0.5)
 
     return
 
 
 def onclick(event):
-    print('%s click: button=%d, x=%d, y=%d, xdata=%f, ydata=%f, name=%s' %
-          ('double' if event.dblclick else 'single', event.button,
-           event.x, event.y, event.xdata, event.ydata, event.name))
-   
+    global id_frame
+    # print('%s click: button=%d, x=%d, y=%d, xdata=%f, ydata=%f, name=%s' %
+        #   ('double' if event.dblclick else 'single', event.button,
+        #    event.x, event.y, event.xdata, event.ydata, event.name))
+    if event.xdata >= id_frame_ini and event.xdata < id_frame_end:
+        id_frame=int(event.xdata)
+    else:
+        pass
+    # print('mouse: ', event.xdata, id_frame_ini, id_frame_end, id_frame)
+    return
     
-
+   
 def on_press(event):
     global pressed_key
 
-    print('press', event.key)
+    print('pressed', event.key)
     pressed_key = event.key
     sys.stdout.flush()
 
@@ -159,53 +205,46 @@ def on_press(event):
 
 ####### main function ###########
 if __name__== '__main__':
+    
     # print('Interface Pressure Visualization')
     # read data Interface pressure
     path_mattress = '../data/mattress_actigraph/mattress/new_format/'
     path_actigraph = '../data/mattress_actigraph/actigraph/'
     
-    day_n='day_1' # ['day_0', 'day_1']
-    pp = 'p03' # ['p00','p01','p02','p03','p04']
+    day_n='day_1' # ['day_0', 'day_1'] day number
+    pp = 'p04' # ['p00','p01','p02','p03','p04'] subject number
+    nt='1' # ['1','2'] test number
+
     th = 'thigh.csv'
     ch = 'chest.csv'
     he = 'head_'
     ra = 'raw_'
-    ncsv = '1.csv' # ['1.csv','2.csv']
-    nnpz = '1.npz' # ['1.npz','2.npz']
+    
 
     
     filename_actigraph_chest= day_n+'_'+pp+'_'+ch
     filename_actigraph_thigh= day_n+'_'+pp+'_'+th
 
-    file_head= day_n+'_'+pp+'_'+ncsv
-    file_raw= day_n+'_'+pp+'_'+nnpz
-
-    # filename_mattress_2='test_gerardo_2.csv'
-    
-    # filename = filename_mattress_1
+    file_head= day_n+'_'+pp+'_'+nt+'.csv'
+    file_raw= day_n+'_'+pp+'_' +nt+'.npz'
 
     #########
     # loading data mattress pressure
-    df = pd.read_csv(path_mattress+he+file_head)
+    df_ma = pd.read_csv(path_mattress+he+file_head)
     
     with open(path_mattress+ra+file_raw, 'rb') as f:
         loaded=np.load(f)
         data_all = loaded['xyt']
 
-    print(df.info())
+    print(df_ma.info())
     print(data_all.shape)
 
-    df_f, frames_sec = average_data(df, data_all)
-    # print(df_f)
-    # print(frames_sec.shape)
+    df_f, frames_sec = average_data(df_ma, data_all)
+    print(df_f)
+    print(frames_sec.shape)
     
     #########
     # loading data actigraphy
-    incl_off ='Inclinometer Off'
-    incl_sta ='Inclinometer Standing'
-    incl_sit ='Inclinometer Sitting'
-    incl_lyi ='Inclinometer Lying'
-    vec_mag  ='Vector Magnitude'
 
     header_location=10
    # load actigraph data
@@ -220,34 +259,43 @@ if __name__== '__main__':
     df_chest_a = df_chest.loc[(df_chest[' Time']>=time_ini) & (df_chest[' Time']<=time_end)]
     df_thigh_a = df_thigh.loc[(df_thigh[' Time']>=time_ini) & (df_thigh[' Time']<=time_end)]
     
-    # # activate interactive mouse actions on window
-    # cv2.namedWindow('image')
-    # cv2.setMouseCallback('image',mouse_interact)
-
     # to run GUI event loop
     cid1 = figure_1.canvas.mpl_connect('button_press_event', onclick)
-    cid2 = figure_2.canvas.mpl_connect('button_press_event', onclick)
+    # cid2 = figure_2.canvas.mpl_connect('button_press_event', onclick)
+    cid3 = figure_3.canvas.mpl_connect('button_press_event', onclick)
+    cid4 = figure_4.canvas.mpl_connect('button_press_event', onclick)
+    
     figure_1.canvas.mpl_connect('key_press_event', on_press)
     figure_2.canvas.mpl_connect('key_press_event', on_press)
+    figure_3.canvas.mpl_connect('key_press_event', on_press)
+    figure_4.canvas.mpl_connect('key_press_event', on_press)
+    
     plt.ion()
     plt.show()
-    print('cid1: ', cid1)
-    print('cid2: ', cid2)
+    # print('cid1: ', cid1)
+    # print('cid2: ', cid2)
     
-
-    id_frame=0
     step=0
     exit_key=False
     flag =True
     flag_start=True
+    id_frame_ini = 0
+    id_frame_end = len(frames_sec)
 
 
     while (exit_key==False) and (id_frame <len(frames_sec)) and flag:
-
+        # print('id_frame: ',id_frame)
         frame=frames_sec[id_frame]
-       
-        plot_actigraphy(frame, df_chest_a[vec_mag].to_numpy(), df_thigh_a[vec_mag].to_numpy(), id_frame)
-        # plt.pause(.01)
+        # vm_chest = df_chest_a[vec_mag].to_numpy()
+        # vm_thigh = df_thigh_a[vec_mag].to_numpy()
+        # off_chest = df_chest_a[incl_off].to_numpy()
+        # off_thigh = df_thigh_a[incl_off].to_numpy()
+
+        # plot_actigraphy(frame, vm_chest, vm_thigh, off_chest, off_thigh, id_frame)
+        plot_actigraphy(frame, df_chest_a, df_thigh_a, id_frame)
+        plot_inclinometers(df_chest_a, figure_3, ax_3, id_frame, 'chest')
+        plot_inclinometers(df_thigh_a, figure_4, ax_4, id_frame, 'thigh')
+        plt.pause(0.5)
 
         # if flag_start == True:
         #     pressed_key = cv2.waitKey(0) # miliseconds
@@ -258,9 +306,9 @@ if __name__== '__main__':
         if pressed_key == 'x':
             print ("pressed x")
             exit_key=True
-        elif pressed_key == 'h':
+        elif pressed_key == 'm':
             step=1
-        elif pressed_key == 'd':
+        elif pressed_key == 'n':
             step=0
 
         # else:
@@ -272,5 +320,6 @@ if __name__== '__main__':
     
     # cv2.waitKey(0)
     # cv2.destroyAllWindows()
+
     plt.close('all')
     # plt.show()
