@@ -2,6 +2,16 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator    
 import numpy as np
+import datetime
+import sys
+
+###########
+# global variables
+t0=0
+t1=3600
+
+# global variables
+###########
 
 # Selecting data from time_0 to time_1 from all days. It could be from the same day or two consecutive days. For example, from 22h (current day) to 08h (next day), hence 'same_day=False'; from 17h to 19h same day ('same_day=True')
 # the function returns a DataFrame that includes the 'night' column (int from 1 - N), which allows to identify each selected period
@@ -40,6 +50,20 @@ def getSelectedData(df, time0, time1, same_day):
             df_all=pd.concat([df_all, df_night], ignore_index=True)
 
     return df_all
+
+###############################
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ###############################
@@ -100,9 +124,55 @@ def plot_night(df_night, inclinometer, filename='title'):
 
     return
 
+def redraw_par(x_values,vec_mag,inc_off):
+    global t0,t1
+    
+    x_v = x_values[t0:t1]
+    v_m =  vec_mag[t0:t1]
+    i_o =  inc_off[t0:t1]
+    print('t0 t1: ', t0/60, t1/60)
+
+    return x_v, v_m, i_o
+
+
+def update_par(x_values,vec_mag,inc_off):
+    global t0,t1
+    
+    t0=t1
+    t1=t1+3600
+    if (t1<len(x_values)):
+        x_v = x_values[t0:t1]
+        v_m =  vec_mag[t0:t1]
+        i_o =  inc_off[t0:t1]
+    else:
+        pass
+    print('t0 t1: ', t0/60, t1/60)
+
+    return x_v, v_m, i_o
+
+
+def on_press(event,fig,ax1,ax2, x_values,vec_mag,inc_off):
+    print('press', event.key)
+    sys.stdout.flush()
+    if event.key == 'x':
+        x_v, v_m, i_o = update_par(x_values,vec_mag,inc_off)
+        ax1.cla() 
+        ax2.cla() 
+        ax1.plot(x_v, v_m)
+        ax2.plot(x_v, i_o)
+    elif event.key == 'r':
+        x_v, v_m, i_o = redraw_par(x_values,vec_mag,inc_off)
+        ax1.cla() 
+        ax2.cla() 
+        ax1.plot(x_v, v_m)
+        ax2.plot(x_v, i_o)  
+        # fig.canvas.draw()
+    
+    fig.canvas.draw_idle()
 ###############################
 
 def plot_night_zoom(df_night, inclinometer, filename='title'):
+    global t0,t1
 
     print('plots subplots zoom')
     
@@ -116,16 +186,89 @@ def plot_night_zoom(df_night, inclinometer, filename='title'):
     # xdelta = 1 # seconds in one hour
     x_values = np.arange(xmin,xmax) / 60 #  in minutes
 
-    ax1=plt.subplot(211)
-    ax1.margins(0.05)           # Default margin is 0.05, value 0 means fit
-    ax1.plot(x_values, vec_mag)
+    x_v = x_values[t0:t1]
+    v_m =  vec_mag[t0:t1]
+    i_o =  inc_off[t0:t1]
 
-    ax2=plt.subplot(212, sharex=ax1)
+
+    fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
+
+    # ax1=plt.subplot(211)
+    fig.canvas.mpl_connect('key_press_event', lambda event: on_press(event, fig,ax1,ax2, x_values,vec_mag,inc_off))
+
+    ax1.margins(0.05)           # Default margin is 0.05, value 0 means fit
+    # ax1.plot(x_values, vec_mag)
+    ax1.plot(x_v, v_m)
+
+    # ax2=plt.subplot(212, sharex=ax1)
     ax2.margins(x=0, y=0.25)           # Default margin is 0.05, value 0 means fit
-    ax2.plot(x_values, inc_off)
+    # ax2.plot(x_values, inc_off)
+    ax2.plot(x_v, i_o)
 
     
     plt.show()
 
     return
+
+
+def average_frames_1s(df_head, raw_data):
+    # averaging of frames per second; example: 2 or 3 FPS (2Hz or 3Hz) will become 1 FPS 1Hz
+
+    data_mean=np.array([],dtype=float).reshape(0, raw_data.shape[1], raw_data.shape[2])
+    data_time=[]
+
+    id_sel=0
+    # print(len(raw_data))
+    while id_sel < len(raw_data):
+        sel_hour=df_head['hour'].values[id_sel]
+        # print("df['hour'].values[0]: ", sel_hour)
+        
+        hour_splitted = datetime.datetime.strptime(sel_hour, "%H:%M:%S.%f")
+        h=hour_splitted.hour
+        m=hour_splitted.minute
+        s=hour_splitted.second
+
+        h_inf =str(h).zfill(2)
+        m_inf =str(m).zfill(2)
+        s_inf =str(s).zfill(2)
+        
+        if s+1==60:
+            s_sup=str(0).zfill(2)
+            if m+1==60:
+                m_sup=str(0).zfill(2)
+                h_sup=str(h+1).zfill(2)
+            else:
+                m_sup=str(m+1).zfill(2)
+                h_sup=str(h).zfill(2)
+        else:
+            s_sup=str(s+1).zfill(2)
+            m_sup=str(m).zfill(2)
+            h_sup=str(h).zfill(2)
+        
+        # u_sec = str(hour_splitted.microsecond)
+        # print(hour+':'+min+':'+sec_inf+'.'+u_sec)
+
+        lim_inf = h_inf+':'+m_inf+':'+s_inf
+        lim_sup = h_sup+':'+m_sup+':'+s_sup
+
+        # print('lim_inf, lim_sup: ', lim_inf, lim_sup)
+
+        idx_s = df_head.loc[(df_head['hour']>= lim_inf) & (df_head['hour']<lim_sup)].index.values
+        # print(idx_s)
+
+        id_last = idx_s[-1]
+        id_sel = id_last+1
+
+        # indexes to average matrices of the mattress pressure
+        mean_sec = np.mean(raw_data[idx_s[0]:id_sel], axis=0)
+        
+        data_mean = np.vstack([data_mean, np.expand_dims(mean_sec,axis=0)])
+
+        data_time.append(lim_sup)
+
+        # print(idx_s, raw_data[idx_s[0]:id_sel].shape, mean_sec.shape, data_mean.shape, len(data_time), data_time[-1])
+
+    df_ts = pd.DataFrame(data_time,columns=['time_stamp'])
+
+    return df_ts, data_mean
 

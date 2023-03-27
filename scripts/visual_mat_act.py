@@ -198,10 +198,6 @@ def on_press(event):
     pressed_key = event.key
     sys.stdout.flush()
 
-    # if event.key == 'x':
-    #     visible = xl.get_visible()
-    #     xl.set_visible(not visible)
-    #     fig.canvas.draw()
 
 ####### main function ###########
 if __name__== '__main__':
@@ -212,7 +208,7 @@ if __name__== '__main__':
     path_actigraph = '../data/mattress_actigraph/actigraph/'
     
     day_n='day_1' # ['day_0', 'day_1'] day number
-    pp = 'p04' # ['p00','p01','p02','p03','p04'] subject number
+    pp = 'p03' # ['p00','p01','p02','p03','p04'] subject number
     nt='1' # ['1','2'] test number
 
     th = 'thigh.csv'
@@ -295,7 +291,7 @@ if __name__== '__main__':
         plot_actigraphy(frame, df_chest_a, df_thigh_a, id_frame)
         plot_inclinometers(df_chest_a, figure_3, ax_3, id_frame, 'chest')
         plot_inclinometers(df_thigh_a, figure_4, ax_4, id_frame, 'thigh')
-        plt.pause(0.5)
+        plt.pause(0.01)
 
         # if flag_start == True:
         #     pressed_key = cv2.waitKey(0) # miliseconds
