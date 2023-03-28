@@ -106,6 +106,69 @@ def average_data(df_head, raw_data):
     return df_ts, data_mean
 
 
+def select_frames_1s(df_head, raw_data):
+    # averaging of frames per second; 2 or 3 FPS (2Hz or 3Hz) will become 1 FPS 1Hz
+
+    data_mean=np.array([],dtype=float).reshape(0, raw_data.shape[1], raw_data.shape[2])
+    data_time=[]
+
+    id_sel=0
+    # print(len(raw_data))
+    while id_sel < len(raw_data):
+        sel_hour=df_head['hour'].values[id_sel]
+        # print("df['hour'].values[0]: ", sel_hour)
+        
+        hour_splitted = datetime.datetime.strptime(sel_hour, "%H:%M:%S.%f")
+        h=hour_splitted.hour
+        m=hour_splitted.minute
+        s=hour_splitted.second
+
+        h_inf =str(h).zfill(2)
+        m_inf =str(m).zfill(2)
+        s_inf =str(s).zfill(2)
+        
+        if s+1==60:
+            s_sup=str(0).zfill(2)
+            if m+1==60:
+                m_sup=str(0).zfill(2)
+                h_sup=str(h+1).zfill(2)
+            else:
+                m_sup=str(m+1).zfill(2)
+                h_sup=str(h).zfill(2)
+        else:
+            s_sup=str(s+1).zfill(2)
+            m_sup=str(m).zfill(2)
+            h_sup=str(h).zfill(2)
+        
+        # u_sec = str(hour_splitted.microsecond)
+        # print(hour+':'+min+':'+sec_inf+'.'+u_sec)
+
+        lim_inf = h_inf+':'+m_inf+':'+s_inf
+        lim_sup = h_sup+':'+m_sup+':'+s_sup
+
+        # print('lim_inf, lim_sup: ', lim_inf, lim_sup)
+
+        idx_s = df_head.loc[(df_head['hour']>= lim_inf) & (df_head['hour']<lim_sup)].index.values
+        # print(idx_s)
+
+        id_last = idx_s[-1]
+        id_sel = id_last+1
+
+        # indexes to average matrices of the mattress pressure
+        # mean_sec = np.mean(raw_data[idx_s[0]:id_sel], axis=0)
+        selected_frame = raw_data[id_last]
+        
+        data_mean = np.vstack([data_mean, np.expand_dims(selected_frame,axis=0)])
+
+        data_time.append(lim_sup)
+
+        # print(idx_s, raw_data[idx_s[0]:id_sel].shape, mean_sec.shape, data_mean.shape, len(data_time), data_time[-1])
+
+    df_ts = pd.DataFrame(data_time,columns=['time_stamp'])
+
+    return df_ts, data_mean
+
+
 def plot_inclinometers(df_sel, fig, ax, time, title):
 
     mag = df_sel[vec_mag].to_numpy()
@@ -208,8 +271,8 @@ if __name__== '__main__':
     path_actigraph = '../data/mattress_actigraph/actigraph/'
     
     day_n='day_1' # ['day_0', 'day_1'] day number
-    pp = 'p03' # ['p00','p01','p02','p03','p04'] subject number
-    nt='1' # ['1','2'] test number
+    pp = 'p00' # ['p00','p01','p02','p03','p04'] subject number
+    nt='2' # ['1','2'] test number
 
     th = 'thigh.csv'
     ch = 'chest.csv'
@@ -235,7 +298,9 @@ if __name__== '__main__':
     print(df_ma.info())
     print(data_all.shape)
 
-    df_f, frames_sec = average_data(df_ma, data_all)
+    # df_f, frames_sec = average_data(df_ma, data_all)
+    df_f, frames_sec = select_frames_1s(df_ma, data_all)
+    
     print(df_f)
     print(frames_sec.shape)
     
@@ -291,7 +356,7 @@ if __name__== '__main__':
         plot_actigraphy(frame, df_chest_a, df_thigh_a, id_frame)
         plot_inclinometers(df_chest_a, figure_3, ax_3, id_frame, 'chest')
         plot_inclinometers(df_thigh_a, figure_4, ax_4, id_frame, 'thigh')
-        plt.pause(0.01)
+        plt.pause(0.1)
 
         # if flag_start == True:
         #     pressed_key = cv2.waitKey(0) # miliseconds
@@ -311,7 +376,7 @@ if __name__== '__main__':
         #     print('id frame: ', id_frame, df_f.iloc[id_frame]['time_stamp'])
         #     id_frame+=1
 
-        # print('id frame: ', id_frame, df_f.iloc[id_frame]['time_stamp'])
+        print('id frame: ', id_frame, df_f.iloc[id_frame]['time_stamp'])
         id_frame+=step
     
     # cv2.waitKey(0)
