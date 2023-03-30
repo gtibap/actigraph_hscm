@@ -3,19 +3,21 @@ import pandas as pd
 import csv
 import datetime
 import os
+import re
 
 
 def hour_reformat(sel_hour):
 
-    hour_splitted = datetime.datetime.strptime(sel_hour, "%H:%M:%S:%f")
+    h,m,s,m_s=re.split('[:]', sel_hour)
+    
+    h=str(h).zfill(2)
+    m=str(m).zfill(2)
+    s=str(s).zfill(2)
+    m_s = str(m_s).zfill(3)
 
-    h=str(hour_splitted.hour).zfill(2)
-    m=str(hour_splitted.minute).zfill(2)
-    s=str(hour_splitted.second).zfill(2)
-    u_s = str(hour_splitted.microsecond)
+    # print(f'{h}:{m}:{s}:{m_s}')
 
-    hour_formatted=h+':'+m+':'+s+'.'+u_s
-    # print(sel_hour, hour_formatted)
+    hour_formatted=h+':'+m+':'+s+'.'+m_s
     return hour_formatted
 
 ####### main function ###########
@@ -30,7 +32,7 @@ if __name__== '__main__':
     path = '../data/mattress_actigraph/mattress/'
     ori_dir = 'original/'
     new_dir = 'new_format/' 
-    day_n = 'day_1'
+    day_n = 'day02'
 
     input_dir = path+ori_dir
     output_dir = path+new_dir
@@ -50,6 +52,7 @@ if __name__== '__main__':
     print(file_names)
 
     for filename in file_names:
+        # print('filename: ', filename)
 
         df = pd.DataFrame()
         # data_frame = np.array([],dtype=float)
@@ -116,8 +119,6 @@ if __name__== '__main__':
             print('writing...')
             print(df.info())
             print('data shape:', data_all.shape)
-
-
 
             df.to_csv(output_dir+head_file+filename, index=False)
             nfn = os.path.splitext(filename)

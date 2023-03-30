@@ -1,8 +1,11 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 import datetime
+import re
 import sys
+
 
 ##########
 # global variables
@@ -16,9 +19,13 @@ x0=0
 y0=0
 x1=0
 y1=0
+y_max=250
 id_frame=0
 id_frame_ini = 0
 id_frame_end = 0
+id_act=0
+
+flag_start=True
 pressed_key='nan'
 incl_off ='Inclinometer Off'
 incl_sta ='Inclinometer Standing'
@@ -56,10 +63,12 @@ def average_data(df_head, raw_data):
         sel_hour=df_head['hour'].values[id_sel]
         # print("df['hour'].values[0]: ", sel_hour)
         
-        hour_splitted = datetime.datetime.strptime(sel_hour, "%H:%M:%S.%f")
-        h=hour_splitted.hour
-        m=hour_splitted.minute
-        s=hour_splitted.second
+        # hour_splitted = datetime.datetime.strptime(sel_hour, "%H:%M:%S.%f")
+        # h=hour_splitted.hour
+        # m=hour_splitted.minute
+        # s=hour_splitted.second
+
+        h,m,s,m_s=re.split('[:]', sel_hour)
 
         h_inf =str(h).zfill(2)
         m_inf =str(m).zfill(2)
@@ -118,10 +127,12 @@ def select_frames_1s(df_head, raw_data):
         sel_hour=df_head['hour'].values[id_sel]
         # print("df['hour'].values[0]: ", sel_hour)
         
-        hour_splitted = datetime.datetime.strptime(sel_hour, "%H:%M:%S.%f")
-        h=hour_splitted.hour
-        m=hour_splitted.minute
-        s=hour_splitted.second
+        # hour_splitted = datetime.datetime.strptime(sel_hour, "%H:%M:%S.%f")
+        # h=hour_splitted.hour
+        # m=hour_splitted.minute
+        # s=hour_splitted.second
+
+        h,m,s,m_s= np.array(re.split('[:.]', sel_hour), int)
 
         h_inf =str(h).zfill(2)
         m_inf =str(m).zfill(2)
@@ -151,9 +162,11 @@ def select_frames_1s(df_head, raw_data):
         idx_s = df_head.loc[(df_head['hour']>= lim_inf) & (df_head['hour']<lim_sup)].index.values
         # print(idx_s)
 
-        id_last = idx_s[-1]
+        # id_last = idx_s[-1]
+        id_last = np.amax(idx_s)
         id_sel = id_last+1
 
+        # print(f'{idx_s}, {id_last}, {id_sel}')
         # indexes to average matrices of the mattress pressure
         # mean_sec = np.mean(raw_data[idx_s[0]:id_sel], axis=0)
         selected_frame = raw_data[id_last]
@@ -179,6 +192,8 @@ def plot_inclinometers(df_sel, fig, ax, time, title):
 
     for id in np.arange(5):
         ax[id].cla()
+        
+    ax[0].set_ylim(0,y_max)
 
     ax[0].plot(mag)
     ax[1].plot(off)
@@ -205,7 +220,7 @@ def plot_inclinometers(df_sel, fig, ax, time, title):
     return
 
 def plot_actigraphy(img, df_chest_a, df_thigh_a, time):
-    global figure_1, figure_2, ax_1, ax_2
+    global figure_1, figure_2, ax_1, ax_2, flag_start
 
     vm_chest = df_chest_a[vec_mag].to_numpy()
     vm_thigh = df_thigh_a[vec_mag].to_numpy()
@@ -215,6 +230,9 @@ def plot_actigraphy(img, df_chest_a, df_thigh_a, time):
     ax_1[1].cla()
     ax_2.cla()
 
+    ax_1[0].set_ylim(0,y_max)
+    ax_1[1].set_ylim(0,y_max)
+
     ax_1[0].plot(vm_chest)
     ax_1[1].plot(vm_thigh)
     
@@ -223,13 +241,14 @@ def plot_actigraphy(img, df_chest_a, df_thigh_a, time):
     ax_1[0].axvline(x = time, color = 'r', label = 'axvline - full height')
     ax_1[1].axvline(x = time, color = 'r', label = 'axvline - full height')
 
-    ax_2.imshow(img)
+    im=ax_2.imshow(img)
 
     ax_1[0].legend(['chest'])
     ax_1[1].legend(['thigh'])
 
-    ax_2.set_xlabel('pixel')
-    ax_2.set_ylabel('pixel')
+    # ax_2.tick_params(labelbottom=True, labeltop=True, labelleft=True, labelright=True, bottom=True, top=True, left=True, right=True)
+    ax_2.set_xlabel('pixel (bottom)')
+    ax_2.set_ylabel('pixel (right)')
 
     figure_1.canvas.draw()
     figure_2.canvas.draw()
@@ -242,12 +261,13 @@ def plot_actigraphy(img, df_chest_a, df_thigh_a, time):
 
 
 def onclick(event):
-    global id_frame
+    global id_frame, id_act
     # print('%s click: button=%d, x=%d, y=%d, xdata=%f, ydata=%f, name=%s' %
         #   ('double' if event.dblclick else 'single', event.button,
         #    event.x, event.y, event.xdata, event.ydata, event.name))
     if event.xdata >= id_frame_ini and event.xdata < id_frame_end:
         id_frame=int(event.xdata)
+        id_act=int(event.xdata)
     else:
         pass
     # print('mouse: ', event.xdata, id_frame_ini, id_frame_end, id_frame)
@@ -270,9 +290,9 @@ if __name__== '__main__':
     path_mattress = '../data/mattress_actigraph/mattress/new_format/'
     path_actigraph = '../data/mattress_actigraph/actigraph/'
     
-    day_n='day_1' # ['day_0', 'day_1'] day number
+    day_n='day02' # ['day00', 'day01', 'day02'] day number
     pp = 'p00' # ['p00','p01','p02','p03','p04'] subject number
-    nt='2' # ['1','2'] test number
+    nt='tech' # ['1','2', 'tech'] test number
 
     th = 'thigh.csv'
     ch = 'chest.csv'
@@ -296,11 +316,12 @@ if __name__== '__main__':
         data_all = loaded['xyt']
 
     print(df_ma.info())
-    print(data_all.shape)
+    print('data_all.shape: ', data_all.shape)
 
     # df_f, frames_sec = average_data(df_ma, data_all)
     df_f, frames_sec = select_frames_1s(df_ma, data_all)
     
+    print('selected frames:')
     print(df_f)
     print(frames_sec.shape)
     
@@ -315,7 +336,7 @@ if __name__== '__main__':
 
     time_ini = df_f.iloc[0]['time_stamp']
     time_end = df_f.iloc[-1]['time_stamp']
-    print(time_ini, time_end)
+    print('time_ini, time_end: ', time_ini, time_end)
 
     df_chest_a = df_chest.loc[(df_chest[' Time']>=time_ini) & (df_chest[' Time']<=time_end)]
     df_thigh_a = df_thigh.loc[(df_thigh[' Time']>=time_ini) & (df_thigh[' Time']<=time_end)]
@@ -335,13 +356,18 @@ if __name__== '__main__':
     plt.show()
     # print('cid1: ', cid1)
     # print('cid2: ', cid2)
-    
+
+    time_mattress = df_f['time_stamp'].to_numpy()
+    time_actigraph = df_chest_a[' Time'].to_numpy()
+
+    print(f'times: {time_mattress}; {time_actigraph}')
+
     step=0
     exit_key=False
     flag =True
-    flag_start=True
     id_frame_ini = 0
     id_frame_end = len(frames_sec)
+
 
 
     while (exit_key==False) and (id_frame <len(frames_sec)) and flag:
@@ -353,10 +379,20 @@ if __name__== '__main__':
         # off_thigh = df_thigh_a[incl_off].to_numpy()
 
         # plot_actigraphy(frame, vm_chest, vm_thigh, off_chest, off_thigh, id_frame)
-        plot_actigraphy(frame, df_chest_a, df_thigh_a, id_frame)
-        plot_inclinometers(df_chest_a, figure_3, ax_3, id_frame, 'chest')
-        plot_inclinometers(df_thigh_a, figure_4, ax_4, id_frame, 'thigh')
-        plt.pause(0.1)
+        if time_mattress[id_frame] == time_actigraph[id_act]:
+            plot_actigraphy(frame, df_chest_a, df_thigh_a, id_act)
+            plot_inclinometers(df_chest_a, figure_3, ax_3, id_act, 'chest')
+            plot_inclinometers(df_thigh_a, figure_4, ax_4, id_act, 'thigh')
+            plt.pause(0.1)
+        else:
+            while time_mattress[id_frame] != time_actigraph[id_act]:
+                id_act+=1
+                print('id_act: ', id_act)
+            plot_actigraphy(frame, df_chest_a, df_thigh_a, id_frame)
+            plot_inclinometers(df_chest_a, figure_3, ax_3, id_frame, 'chest')
+            plot_inclinometers(df_thigh_a, figure_4, ax_4, id_frame, 'thigh')
+            plt.pause(0.1)
+
 
         # if flag_start == True:
         #     pressed_key = cv2.waitKey(0) # miliseconds
@@ -378,9 +414,10 @@ if __name__== '__main__':
 
         print('id frame: ', id_frame, df_f.iloc[id_frame]['time_stamp'])
         id_frame+=step
+        id_act+=step
     
     # cv2.waitKey(0)
     # cv2.destroyAllWindows()
 
-    plt.close('all')
-    # plt.show()
+    # plt.close('all')
+    plt.show(block=True)
