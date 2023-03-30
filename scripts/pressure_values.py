@@ -249,7 +249,7 @@ if __name__== '__main__':
     # read data Interface pressure
     path_mattress = '../data/mattress_actigraph/mattress/new_format/'
     
-    day_n='day_1' # ['day_0', 'day_1'] day number
+    day_n='day01' # ['day00', 'day01'] day number
     pp = 'p00' # ['p00','p01','p02','p03','p04'] subject number
     nt='2' # ['1','2'] test number
 
@@ -337,6 +337,7 @@ if __name__== '__main__':
     list_q3=[]
     list_q4=[]
     list_ratio_nan=[]
+
     # statistical values region of interest (ROI)
     for id_frame, frame in enumerate(frames_sec):
         roi = frame[id_y0:id_y1,id_x0:id_x1]
@@ -346,7 +347,9 @@ if __name__== '__main__':
         visual_roi_peaks(roi, coord_peaks)
         plt.pause(1)
         
-        
+        if pressed_key == 'z':
+            print ("pressed z")
+            break
         
 
 
