@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator    
 import numpy as np
 import datetime
+import re
 import sys
 
 ###########
@@ -52,17 +53,6 @@ def getSelectedData(df, time0, time1, same_day):
     return df_all
 
 ###############################
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -223,10 +213,17 @@ def average_frames_1s(df_head, raw_data):
         sel_hour=df_head['hour'].values[id_sel]
         # print("df['hour'].values[0]: ", sel_hour)
         
-        hour_splitted = datetime.datetime.strptime(sel_hour, "%H:%M:%S.%f")
-        h=hour_splitted.hour
-        m=hour_splitted.minute
-        s=hour_splitted.second
+        # hour_splitted = datetime.datetime.strptime(sel_hour, "%H:%M:%S.%f")
+        # h=hour_splitted.hour
+        # m=hour_splitted.minute
+        # s=hour_splitted.second
+
+        h,m,s,m_s= np.array(re.split('[:.]', sel_hour), int)
+
+        h_inf =str(h).zfill(2)
+        m_inf =str(m).zfill(2)
+        s_inf =str(s).zfill(2)
+
 
         h_inf =str(h).zfill(2)
         m_inf =str(m).zfill(2)
@@ -256,7 +253,8 @@ def average_frames_1s(df_head, raw_data):
         idx_s = df_head.loc[(df_head['hour']>= lim_inf) & (df_head['hour']<lim_sup)].index.values
         # print(idx_s)
 
-        id_last = idx_s[-1]
+        # id_last = idx_s[-1]
+        id_last = np.amax(idx_s)
         id_sel = id_last+1
 
         # indexes to average matrices of the mattress pressure
