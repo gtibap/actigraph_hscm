@@ -161,6 +161,40 @@ def visual_img_2(frame, roi, roi_stats):
     return
 
 
+def visual_img_3(frame, roi, roi_stats):
+    # gll draw_rect
+    ax_2.cla()  
+    ax_2.set_ylabel('pixel (right)')  
+    ax_2.set_xlabel('pixel (bottom)')  
+    ax_2.imshow(frame)
+
+    ax_roi.cla()  
+    ax_roi.set_ylabel('pixel (right)')  
+    ax_roi.set_xlabel('pixel (bottom)')
+    
+    roi_q3=np.copy(roi)
+    roi_q3[roi_q3<roi_stats[3]]=0
+    ax_roi.imshow(roi_q3)
+
+
+    # Create a Rectangle patch
+    # if draw_rect==True:
+    # w = 2
+    # h = 2
+    # print(w, h)
+    # rect = patches.Rectangle((xi, yi), width=2*w, height=2*h, linewidth=1, edgecolor='w', facecolor='none')
+    rect = patches.Rectangle((xi, yi), width=w, height=h, linewidth=1, edgecolor='w', facecolor='none')
+    # Add the patch to the Axes
+    ax_2.add_patch(rect)
+    # else:
+    #     pass
+
+    figure_2.canvas.draw()
+    figure_2.canvas.flush_events()
+
+    return
+
+
 # def visual_roi(img):
 
 #     ax_roi.cla()    
@@ -225,17 +259,17 @@ def on_keyboard(event):
     elif pressed_key == 'n':
         step=0
     elif pressed_key == 'p':
-        h+=1
+        h+=3
     elif pressed_key == 'o':
-        w+=1
+        w+=3
     elif pressed_key == 'P':
-        if h>1:
-            h-=1
+        if h>3:
+            h-=3
         else:
             pass
     elif pressed_key == 'O':
-        if w>1:
-            w-=1
+        if w>3:
+            w-=3
         else:
             pass
         # id_x0=int(min(x_ini,x_end))
@@ -358,12 +392,22 @@ def sacrum_stat(roi):
     return np.array([q0,q1,q2,q3,q4])
 
 
+# def update_parameters():
+#     global yi,ye,xi,xe
+
+#     yi= int(y_ini - h)
+#     ye= int(y_ini + h)
+#     xi= int(x_ini - w)
+#     xe= int(x_ini + w)
+
+#     return
 def update_parameters():
     global yi,ye,xi,xe
 
-    yi= int(y_ini - h)
+    xi= int(x_ini)
+    yi= int(y_ini)
+
     ye= int(y_ini + h)
-    xi= int(x_ini - w)
     xe= int(x_ini + w)
 
     return
@@ -391,7 +435,7 @@ def plot_pressure(stat_all, df_ann):
         
     
     # ax_plot[0].axhline(y = 25, color = 'g', label = 'axvline - full height', linestyle='--')
-    ax_plot.axhline(y = 25, color = 'orange', linestyle=':', alpha=0.5)
+    # ax_plot.axhlqine(y = 25, color = 'orange', linestyle=':', alpha=0.5)
 
     # ax_plot.plot(p_list)
     # ax_plot.plot(stat_all[:,0])
@@ -402,6 +446,43 @@ def plot_pressure(stat_all, df_ann):
 
     return
         
+
+def plot_pressure_2(stat_left, stat_center, stat_right, df_ann):
+
+    ax_plot.cla()
+    ax_plot.set_ylim(0,50)
+    ax_plot.set_xlim(0,len(frames_sec))
+    ax_plot.set_ylabel('pressure (mmHg)')
+    ax_plot.set_xlabel('frame')
+
+    ini_arr=df_ann['id_frame_ini'].to_numpy()
+    end_arr=df_ann['id_frame_end'].to_numpy()
+    type_arr=df_ann['type_motion'].to_numpy()
+    # only one line may be specified; full height
+    for ini, end, label in zip(ini_arr,end_arr,type_arr):
+        # ax_plot[0].axvline(x = ini, color = 'r', label = 'axvline - full height')
+        # ax_plot[0].axvline(x = end, color = 'g', label = 'axvline - full height')
+        ax_plot.axvspan(ini, end, facecolor='wheat', alpha=0.5)
+        # ax_plot[0].axvline(x = ini, color = 'r')
+        # ax_plot[0].axvline(x = end, color = 'g')
+        ax_plot.annotate(label, xy=(ini, 1), xytext=(ini, 1))
+        
+    
+    # ax_plot[0].axhline(y = 25, color = 'g', label = 'axvline - full height', linestyle='--')
+    # ax_plot.axhline(y = 25, color = 'orange', linestyle=':', alpha=0.5)
+
+    # ax_plot.plot(p_list)
+    # ax_plot.plot(stat_all[:,0])
+    # ax_plot.plot(stat_all[:,1])
+    # ax_plot.plot(stat_all[:,2])
+    # ax_plot.plot(stat_all[:,3])
+    # ax_plot.plot(stat_all[:,4]) # max. value in the roi
+    ax_plot.plot(stat_left[:,4], label='left', alpha=1.0) # max. value in the roi
+    ax_plot.plot(stat_center[:,4], label='center', alpha=1.0) # max. value in the roi
+    ax_plot.plot(stat_right[:,4], label='right', alpha=1.0) # max. value in the roi
+    ax_plot.legend()
+
+    return
 
 ####### main function ###########
 if __name__== '__main__':
@@ -468,6 +549,9 @@ if __name__== '__main__':
     p_list = []
     stat_all = np.array([])
     stat_all=np.array([],dtype=float).reshape(0,5)
+    stat_all_left=np.array([],dtype=float).reshape(0,5)
+    stat_all_center=np.array([],dtype=float).reshape(0,5)
+    stat_all_right=np.array([],dtype=float).reshape(0,5)
 
     # frames_sec=data_all    
 
@@ -478,22 +562,38 @@ if __name__== '__main__':
 
         frame=frames_sec[id_frame]
         roi = frame[yi:ye, xi:xe]
+        # print('roi.shape: ', roi.shape)
+
+        # dividing roi in three sections
+        delta =int(w/3)
+        delta2=int(2*delta)
+
+        roi_right =roi[:,0:delta]
+        roi_center=roi[:,delta:delta2]
+        roi_left  = roi[:,delta2:w]
 
         roi_stat = sacrum_stat(roi)
+        roi_stat_left = sacrum_stat(roi_left)
+        roi_stat_center = sacrum_stat(roi_center)
+        roi_stat_right = sacrum_stat(roi_right)
 
-        visual_img_2(frame, roi, roi_stat)
+        visual_img_3(frame, roi, roi_stat)
 
         # print('row, col:', int(y_ini), int(x_ini))
 
         if step>0:
             # roi_stat = sacrum_stat(frame)
             # print(roi_stat)
-            stat_all = np.vstack([stat_all, np.expand_dims(roi_stat,axis=0)])
+            # stat_all = np.vstack([stat_all, np.expand_dims(roi_stat,axis=0)])
+            stat_all_left = np.vstack([stat_all_left, np.expand_dims(roi_stat_left,axis=0)])
+            stat_all_center = np.vstack([stat_all_center, np.expand_dims(roi_stat_center,axis=0)])
+            stat_all_right = np.vstack([stat_all_right, np.expand_dims(roi_stat_right,axis=0)])
 
         # p_list.append(frame[int(y_ini), int(x_ini)])
         # p_list.append(roi_stat)
 
-        plot_pressure(stat_all,df_ann)
+        # plot_pressure(stat_all,df_ann)
+        plot_pressure_2(stat_all_left,stat_all_center,stat_all_right,df_ann)
 
         plt.pause(0.01)
         
