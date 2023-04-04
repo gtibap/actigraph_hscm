@@ -13,7 +13,8 @@ from functions_tools import average_frames_1s
 # global variables
 id_frame=0
 pressed_key='qq'
-figure_2, ax_2 = plt.subplots(figsize=(6, 8))
+figure_2, ax_2 = plt.subplots(figsize=(4.5, 9))
+figure_roi, ax_roi = plt.subplots(figsize=(5, 5))
 figure_plot, ax_plot = plt.subplots()
 
 # figure_quantiles, ax_quantiles = plt.subplots()
@@ -126,17 +127,29 @@ def select_frames_1s(df_head, raw_data):
 #     return
 
 
-def visual_img_2(frame):
-    # global draw_rect
-    ax_2.cla()    
+def visual_img_2(frame, roi, roi_stats):
+    # gll draw_rect
+    ax_2.cla()  
+    ax_2.set_ylabel('pixel (right)')  
+    ax_2.set_xlabel('pixel (bottom)')  
     ax_2.imshow(frame)
+
+    ax_roi.cla()  
+    ax_roi.set_ylabel('pixel (right)')  
+    ax_roi.set_xlabel('pixel (bottom)')
+    
+    roi_q3=np.copy(roi)
+    roi_q3[roi_q3<roi_stats[3]]=0
+    ax_roi.imshow(roi_q3)
+
 
     # Create a Rectangle patch
     # if draw_rect==True:
     # w = 2
     # h = 2
     # print(w, h)
-    rect = patches.Rectangle((xi, yi), width=2*w, height=2*h, linewidth=1, edgecolor='w', facecolor='none')
+    # rect = patches.Rectangle((xi, yi), width=2*w, height=2*h, linewidth=1, edgecolor='w', facecolor='none')
+    rect = patches.Rectangle((xi, yi), width=(xe-xi), height=(ye-yi), linewidth=1, edgecolor='w', facecolor='none')
     # Add the patch to the Axes
     ax_2.add_patch(rect)
     # else:
@@ -313,7 +326,7 @@ def on_press(event):
 #     return
 
 
-def sacrum_stat(frame):
+def sacrum_stat(roi):
     # global xi,xe,yi,ye
 
     # yi= int(y_ini - h)
@@ -324,7 +337,7 @@ def sacrum_stat(frame):
     # roi_max = np.nanmax(frame[yi-1:yi+1, xi-1:xi+1])
     # roi_min = np.nanmin(frame[yi-1:yi+1, xi-1:xi+1])
     # roi_mean = np.nanmean(frame[yi-1:yi+1, xi-1:xi+1])
-    roi = frame[yi:ye, xi:xe]
+    # roi = frame[yi:ye, xi:xe]
     # print('roi.shape: ', roi.shape)
     
     # roi_max = np.nanmax(roi)
@@ -338,6 +351,8 @@ def sacrum_stat(frame):
     q3 = np.nanquantile(roi,0.75)
     q4 = np.nanquantile(roi,1.0)
 
+
+    # print(f'bigger than {q3}: {np.argwhere(roi >= q3)} max: { np.unravel_index(np.nanargmax(roi), roi.shape)}, max2 {np.argwhere(roi >= q4)}')
 
     # return np.array([roi_min, roi_max, roi_mean, roi_median])
     return np.array([q0,q1,q2,q3,q4])
@@ -353,24 +368,69 @@ def update_parameters():
 
     return
 
+
+def plot_pressure(stat_all, df_ann):
+
+    ax_plot.cla()
+    ax_plot.set_ylim(0,50)
+    ax_plot.set_xlim(0,len(frames_sec))
+    ax_plot.set_ylabel('pressure (mmHg)')
+    ax_plot.set_xlabel('frame')
+
+    ini_arr=df_ann['id_frame_ini'].to_numpy()
+    end_arr=df_ann['id_frame_end'].to_numpy()
+    type_arr=df_ann['type_motion'].to_numpy()
+    # only one line may be specified; full height
+    for ini, end, label in zip(ini_arr,end_arr,type_arr):
+        # ax_plot[0].axvline(x = ini, color = 'r', label = 'axvline - full height')
+        # ax_plot[0].axvline(x = end, color = 'g', label = 'axvline - full height')
+        ax_plot.axvspan(ini, end, facecolor='wheat', alpha=0.5)
+        # ax_plot[0].axvline(x = ini, color = 'r')
+        # ax_plot[0].axvline(x = end, color = 'g')
+        ax_plot.annotate(label, xy=(ini, 1), xytext=(ini, 1))
+        
+    
+    # ax_plot[0].axhline(y = 25, color = 'g', label = 'axvline - full height', linestyle='--')
+    ax_plot.axhline(y = 25, color = 'orange', linestyle=':', alpha=0.5)
+
+    # ax_plot.plot(p_list)
+    # ax_plot.plot(stat_all[:,0])
+    # ax_plot.plot(stat_all[:,1])
+    # ax_plot.plot(stat_all[:,2])
+    # ax_plot.plot(stat_all[:,3])
+    ax_plot.plot(stat_all[:,4]) # max. value in the roi
+
+    return
+        
+
 ####### main function ###########
 if __name__== '__main__':
     
     # print('Interface Pressure Visualization')
     # read data Interface pressure
     path_mattress = '../data/mattress_actigraph/mattress/new_format/'
+    path_annotations = '../data/mattress_actigraph/info/'
     
     day_n='day02' # ['day00', 'day01'] day number
-    pp = 'p01' # ['p00','p01','p02','p03','p04'] subject number
+    pp = 'p00' # ['p00','p01','p02','p03','p04'] subject number
     nt='2' # ['1','2'] test number
+    ann='annotations.csv'
 
     he = 'head_'
     ra = 'raw_'
 
     file_head= day_n+'_'+pp+'_'+nt+'.csv'
     file_raw= day_n+'_'+pp+'_' +nt+'.npz'
+    file_ann= path_annotations+day_n+'_'+ann
 
     #########
+    # loading annotations
+    df_ann_all = pd.read_csv(file_ann)
+    df_ann = df_ann_all.loc[df_ann_all['patient']==pp]
+
+    print(df_ann.info())
+    print(df_ann.head())
+
     # loading data mattress pressure
     df_ma = pd.read_csv(path_mattress+he+file_head)
     
@@ -417,27 +477,24 @@ if __name__== '__main__':
         update_parameters()
 
         frame=frames_sec[id_frame]
+        roi = frame[yi:ye, xi:xe]
 
-        visual_img_2(frame)
+        roi_stat = sacrum_stat(roi)
+
+        visual_img_2(frame, roi, roi_stat)
 
         # print('row, col:', int(y_ini), int(x_ini))
 
         if step>0:
-            roi_stat = sacrum_stat(frame)
+            # roi_stat = sacrum_stat(frame)
             # print(roi_stat)
             stat_all = np.vstack([stat_all, np.expand_dims(roi_stat,axis=0)])
 
         # p_list.append(frame[int(y_ini), int(x_ini)])
         # p_list.append(roi_stat)
 
-        ax_plot.cla()
-        # ax_plot.plot(p_list)
-        # ax_plot.plot(stat_all[:,0])
-        # ax_plot.plot(stat_all[:,1])
-        # ax_plot.plot(stat_all[:,2])
-        # ax_plot.plot(stat_all[:,3])
-        ax_plot.plot(stat_all[:,4])
-        
+        plot_pressure(stat_all,df_ann)
+
         plt.pause(0.01)
         
         id_frame+=step
