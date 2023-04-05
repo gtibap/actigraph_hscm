@@ -183,9 +183,14 @@ def visual_img_3(frame, roi, roi_stats):
     # h = 2
     # print(w, h)
     # rect = patches.Rectangle((xi, yi), width=2*w, height=2*h, linewidth=1, edgecolor='w', facecolor='none')
-    rect = patches.Rectangle((xi, yi), width=w, height=h, linewidth=1, edgecolor='w', facecolor='none')
+    
     # Add the patch to the Axes
+    rect = patches.Rectangle((xi, yi), width=w, height=h, linewidth=1, edgecolor='w', facecolor='none')
     ax_2.add_patch(rect)
+    rect = patches.Rectangle((xi+int(w/3), yi), width=int(w/3), height=h, linewidth=1, edgecolor='w', facecolor='none')
+    ax_2.add_patch(rect)
+    
+
     # else:
     #     pass
 
@@ -384,12 +389,14 @@ def sacrum_stat(roi):
     q2 = np.nanquantile(roi,0.5)
     q3 = np.nanquantile(roi,0.75)
     q4 = np.nanquantile(roi,1.0)
+    mean = np.mean(roi)
+    # print('mean q2:', mean, q2)
 
 
     # print(f'bigger than {q3}: {np.argwhere(roi >= q3)} max: { np.unravel_index(np.nanargmax(roi), roi.shape)}, max2 {np.argwhere(roi >= q4)}')
 
     # return np.array([roi_min, roi_max, roi_mean, roi_median])
-    return np.array([q0,q1,q2,q3,q4])
+    return np.array([q0,q1,q2,q3,q4,mean])
 
 
 # def update_parameters():
@@ -450,7 +457,7 @@ def plot_pressure(stat_all, df_ann):
 def plot_pressure_2(stat_left, stat_center, stat_right, df_ann):
 
     ax_plot.cla()
-    ax_plot.set_ylim(0,50)
+    ax_plot.set_ylim(-10,45)
     ax_plot.set_xlim(0,len(frames_sec))
     ax_plot.set_ylabel('pressure (mmHg)')
     ax_plot.set_xlabel('frame')
@@ -465,7 +472,7 @@ def plot_pressure_2(stat_left, stat_center, stat_right, df_ann):
         ax_plot.axvspan(ini, end, facecolor='wheat', alpha=0.5)
         # ax_plot[0].axvline(x = ini, color = 'r')
         # ax_plot[0].axvline(x = end, color = 'g')
-        ax_plot.annotate(label, xy=(ini, 1), xytext=(ini, 1))
+        ax_plot.annotate(label, xy=(ini, -5), xytext=(ini, -5))
         
     
     # ax_plot[0].axhline(y = 25, color = 'g', label = 'axvline - full height', linestyle='--')
@@ -477,9 +484,22 @@ def plot_pressure_2(stat_left, stat_center, stat_right, df_ann):
     # ax_plot.plot(stat_all[:,2])
     # ax_plot.plot(stat_all[:,3])
     # ax_plot.plot(stat_all[:,4]) # max. value in the roi
-    ax_plot.plot(stat_left[:,4], label='left', alpha=1.0) # max. value in the roi
-    ax_plot.plot(stat_center[:,4], label='center', alpha=1.0) # max. value in the roi
-    ax_plot.plot(stat_right[:,4], label='right', alpha=1.0) # max. value in the roi
+    
+    # ax_plot.plot(stat_left[:,4], label='left', alpha=0.5, color='pink') # max. value in the roi
+    # ax_plot.plot(stat_center[:,4], label='center', alpha=1.0, color='black') # max. value in the roi
+    # ax_plot.plot(stat_right[:,4], label='right', alpha=0.5, color='lime') # max. value in the roi
+    
+    x_frames=np.arange(stat_center.shape[0])
+    ax_plot.fill_between(x_frames, stat_center[:,4],stat_center[:,0], alpha=0.25, color='orange')
+    
+    ax_plot.plot(stat_center[:,4], alpha=0.5, color='orange') # pink max. value in the roi
+    ax_plot.plot(stat_center[:,0], alpha=0.5, color='orange') # lime max. value in the roi
+    ax_plot.plot(stat_center[:,2], label='median', alpha=1.0, color='lime') # max. value in the roi
+    ax_plot.plot(stat_center[:,5], label='mean', alpha=1.0, color='black') # max. value in the roi
+    
+    
+    
+
     ax_plot.legend()
 
     return
@@ -547,11 +567,11 @@ if __name__== '__main__':
     id_frame_end = len(frames_sec)
 
     p_list = []
-    stat_all = np.array([])
-    stat_all=np.array([],dtype=float).reshape(0,5)
-    stat_all_left=np.array([],dtype=float).reshape(0,5)
-    stat_all_center=np.array([],dtype=float).reshape(0,5)
-    stat_all_right=np.array([],dtype=float).reshape(0,5)
+    # stat_all = np.array([])
+    stat_all=np.array([],dtype=float).reshape(0,6)
+    stat_all_left=np.array([],dtype=float).reshape(0,6)
+    stat_all_center=np.array([],dtype=float).reshape(0,6)
+    stat_all_right=np.array([],dtype=float).reshape(0,6)
 
     # frames_sec=data_all    
 
