@@ -12,9 +12,21 @@ from functions_tools import getSelectedData
 
 ##################
 # global variables
-fig_stems, ax1 = plt.subplots(nrows=2, ncols=1)
+fig_initial, ax_initial = plt.subplots(nrows=5, ncols=1, sharex=True)
+fig_stems, ax_stems = plt.subplots(nrows=1, ncols=1)
+fig_act, ax_act = plt.subplots(nrows=5, ncols=1, sharex=True)
 x_sel=0
+night_num=0
 df_n=pd.DataFrame()
+activity_vector=np.array([])
+df_act_night = pd.DataFrame()
+
+vec_mag  ='Vector Magnitude'
+incl_off ='Inclinometer Off'
+incl_sta ='Inclinometer Standing'
+incl_sit ='Inclinometer Sitting'
+incl_lyi ='Inclinometer Lying'
+
 # global variables
 ##################
 
@@ -246,6 +258,7 @@ def plot_activity(actigraphy, activity_vector, idx_ini,idx_end):
     axes[1].set_ylabel('det. act.')
     axes[2].set_ylabel('mean act.')
     axes[2].set_xlabel('time (s)')
+    
 
 
     plt.show()
@@ -283,16 +296,16 @@ def plot_areas(actigraphy, idx_ini,idx_end, non_idx_ini, non_idx_end):
 
 
     color = 'tab:blue'
-    ax1[0].set_xlabel('samples')
-    ax1[0].set_ylabel('non-activity (s)', color=color)
-    ax1[0].tick_params(axis='y', labelcolor=color)
+    ax_stems.set_xlabel('samples')
+    ax_stems.set_ylabel('non-activity (s)', color=color)
+    ax_stems.tick_params(axis='y', labelcolor=color)
     
-    markerline1, stemlines1, baseline1 = ax1[0].stem(x_nas, non_acti_samples, basefmt=" ", linefmt =color)
+    markerline1, stemlines1, baseline1 = ax_stems.stem(x_nas, non_acti_samples, basefmt=" ", linefmt =color)
     # plt.setp(stemlines1,'color','green')
     plt.setp(stemlines1, 'color', plt.getp(markerline1,'color'))
     
 
-    ax2 = ax1[0].twinx()  # instantiate a second axes that shares the same x-axis
+    ax2 = ax_stems.twinx()  # instantiate a second axes that shares the same x-axis
     color = 'tab:orange'
     ax2.set_ylabel('motor activity (s)', color=color)  # we already handled the x-label with ax1
     ax2.tick_params(axis='y', labelcolor=color)
@@ -302,6 +315,11 @@ def plot_areas(actigraphy, idx_ini,idx_end, non_idx_ini, non_idx_end):
     plt.setp(stemlines2, 'color', plt.getp(markerline2,'color'))
     
 
+    ax_initial[0].plot(df_n[vec_mag])
+    ax_initial[1].plot(df_n[incl_off])
+    ax_initial[2].plot(df_n[incl_lyi])
+    ax_initial[3].plot(df_n[incl_sit])
+    ax_initial[4].plot(df_n[incl_sta])
 
     # fig, axes = plt.subplots(nrows=3, ncols=1)
     # axes[0].plot(actigraphy)
@@ -336,15 +354,42 @@ def plot_areas(actigraphy, idx_ini,idx_end, non_idx_ini, non_idx_end):
 
 
 def onclick(event):
-    global x_sel, ax1
+    global x_sel, ax_vm
     # print('%s click: button=%d, x=%d, y=%d, xdata=%f, ydata=%f, name=%s' %
         #   ('double' if event.dblclick else 'single', event.button,
         #    event.x, event.y, event.xdata, event.ydata, event.name))
     print(event.xdata, event.ydata)
     x_sel = int(event.xdata)
-    ax1.clr()
-    ax1[1].plot(df_n[vec_mag])
-    fig_stems.draw()
+
+    df_night = df_act_night.loc[df_act_night['night']==night_num]
+    arr_ini = df_night['t_ini'].to_numpy()
+    arr_end = df_night['t_end'].to_numpy()
+    
+    # dividing in two because in the arr_ini and arr_end we have only half of the indexes (activity)... the other half are in the non-activity part
+    x_min = arr_ini[int(x_sel/2)] -3600 # -3600 because one hour before the event
+    x_max = arr_end[int(x_sel/2)] +3600 # +3600 because one hour after the event
+   
+    # ax_act[0].cla()
+    for i in np.arange(5):
+        ax_act[i].cla()
+
+    ax_act[0].plot(df_n[vec_mag])
+    # ax_act[0].plot(activity_vector)
+    # ax_act[1].plot(df_n[vec_mag])
+    ax_act[1].plot(df_n[incl_off])
+    ax_act[2].plot(df_n[incl_lyi])
+    ax_act[3].plot(df_n[incl_sit])
+    ax_act[4].plot(df_n[incl_sta])
+    
+    for i in np.arange(0,5):
+        ax_act[i].set_xlim(x_min,x_max)
+        
+    # for  i in np.arange(0,4):
+    #     ax_act[i+1].sharex(ax_act[i])
+    
+    
+    fig_act.canvas.draw()
+    fig_act.canvas.flush_events()
 
     # if event.xdata >= id_frame_ini and event.xdata < id_frame_end:
     #     id_frame=int(event.xdata)
@@ -373,12 +418,7 @@ if __name__== '__main__':
     time_end='08:00:00'
     same_day=False
 
-    incl_off ='Inclinometer Off'
-    vec_mag  ='Vector Magnitude'
-    incl_sta ='Inclinometer Standing'
-    incl_sit ='Inclinometer Sitting'
-    incl_lyi ='Inclinometer Lying'
-
+    
     # to run GUI event loop
     cid1 = fig_stems.canvas.mpl_connect('button_press_event', onclick)
 
@@ -387,7 +427,8 @@ if __name__== '__main__':
     for sample in files_list[:1]:
         print('file: ', sample)
         try:
-            df1 = pd.read_csv(path+sample, header=header_location, decimal=',', usecols=['Date',' Time', vec_mag, incl_off])
+            df1 = pd.read_csv(path+sample, header=header_location, decimal=',')
+            # usecols=['Date',' Time', vec_mag, incl_off]
             # print(df1.info())
 
             # getting all nights data
@@ -432,7 +473,7 @@ if __name__== '__main__':
                 # plot_areas(df_n[vec_mag].to_numpy(), idx_ini,idx_end)
 
                 
-                df_act_night = pd.DataFrame()
+                # df_act_night = pd.DataFrame()
                 df_act_night['t_ini']=idx_ini
                 df_act_night['t_end']=idx_end
                 df_act_night['night']=night_num
