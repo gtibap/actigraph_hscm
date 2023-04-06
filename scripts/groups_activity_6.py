@@ -10,6 +10,14 @@ import sys
 
 from functions_tools import getSelectedData
 
+##################
+# global variables
+fig_stems, ax1 = plt.subplots(nrows=2, ncols=1)
+x_sel=0
+df_n=pd.DataFrame()
+# global variables
+##################
+
 
 def non_motion_periods(mag_col):
     # nights_list = df['night'].unique().tolist()
@@ -245,6 +253,7 @@ def plot_activity(actigraphy, activity_vector, idx_ini,idx_end):
     return
 
 def plot_areas(actigraphy, idx_ini,idx_end, non_idx_ini, non_idx_end):
+    global ax1
 
     activity_samples=[]
     non_acti_samples=[]
@@ -273,18 +282,17 @@ def plot_areas(actigraphy, idx_ini,idx_end, non_idx_ini, non_idx_end):
         x_as =x_axis[0::2]
 
 
-    fig, ax1 = plt.subplots(nrows=1, ncols=1)
     color = 'tab:blue'
-    ax1.set_xlabel('samples')
-    ax1.set_ylabel('non-activity (s)', color=color)
-    ax1.tick_params(axis='y', labelcolor=color)
+    ax1[0].set_xlabel('samples')
+    ax1[0].set_ylabel('non-activity (s)', color=color)
+    ax1[0].tick_params(axis='y', labelcolor=color)
     
-    markerline1, stemlines1, baseline1 = ax1.stem(x_nas, non_acti_samples, basefmt=" ", linefmt =color)
+    markerline1, stemlines1, baseline1 = ax1[0].stem(x_nas, non_acti_samples, basefmt=" ", linefmt =color)
     # plt.setp(stemlines1,'color','green')
     plt.setp(stemlines1, 'color', plt.getp(markerline1,'color'))
     
 
-    ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
+    ax2 = ax1[0].twinx()  # instantiate a second axes that shares the same x-axis
     color = 'tab:orange'
     ax2.set_ylabel('motor activity (s)', color=color)  # we already handled the x-label with ax1
     ax2.tick_params(axis='y', labelcolor=color)
@@ -326,6 +334,27 @@ def plot_areas(actigraphy, idx_ini,idx_end, non_idx_ini, non_idx_end):
 
     return
 
+
+def onclick(event):
+    global x_sel, ax1
+    # print('%s click: button=%d, x=%d, y=%d, xdata=%f, ydata=%f, name=%s' %
+        #   ('double' if event.dblclick else 'single', event.button,
+        #    event.x, event.y, event.xdata, event.ydata, event.name))
+    print(event.xdata, event.ydata)
+    x_sel = int(event.xdata)
+    ax1.clr()
+    ax1[1].plot(df_n[vec_mag])
+    fig_stems.draw()
+
+    # if event.xdata >= id_frame_ini and event.xdata < id_frame_end:
+    #     id_frame=int(event.xdata)
+    #     id_act=int(event.xdata)
+    # else:
+    #     pass
+    # # print('mouse: ', event.xdata, id_frame_ini, id_frame_end, id_frame)
+    return
+
+
 ####### main function ###########
 if __name__== '__main__':
 
@@ -346,6 +375,13 @@ if __name__== '__main__':
 
     incl_off ='Inclinometer Off'
     vec_mag  ='Vector Magnitude'
+    incl_sta ='Inclinometer Standing'
+    incl_sit ='Inclinometer Sitting'
+    incl_lyi ='Inclinometer Lying'
+
+    # to run GUI event loop
+    cid1 = fig_stems.canvas.mpl_connect('button_press_event', onclick)
+
 
     header_location=10
     for sample in files_list[:1]:
@@ -424,6 +460,3 @@ if __name__== '__main__':
             
         except ValueError:
             print('Problem reading the file', sample, '... it is skipped.')
-
-    
-
