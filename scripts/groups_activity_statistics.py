@@ -124,9 +124,19 @@ def activity_sectors(activity_arrray):
     else:
         end_active=True
 
+    if duration_active.size == 0:
+        duration_active=np.array([0])
+    else:
+        pass
+    
+    if duration_inactive.size == 0:
+        duration_inactive=np.array([0])
+    else:
+        pass
+
     # time-intervals motion and non-motion per night
-    # print('duration_active: ', duration_active)
-    # print('duration_inactive: ', duration_inactive)
+    print('duration_active: ', duration_active)
+    print('duration_inactive: ', duration_inactive)
 
     return duration_active, duration_inactive, start_active, end_active
 
@@ -194,23 +204,27 @@ def activity_intervals(activity_vector):
 
     changes_activity = activity_vector[:-1] != activity_vector[1:]
     # changes_array is a boolean vector; True means a change; False means no change
-    # indices or location of Trues (changes) values; +1 because I want the index when the data already changed from left to right
-    idx_changes = np.flatnonzero(changes_activity) + 1
+    if np.sum(changes_activity)>0:
+        # indices or location of Trues (changes) values; +1 because I want the index when the data already changed from left to right
+        idx_changes = np.flatnonzero(changes_activity) + 1
 
-    # at least three detected changes
-    
-    if activity_vector[0]==False:
-        idx_ini=idx_changes[0::2]
-        idx_end=idx_changes[1::2]
-    else:
-        idx_ini=np.concatenate((0, idx_changes[1::2]), axis=None)
-        idx_end=idx_changes[0::2]
+        # at least three detected changes
+        
+        if activity_vector[0]==False:
+            idx_ini=idx_changes[0::2]
+            idx_end=idx_changes[1::2]
+        else:
+            idx_ini=np.concatenate((0, idx_changes[1::2]), axis=None)
+            idx_end=idx_changes[0::2]
 
-    # if the activity finished active (1), the last idx_end is the size of the activity array
-    if activity_vector[-1]==True:
-        idx_end=np.concatenate([idx_end, len(activity_vector)], axis=None)
+        # if the activity finished active (1), the last idx_end is the size of the activity array
+        if activity_vector[-1]==True:
+            idx_end=np.concatenate([idx_end, len(activity_vector)], axis=None)
+        else:
+            pass
     else:
-        pass
+        idx_ini=[0]
+        idx_end=[0]
 
     return idx_ini, idx_end
 
@@ -401,26 +415,30 @@ def onclick(event):
     return
 
 
-def active_nights_stats(df_active_nights):
+def active_nights_stats(df_active_nights, nights_samples):
 
-    df_statistics = pd.DataFrame(columns=['night','number_of_movements','min_duration(s)','max_duration(s)','mean_duration(s)','std_duration(s)','total_duration(s)','duration_ratio(total_in_10h)'])
+    df_statistics = pd.DataFrame(columns=['night','number_of_movements','min_duration(s)','max_duration(s)','mean_duration(s)','std_duration(s)','total_duration(s)', 'night_duration(s)','duration_ratio(total_in_10h)'])
 
     nights_list = df_active_nights['night'].unique().tolist()
+    print('nights_list2: ', nights_list, nights_samples)
 
-    for night_num in nights_list:
+    for night_num, night_sam in zip(nights_list, nights_samples):
         df_n = df_active_nights.loc[(df_active_nights['night']==night_num)]
         
         arr_duration = df_n['duration'].to_numpy()
 
-        num_movements = arr_duration.size
+        if np.amax(arr_duration)>0:
+            num_movements = arr_duration.size
+        else:
+            num_movements = 0
         min_duration = np.amin(arr_duration)
         max_duration = np.amax(arr_duration)
         mean_duration = np.mean(arr_duration)
         std_duration = np.std(arr_duration)
         sum_duration = np.sum(arr_duration)
-        per_duration = sum_duration/36000   # 36000 seconds in ten hours (22h to 8h [next day])
+        per_duration = sum_duration/night_sam   # max value for night_sam is 36000 seconds in ten hours (22h to 8h [next day])
 
-        df_night_stats = pd.DataFrame([[night_num,num_movements,min_duration,max_duration,mean_duration,std_duration,sum_duration,per_duration]], columns=['night','number_of_movements','min_duration(s)','max_duration(s)','mean_duration(s)','std_duration(s)','total_duration(s)','duration_ratio(total_in_10h)'])
+        df_night_stats = pd.DataFrame([[night_num,num_movements,min_duration,max_duration,mean_duration,std_duration,sum_duration,night_sam,per_duration]], columns=['night','number_of_movements','min_duration(s)','max_duration(s)','mean_duration(s)','std_duration(s)','total_duration(s)','night_duration(s)','duration_ratio(total_in_10h)'])
 
         df_statistics = pd.concat([df_statistics, df_night_stats], ignore_index=True)
 
@@ -452,6 +470,7 @@ if __name__== '__main__':
 
     header_location=10
     for sample in files_list:
+        # sample = 'A001_chest.csv'
         if not sample.startswith('.'):
             print('file: ', sample)
             try:
@@ -460,17 +479,19 @@ if __name__== '__main__':
                 # print(df1.info())
 
                 # getting all nights data
-                df_nights = getSelectedData(df1, time_start, time_end, same_day)
+                df_nights, nights_samples = getSelectedData(df1, time_start, time_end, same_day)
                 # print(df_nights.info())
+                print('nights_samples:', nights_samples)
 
                 # plot 'Vector Magnitude' night by night
                 nights_list = df_nights['night'].unique().tolist()
-                # print('nights: ', nights_list)
+                print('nights 1: ', nights_list)
                 
                 df_active_nights = pd.DataFrame()
                 # df_non_active_nights = pd.DataFrame()
 
                 for night_num in nights_list:
+                    print('night_num: ', night_num)
     
                     df_n = df_nights.loc[(df_nights['night']==night_num),[vec_mag]]
      
@@ -481,8 +502,12 @@ if __name__== '__main__':
                     # df_n['activity'] = df_n[vec_mag] > min_value
                     # boolean array where True means activity higher than min_value
                     # activity_vector = df_n['activity'].to_numpy()
+                    print('activity_vector: ', activity_vector)
 
                     duration_active, duration_inactive, start_active, end_active=activity_sectors(activity_vector)
+
+                    print('duration_active: ', duration_active)
+                    print('duration_inactive: ', duration_inactive)
 
                     activity_vector=redefinition_activity(duration_active, duration_inactive, start_active, end_active, min_gap)
 
@@ -497,9 +522,11 @@ if __name__== '__main__':
                     df_act_night['night']=night_num
                     df_act_night['duration']=duration_active
 
+                    print(df_act_night)
+
                     df_active_nights=pd.concat([df_active_nights, df_act_night], ignore_index=True)
   
-                df_night_stats = active_nights_stats(df_active_nights)
+                df_night_stats = active_nights_stats(df_active_nights, nights_samples)
 
                 words=sample.split('.')
                 path_out_stats=path_out+words[0]+'_stats.csv'

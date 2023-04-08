@@ -191,7 +191,7 @@ if __name__== '__main__':
             print('file sample: ', sample)
             print(df1.head)
             # print(df1.info())
-            # every night comprises 'Vector Magnitude' values from 22h00 to 10h00
+            # every night comprises 'Vector Magnitude' values from 22h00 to 8h00
             df_nights = getSelectedData(df1, time_start, time_end, same_day)
             # print(df_nights.info())
 

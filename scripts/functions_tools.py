@@ -27,6 +27,7 @@ def getSelectedData(df, time0, time1, same_day):
 
     # empty dataframe initialization
     df_all = pd.DataFrame(columns=names_columns)
+    nights_samples=[]
 
     cont_nights=1
     if same_day==False:
@@ -37,6 +38,9 @@ def getSelectedData(df, time0, time1, same_day):
 
             df_night = pd.concat([df_night_part0,df_night_part1],  ignore_index=True)
             df_night['night']=cont_nights
+            # number of samples per night
+            nights_samples.append(df_night['night'].to_numpy().size)
+            
             cont_nights+=1
 
             df_all=pd.concat([df_all, df_night], ignore_index=True)
@@ -46,11 +50,13 @@ def getSelectedData(df, time0, time1, same_day):
             df_night = df.loc[(df['Date']==day_now) & (df[' Time']>=time0) & (df[' Time']<=time1)]
 
             df_night['night']=cont_nights
+            # number of samples per night
+            nights_samples.append(df_night['night'].to_numpy().size)
             cont_nights+=1
 
             df_all=pd.concat([df_all, df_night], ignore_index=True)
 
-    return df_all
+    return df_all, nights_samples
 
 ###############################
 
