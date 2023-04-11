@@ -9,9 +9,9 @@ import sys
 
 ##########
 # global variables
-figure_1, ax_1 = plt.subplots(nrows=2, ncols=1, sharex=True)
+# figure_1, ax_1 = plt.subplots(nrows=2, ncols=1, sharex=True)
 figure_2, ax_2 = plt.subplots(figsize=(6, 8))
-figure_3, ax_3 = plt.subplots(nrows=5, ncols=1, sharex=True)
+# figure_3, ax_3 = plt.subplots(nrows=5, ncols=1, sharex=True)
 figure_4, ax_4 = plt.subplots(nrows=5, ncols=1, sharex=True)
 
 drawing = False
@@ -266,6 +266,71 @@ def plot_actigraphy(img, df_chest_a, df_thigh_a, time, id_frame):
     return
 
 
+def plot_actigraphy_thigh(img, df_thigh_a, time, id_frame):
+    global figure_1, figure_2, ax_1, ax_2, flag_start
+
+    # vm_chest = df_chest_a[vec_mag].to_numpy()
+    vm_thigh = df_thigh_a[vec_mag].to_numpy()
+    
+
+    ax_1[0].cla()
+    # ax_1[1].cla()
+    ax_2.cla()
+
+    ax_1[0].set_ylim(0,y_max)
+    # ax_1[1].set_ylim(0,y_max)
+
+    # ax_1[0].plot(vm_chest)
+    # ax_1[1].plot(vm_thigh)
+    ax_1[0].plot(vm_thigh)
+    
+
+    # only one line may be specified; full height
+    ax_1[0].axvline(x = time, color = 'r', label = 'axvline - full height')
+    # ax_1[1].axvline(x = time, color = 'r', label = 'axvline - full height')
+
+    im=ax_2.imshow(img)
+    ax_2.set_title(f'frame {str(id_frame)}, (FPS=1)')
+
+    # ax_1[0].legend(['chest'])
+    # ax_1[1].legend(['thigh'])
+    ax_1[0].legend(['thigh'])
+    ax_1[0].set_title('Vector Magnitude')
+    ax_1[0].set_ylabel('counts')
+    # ax_1[1].set_ylabel('counts')
+    # ax_1[1].set_xlabel('time (s)')
+    ax_1[0].set_xlabel('time (s)')
+
+    # ax_2.tick_params(labelbottom=True, labeltop=True, labelleft=True, labelright=True, bottom=True, top=True, left=True, right=True)
+    ax_2.set_xlabel('pixel (bottom)')
+    ax_2.set_ylabel('pixel (right)')
+
+    figure_1.canvas.draw()
+    figure_2.canvas.draw()
+
+    figure_1.canvas.flush_events()
+    figure_2.canvas.flush_events()
+    # plt.pause(0.5)
+
+    return
+
+def plot_mattress(img, id_frame):
+    global figure_2, ax_2
+
+    ax_2.cla()
+
+    im=ax_2.imshow(img)
+    ax_2.set_title('frame '+str(id_frame))
+
+    ax_2.set_xlabel('pixel (bottom)')
+    ax_2.set_ylabel('pixel (right)')
+
+    figure_2.canvas.draw()
+    figure_2.canvas.flush_events()
+
+    return
+
+
 def onclick(event):
     global id_frame, id_act
     # print('%s click: button=%d, x=%d, y=%d, xdata=%f, ydata=%f, name=%s' %
@@ -342,7 +407,7 @@ if __name__== '__main__':
     header_location=10
    # load actigraph data
     
-    df_chest = pd.read_csv(path_actigraph+filename_actigraph_chest, header=header_location, decimal=',')
+    # df_chest = pd.read_csv(path_actigraph+filename_actigraph_chest, header=header_location, decimal=',')
     df_thigh = pd.read_csv(path_actigraph+filename_actigraph_thigh, header=header_location, decimal=',')
     # print(df_actigraph)
 
@@ -350,18 +415,18 @@ if __name__== '__main__':
     time_end = df_f.iloc[-1]['time_stamp']
     print('time_ini, time_end: ', time_ini, time_end)
 
-    df_chest_a = df_chest.loc[(df_chest[' Time']>=time_ini) & (df_chest[' Time']<=time_end)]
+    # df_chest_a = df_chest.loc[(df_chest[' Time']>=time_ini) & (df_chest[' Time']<=time_end)]
     df_thigh_a = df_thigh.loc[(df_thigh[' Time']>=time_ini) & (df_thigh[' Time']<=time_end)]
     
     # to run GUI event loop
-    cid1 = figure_1.canvas.mpl_connect('button_press_event', onclick)
+    # cid1 = figure_1.canvas.mpl_connect('button_press_event', onclick)
     # cid2 = figure_2.canvas.mpl_connect('button_press_event', onclick)
-    cid3 = figure_3.canvas.mpl_connect('button_press_event', onclick)
+    # cid3 = figure_3.canvas.mpl_connect('button_press_event', onclick)
     cid4 = figure_4.canvas.mpl_connect('button_press_event', onclick)
     
-    figure_1.canvas.mpl_connect('key_press_event', on_press)
+    # figure_1.canvas.mpl_connect('key_press_event', on_press)
     figure_2.canvas.mpl_connect('key_press_event', on_press)
-    figure_3.canvas.mpl_connect('key_press_event', on_press)
+    # figure_3.canvas.mpl_connect('key_press_event', on_press)
     figure_4.canvas.mpl_connect('key_press_event', on_press)
     
     plt.ion()
@@ -370,7 +435,8 @@ if __name__== '__main__':
     # print('cid2: ', cid2)
 
     time_mattress = df_f['time_stamp'].to_numpy()
-    time_actigraph = df_chest_a[' Time'].to_numpy()
+    # time_actigraph = df_chest_a[' Time'].to_numpy()
+    time_actigraph = df_thigh_a[' Time'].to_numpy()
 
     print(f'times: {time_mattress}; {time_actigraph}')
 
@@ -392,18 +458,23 @@ if __name__== '__main__':
 
         # plot_actigraphy(frame, vm_chest, vm_thigh, off_chest, off_thigh, id_frame)
         if time_mattress[id_frame] == time_actigraph[id_act]:
-            plot_actigraphy(frame, df_chest_a, df_thigh_a, id_act, id_frame)
-            plot_inclinometers(df_chest_a, figure_3, ax_3, id_act, 'chest')
+            plot_mattress(frame, id_frame)
+            # plot_actigraphy(frame, df_chest_a, df_thigh_a, id_act, id_frame)
+            # plot_inclinometers(df_chest_a, figure_3, ax_3, id_act, 'chest')
             plot_inclinometers(df_thigh_a, figure_4, ax_4, id_act, 'thigh')
             plt.pause(0.1)
+        elif time_mattress[id_frame] > time_actigraph[id_act]:
+            id_act = np.where(time_actigraph==time_mattress[id_frame])[0][0]
+            print('id_frame, id_act: ', id_frame, id_act)
         else:
-            while time_mattress[id_frame] != time_actigraph[id_act]:
-                id_act+=1
-                print('id_act: ', id_act)
-            plot_actigraphy(frame, df_chest_a, df_thigh_a, id_frame, id_frame)
-            plot_inclinometers(df_chest_a, figure_3, ax_3, id_frame, 'chest')
-            plot_inclinometers(df_thigh_a, figure_4, ax_4, id_frame, 'thigh')
-            plt.pause(0.1)
+            id_frame = np.where(time_mattress==time_actigraph[id_act])[0][0]
+            print('id_frame, id_act: ', id_frame, id_act)
+
+            # plot_mattress(frame, id_frame)
+            # # plot_actigraphy(frame, df_chest_a, df_thigh_a, id_frame, id_frame)
+            # # plot_inclinometers(df_chest_a, figure_3, ax_3, id_frame, 'chest')
+            # plot_inclinometers(df_thigh_a, figure_4, ax_4, id_frame, 'thigh')
+            # plt.pause(0.1)
 
 
         # if flag_start == True:

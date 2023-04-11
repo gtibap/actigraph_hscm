@@ -32,7 +32,7 @@ if __name__== '__main__':
     path = '../data/mattress_actigraph/mattress/'
     ori_dir = 'original/'
     new_dir = 'new_format/' 
-    day_n = 'day02'
+    day_n = 'day03'
 
     input_dir = path+ori_dir
     output_dir = path+new_dir

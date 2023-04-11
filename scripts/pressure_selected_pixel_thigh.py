@@ -510,6 +510,61 @@ def plot_pressure_2(stat_left, stat_center, stat_right, df_ann):
 
     return
 
+
+
+def plot_pressure_3(stat_left, stat_center, stat_right):
+
+    ax_plot.cla()
+    ax_plot.set_ylim(-10,45)
+    ax_plot.set_xlim(0,len(frames_sec))
+    ax_plot.set_title('Interface pressure of motor-activity in bed (A-K)')
+    ax_plot.set_ylabel('pressure (mmHg)')
+    ax_plot.set_xlabel('time (s)')
+
+    # ini_arr=df_ann['id_frame_ini'].to_numpy()
+    # end_arr=df_ann['id_frame_end'].to_numpy()
+    # type_arr=df_ann['type_motion'].to_numpy()
+    # only one line may be specified; full height
+    # for ini, end, label in zip(ini_arr,end_arr,type_arr):
+    #     # ax_plot[0].axvline(x = ini, color = 'r', label = 'axvline - full height')
+    #     # ax_plot[0].axvline(x = end, color = 'g', label = 'axvline - full height')
+    #     ax_plot.axvspan(ini, end, facecolor='wheat', alpha=0.5)
+    #     # ax_plot[0].axvline(x = ini, color = 'r')
+    #     # ax_plot[0].axvline(x = end, color = 'g')
+    #     ax_plot.annotate(label, xy=(ini, -5), xytext=(ini, -5))
+        
+    
+    # ax_plot[0].axhline(y = 25, color = 'g', label = 'axvline - full height', linestyle='--')
+    # ax_plot.axhline(y = 25, color = 'orange', linestyle=':', alpha=0.5)
+
+    # ax_plot.plot(p_list)
+    # ax_plot.plot(stat_all[:,0])
+    # ax_plot.plot(stat_all[:,1])
+    # ax_plot.plot(stat_all[:,2])
+    # ax_plot.plot(stat_all[:,3])
+    # ax_plot.plot(stat_all[:,4]) # max. value in the roi
+    
+    # ax_plot.plot(stat_left[:,4], label='left', alpha=0.5, color='pink') # max. value in the roi
+    # ax_plot.plot(stat_center[:,4], label='center', alpha=1.0, color='black') # max. value in the roi
+    # ax_plot.plot(stat_right[:,4], label='right', alpha=0.5, color='lime') # max. value in the roi
+    
+    x_frames=np.arange(stat_center.shape[0])
+    ax_plot.fill_between(x_frames, stat_center[:,4],stat_center[:,0], alpha=0.25, color='orange')
+    
+    ax_plot.plot(stat_center[:,4], alpha=0.5, color='orange') # pink max. value in the roi
+    ax_plot.plot(stat_center[:,0], alpha=0.5, color='orange') # lime max. value in the roi
+    ax_plot.plot(stat_center[:,2], label='median', alpha=1.0, color='lime') # max. value in the roi
+    ax_plot.plot(stat_center[:,5], label='mean', alpha=1.0, color='black') # max. value in the roi
+
+    
+    
+    
+    
+
+    ax_plot.legend()
+
+    return
+
 ####### main function ###########
 if __name__== '__main__':
     
@@ -519,8 +574,8 @@ if __name__== '__main__':
     path_annotations = '../data/mattress_actigraph/info/'
     
     day_n='day03' # ['day00', 'day01'] day number
-    pp = 'p00' # ['p00','p01','p02','p03','p04'] subject number
-    nt='' # ['','1','2'] test number
+    pp = 'p01' # ['p00','p01','p02','p03','p04'] subject number
+    nt='tech' # ['','1','2','tech'] test number
     ann='annotations.csv'
 
     he = 'head_'
@@ -535,15 +590,15 @@ if __name__== '__main__':
 
     # file_head= day_n+'_'+pp+'_'+nt+'.csv'
     # file_raw= day_n+'_'+pp+'_' +nt+'.npz'
-    file_ann= path_annotations+day_n+'_'+ann
+    # file_ann= path_annotations+day_n+'_'+ann
 
     #########
     # loading annotations
-    df_ann_all = pd.read_csv(file_ann)
-    df_ann = df_ann_all.loc[df_ann_all['patient']==pp]
+    # df_ann_all = pd.read_csv(file_ann)
+    # df_ann = df_ann_all.loc[df_ann_all['patient']==pp]
 
-    print(df_ann.info())
-    print(df_ann.head())
+    # print(df_ann.info())
+    # print(df_ann.head())
 
     # loading data mattress pressure
     df_ma = pd.read_csv(path_mattress+he+file_head)
@@ -626,7 +681,8 @@ if __name__== '__main__':
         # p_list.append(roi_stat)
 
         # plot_pressure(stat_all,df_ann)
-        plot_pressure_2(stat_all_left,stat_all_center,stat_all_right,df_ann)
+        # plot_pressure_2(stat_all_left,stat_all_center,stat_all_right,df_ann)
+        plot_pressure_3(stat_all_left,stat_all_center,stat_all_right)
 
         plt.pause(0.01)
         
