@@ -10,7 +10,7 @@ import sys
 ##########
 # global variables
 # figure_1, ax_1 = plt.subplots(nrows=2, ncols=1, sharex=True)
-figure_2, ax_2 = plt.subplots(figsize=(6, 8))
+figure_2, ax_2 = plt.subplots(figsize=(4, 8))
 # figure_3, ax_3 = plt.subplots(nrows=5, ncols=1, sharex=True)
 figure_4, ax_4 = plt.subplots(nrows=5, ncols=1, sharex=True)
 
@@ -362,8 +362,8 @@ if __name__== '__main__':
     path_actigraph = '../data/mattress_actigraph/actigraph/'
     
     day_n='day03' # ['day00', 'day01', 'day02'] day number
-    pp = 'p00' # ['p00','p01','p02','p03','p04'] subject number
-    nt='' # ['','1','2', 'tech'] test number
+    pp = 'p01' # ['p00','p01','p02','p03','p04'] subject number
+    nt='tech' # ['','1','2', 'tech'] test number
 
     th = 'thigh.csv'
     ch = 'chest.csv'
@@ -446,42 +446,24 @@ if __name__== '__main__':
     id_frame_ini = 0
     id_frame_end = len(frames_sec)
 
-
-
     while (exit_key==False) and (id_frame <len(frames_sec)) and flag:
         # print('id_frame: ',id_frame)
         frame=frames_sec[id_frame]
-        # vm_chest = df_chest_a[vec_mag].to_numpy()
-        # vm_thigh = df_thigh_a[vec_mag].to_numpy()
-        # off_chest = df_chest_a[incl_off].to_numpy()
-        # off_thigh = df_thigh_a[incl_off].to_numpy()
 
+        plot_mattress(frame, id_frame)
+        plot_inclinometers(df_thigh_a, figure_4, ax_4, id_act, 'thigh')
+        plt.pause(0.1)
+        
         # plot_actigraphy(frame, vm_chest, vm_thigh, off_chest, off_thigh, id_frame)
         if time_mattress[id_frame] == time_actigraph[id_act]:
-            plot_mattress(frame, id_frame)
-            # plot_actigraphy(frame, df_chest_a, df_thigh_a, id_act, id_frame)
-            # plot_inclinometers(df_chest_a, figure_3, ax_3, id_act, 'chest')
-            plot_inclinometers(df_thigh_a, figure_4, ax_4, id_act, 'thigh')
-            plt.pause(0.1)
+            id_frame+=step
+            id_act+=step
+
         elif time_mattress[id_frame] > time_actigraph[id_act]:
-            id_act = np.where(time_actigraph==time_mattress[id_frame])[0][0]
-            print('id_frame, id_act: ', id_frame, id_act)
+            id_act+=step
+
         else:
-            id_frame = np.where(time_mattress==time_actigraph[id_act])[0][0]
-            print('id_frame, id_act: ', id_frame, id_act)
-
-            # plot_mattress(frame, id_frame)
-            # # plot_actigraphy(frame, df_chest_a, df_thigh_a, id_frame, id_frame)
-            # # plot_inclinometers(df_chest_a, figure_3, ax_3, id_frame, 'chest')
-            # plot_inclinometers(df_thigh_a, figure_4, ax_4, id_frame, 'thigh')
-            # plt.pause(0.1)
-
-
-        # if flag_start == True:
-        #     pressed_key = cv2.waitKey(0) # miliseconds
-        #     flag_start=False
-        # else:
-        #     pressed_key = cv2.waitKey(100) # miliseconds
+            id_frame+=step
 
         if pressed_key == 'x':
             print ("pressed x")
@@ -490,17 +472,11 @@ if __name__== '__main__':
             step=1
         elif pressed_key == 'n':
             step=0
+        else:
+            pass
 
-        # else:
-        #     print('id frame: ', id_frame, df_f.iloc[id_frame]['time_stamp'])
-        #     id_frame+=1
+        print('id_frame, id_act: ', id_frame, id_act)
+        # print('id frame: ', id_frame, df_f.iloc[id_frame]['time_stamp'])
 
-        print('id frame: ', id_frame, df_f.iloc[id_frame]['time_stamp'])
-        id_frame+=step
-        id_act+=step
-    
-    # cv2.waitKey(0)
-    # cv2.destroyAllWindows()
-
-    # plt.close('all')
     plt.show(block=True)
+    plt.close('all')

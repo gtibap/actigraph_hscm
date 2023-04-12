@@ -575,7 +575,7 @@ if __name__== '__main__':
     
     day_n='day03' # ['day00', 'day01'] day number
     pp = 'p01' # ['p00','p01','p02','p03','p04'] subject number
-    nt='tech' # ['','1','2','tech'] test number
+    nt='' # ['','1','2','tech'] test number
     ann='annotations.csv'
 
     he = 'head_'

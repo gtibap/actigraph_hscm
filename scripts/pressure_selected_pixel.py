@@ -460,7 +460,7 @@ def plot_pressure(stat_all, df_ann):
 def plot_pressure_2(stat_left, stat_center, stat_right, df_ann):
 
     ax_plot.cla()
-    ax_plot.set_ylim(-10,45)
+    ax_plot.set_ylim(-10,100)
     ax_plot.set_xlim(0,len(frames_sec))
     ax_plot.set_title('Interface pressure of motor-activity in bed (A-K)')
     ax_plot.set_ylabel('pressure (mmHg)')
@@ -489,22 +489,17 @@ def plot_pressure_2(stat_left, stat_center, stat_right, df_ann):
     # ax_plot.plot(stat_all[:,3])
     # ax_plot.plot(stat_all[:,4]) # max. value in the roi
     
-    # ax_plot.plot(stat_left[:,4], label='left', alpha=0.5, color='pink') # max. value in the roi
-    # ax_plot.plot(stat_center[:,4], label='center', alpha=1.0, color='black') # max. value in the roi
-    # ax_plot.plot(stat_right[:,4], label='right', alpha=0.5, color='lime') # max. value in the roi
+    ax_plot.plot(stat_left[:,4], label='left', alpha=0.5, color='pink') # max. value in the roi
+    ax_plot.plot(stat_center[:,4], label='center', alpha=1.0, color='black') # max. value in the roi
+    ax_plot.plot(stat_right[:,4], label='right', alpha=0.5, color='lime') # max. value in the roi
     
-    x_frames=np.arange(stat_center.shape[0])
-    ax_plot.fill_between(x_frames, stat_center[:,4],stat_center[:,0], alpha=0.25, color='orange')
+    # x_frames=np.arange(stat_center.shape[0])
+    # ax_plot.fill_between(x_frames, stat_center[:,4],stat_center[:,0], alpha=0.25, color='orange')
     
-    ax_plot.plot(stat_center[:,4], alpha=0.5, color='orange') # pink max. value in the roi
-    ax_plot.plot(stat_center[:,0], alpha=0.5, color='orange') # lime max. value in the roi
-    ax_plot.plot(stat_center[:,2], label='median', alpha=1.0, color='lime') # max. value in the roi
-    ax_plot.plot(stat_center[:,5], label='mean', alpha=1.0, color='black') # max. value in the roi
-
-    
-    
-    
-    
+    # ax_plot.plot(stat_center[:,4], alpha=0.5, color='orange') # pink max. value in the roi
+    # ax_plot.plot(stat_center[:,0], alpha=0.5, color='orange') # lime max. value in the roi
+    # ax_plot.plot(stat_center[:,2], label='median', alpha=1.0, color='lime') # max. value in the roi
+    # ax_plot.plot(stat_center[:,5], label='mean', alpha=1.0, color='black') # max. value in the roi
 
     ax_plot.legend()
 
@@ -519,8 +514,9 @@ if __name__== '__main__':
     path_annotations = '../data/mattress_actigraph/info/'
     
     day_n='day03' # ['day00', 'day01'] day number
-    pp = 'p00' # ['p00','p01','p02','p03','p04'] subject number
-    nt='' # ['','1','2'] test number
+    pp = 'p01' # ['p00','p01','p02','p03','p04'] subject number
+    nt='tech' # ['','1','2','tech'] test number
+    test_num= 'tech' # ['','1','2','tech'] test number
     ann='annotations.csv'
 
     he = 'head_'
@@ -540,7 +536,7 @@ if __name__== '__main__':
     #########
     # loading annotations
     df_ann_all = pd.read_csv(file_ann)
-    df_ann = df_ann_all.loc[df_ann_all['patient']==pp]
+    df_ann = df_ann_all.loc[(df_ann_all['patient']==pp) & (df_ann_all['test']==test_num)]
 
     print(df_ann.info())
     print(df_ann.head())
