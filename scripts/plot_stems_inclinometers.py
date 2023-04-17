@@ -521,50 +521,69 @@ if __name__== '__main__':
 
     header_location=10
     for sample in files_list[:1]:
-        # sample='W007_chest1secDataTable.csv'
-        # name_sample=sample
         print('file: ', sample)
         
         try:
             df1 = pd.read_csv(path+sample, header=header_location, decimal=',')
-            # usecols=['Date',' Time', vec_mag, incl_off]
             # print(df1.info())
         
-            # getting all nights data
+            # getting all nights data; df_nights is a dataframe of actigraphy from time_start to time_end per night; nights_samples are counts of spending time per night (in seconds)
             df_nights = pd.DataFrame()
             df_nights, nights_samples = getSelectedData(df1, time_start, time_end, same_day)
-            print(df_nights.info())
-
-            # plot 'Vector Magnitude' night by night
+            
             nights_list = df_nights['night'].unique().tolist()
-            # print('nights: ', nights_list)
             
             df_active_nights = pd.DataFrame()
             df_non_active_nights = pd.DataFrame()
 
             for night_num in nights_list[:]:
 
-                # print('night: ', night_num)
-                # print('plot_night df_n')
-                # print(night_num)
-                # print(df_nights.info())
+                # actigraphy data night per night
                 df_n = df_nights.loc[(df_nights['night']==night_num)]
-                # print(df_n.info())
-                # print(df_n.head())
-                # print(df_n.tail())
-
-                # identifying sectors of activity per night where gaps of 10s of inactivity are considered part of the activity section
-                min_gap=120 # seconds
-                min_value=3 # Vector Magnitude should be greater than this value to be considered as a valid motor activity
+                
+                arr_off = df_n[incl_off].to_numpy()
+                arr_lyi = df_n[incl_lyi].to_numpy()
+                arr_sit = df_n[incl_sit].to_numpy()
+                arr_sta = df_n[incl_sta].to_numpy()
+                
+                print(f'arr lengths: {arr_off.shape}, {arr_off.size}')
+                
+                # arr_incl = np.array([], dtype=np.int64).reshape(0,arr_off.size)
+                # arr_incl = np.vstack([arr_incl,arr_off])
+                # arr_incl = np.vstack([arr_incl,arr_lyi])
+                # arr_incl = np.vstack([arr_incl,arr_sit])
+                # arr_incl = np.vstack([arr_incl,arr_sta])
+                
+                # print('arr_incl: ', arr_incl, arr_incl.shape)
+                # acc_incl = np.sum(arr_incl,axis=0)
+                # print('min max: ', acc_incl, acc_incl.shape, np.amin(acc_incl), np.amax(acc_incl), np.sum(acc_incl))
                 
 
-                # df_n['activity'] = df_n[vec_mag] > min_value
-                # # boolean array where True means activity higher than min_value
-                # activity_vector = df_n['activity'].to_numpy()
-                arr_mag = df_n[vec_mag].to_numpy()
-                activity_vector = arr_mag > min_value
+                # identifying sectors of activity per night where gaps of 10s of inactivity are considered part of the activity section
+                # min_gap=120 # seconds
+                # min_value=3 # Vector Magnitude should be greater than this value to be considered as a valid motor activity
+                
+                # boolean array where True means activity higher than min_value
+                # arr_mag = df_n[vec_mag].to_numpy()
+                # activity_vector = arr_mag > min_value
                 # boolean array where True means activity higher than min_value
                 # activity_vector = df_n['activity'].to_numpy()
+                
+                print('off')
+                duration_active, duration_inactive, start_active, end_active=activity_sectors(arr_off)
+                print(start_active, end_active)
+                print('lyi')
+                duration_active, duration_inactive, start_active, end_active=activity_sectors(arr_lyi)
+                print(start_active, end_active)
+                print('sit')
+                duration_active, duration_inactive, start_active, end_active=activity_sectors(arr_sit)
+                print(start_active, end_active)
+                print('sta')
+                duration_active, duration_inactive, start_active, end_active=activity_sectors(arr_sta)
+                print(start_active, end_active)
+                
+                
+                # print('off: ', duration_active, duration_inactive, start_active, end_active)
                 
                 duration_active, duration_inactive, start_active, end_active=activity_sectors(activity_vector)
 
