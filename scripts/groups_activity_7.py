@@ -1,4 +1,4 @@
-
+import copy
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -21,6 +21,10 @@ night_num=0
 df_n=pd.DataFrame()
 activity_vector=np.array([])
 df_act_night = pd.DataFrame()
+df_nights = pd.DataFrame()
+flag_nights=True
+first_night=0
+last_night=0
 
 vec_mag  ='Vector Magnitude'
 incl_off ='Inclinometer Off'
@@ -212,6 +216,7 @@ def activity_intervals(activity_vector):
     else:
         pass
 
+    # print('idx_ini, idx_end: ', idx_ini.shape, idx_end.shape)
     return idx_ini, idx_end
 
 
@@ -261,13 +266,12 @@ def plot_activity(actigraphy, activity_vector, idx_ini,idx_end):
     axes[2].set_xlabel('time (s)')
     
 
-
     plt.show()
 
     return
 
 def plot_areas(actigraphy, idx_ini,idx_end, non_idx_ini, non_idx_end):
-    global ax1
+    global ax1, ax_stems, ax_initial
 
     activity_samples=[]
     non_acti_samples=[]
@@ -296,6 +300,10 @@ def plot_areas(actigraphy, idx_ini,idx_end, non_idx_ini, non_idx_end):
         x_as =x_axis[0::2]
 
 
+    ax_stems.cla()
+    for i in np.arange(5):
+        ax_initial[i].cla()
+
     color = 'tab:blue'
     ax_stems.set_xlabel('samples')
     ax_stems.set_ylabel('non-activity (s)', color=color)
@@ -307,6 +315,8 @@ def plot_areas(actigraphy, idx_ini,idx_end, non_idx_ini, non_idx_end):
     
 
     ax2 = ax_stems.twinx()  # instantiate a second axes that shares the same x-axis
+    # ax2.cla()
+
     color = 'tab:orange'
     ax2.set_ylabel('motor activity (s)', color=color)  # we already handled the x-label with ax1
     ax2.tick_params(axis='y', labelcolor=color)
@@ -315,6 +325,10 @@ def plot_areas(actigraphy, idx_ini,idx_end, non_idx_ini, non_idx_end):
     # plt.setp(stemlines2,'color','red')
     plt.setp(stemlines2, 'color', plt.getp(markerline2,'color'))
     
+    print('plot df_n')
+    print(df_n.info())
+    print(df_n.head())
+
 
     ax_initial[0].plot(df_n[vec_mag])
     ax_initial[1].plot(df_n[incl_off])
@@ -348,14 +362,18 @@ def plot_areas(actigraphy, idx_ini,idx_end, non_idx_ini, non_idx_end):
     # # axes[2].set_ylabel('mean act.')
     # # axes[2].set_xlabel('time (s)')
 
+    fig_stems.canvas.draw()
+    fig_initial.canvas.draw()
 
-    plt.show()
+    fig_stems.canvas.flush_events()
+    fig_initial.canvas.flush_events()
+    # plt.show()
 
     return
 
 
 def onclick(event):
-    global x_sel, ax_vm
+    global x_sel, df_act_night
     # print('%s click: button=%d, x=%d, y=%d, xdata=%f, ydata=%f, name=%s' %
         #   ('double' if event.dblclick else 'single', event.button,
         #    event.x, event.y, event.xdata, event.ydata, event.name))
@@ -401,11 +419,107 @@ def onclick(event):
     return
 
 
+def on_press(event):
+    global flag_nights, night_num
+
+    print('press', event.key)
+    sys.stdout.flush()
+    if event.key == 'x':
+        flag_nights=False
+    elif event.key == 'm':
+        if night_num < last_night:
+            night_num+=1
+        else:
+            pass
+    elif event.key == 'n':
+        if night_num > first_night:
+            night_num-=1
+        else:
+            pass
+    else:
+        pass
+    
+    plot_night()   
+        # visible = xl.get_visible()
+        # xl.set_visible(not visible)
+        # fig.canvas.draw()
+
+
+def plot_night():
+    global df_n, df_act_night, df_nights, night_num
+
+    df_active_nights = pd.DataFrame()
+    df_non_active_nights = pd.DataFrame()
+
+    # print('night: ', night_num)
+    print('plot_night df_n')
+    print(night_num)
+    print(df_nights.info())
+    df_n = df_nights.loc[(df_nights['night']==night_num)]
+    print(df_n.info())
+    print(df_n.head())
+    # print(df_n.tail())
+
+    # identifying sectors of activity per night where gaps of 10s of inactivity are considered part of the activity section
+    min_gap=120 # seconds
+    min_value=3 # Vector Magnitude should be greater than this value to be considered as a valid motor activity
+
+    # df_n['activity'] = df_n[vec_mag] > min_value
+    # # boolean array where True means activity higher than min_value
+    # activity_vector = df_n['activity'].to_numpy()
+    arr_mag = df_n[vec_mag].to_numpy()
+    activity_vector = arr_mag > min_value
+    # boolean array where True means activity higher than min_value
+    # activity_vector = df_n['activity'].to_numpy()
+
+    duration_active, duration_inactive, start_active, end_active=activity_sectors(activity_vector)
+
+    activity_vector=redefinition_activity(duration_active, duration_inactive, start_active, end_active, min_gap)
+
+    duration_active, duration_inactive, start_active, end_active=activity_sectors(activity_vector)
+    
+    #########
+    idx_ini=np.array([])
+    idx_ini, idx_end = activity_intervals(activity_vector)
+
+    # print('idx_ini: ', len(idx_ini), idx_ini)
+    # print('idx_end: ', len(idx_end), idx_end)
+
+    # plot_activity(df_n[vec_mag].to_numpy(), activity_vector, idx_ini,idx_end)
+    # plot_areas(df_n[vec_mag].to_numpy(), idx_ini,idx_end)
+
+    
+    df_act_night = pd.DataFrame()
+    df_act_night['t_ini']=idx_ini
+    df_act_night['t_end']=idx_end
+    df_act_night['night']=night_num
+    df_act_night['duration']=duration_active
+
+    df_active_nights=pd.concat([df_active_nights, df_act_night], ignore_index=True)
+
+    #########
+    idx_ini, idx_end = non_activity_intervals(activity_vector)
+
+    df_non_act_night = pd.DataFrame()
+    df_non_act_night['t_ini']=idx_ini
+    df_non_act_night['t_end']=idx_end
+    df_non_act_night['night']=night_num
+    df_non_act_night['duration']=duration_inactive
+
+    df_non_active_nights=pd.concat([df_non_active_nights, df_non_act_night], ignore_index=True)
+
+    plot_areas(df_n[vec_mag].to_numpy(), df_act_night['t_ini'].to_numpy(), df_act_night['t_end'].to_numpy(), df_non_act_night['t_ini'].to_numpy(), df_non_act_night['t_end'].to_numpy())
+    plt.show(block=True)
+
+    return
+
 ####### main function ###########
 if __name__== '__main__':
 
     # Get the list of all files and directories
-    path = "../data/all_data_1s/"
+    # path = "../data/all_data_1s/"
+    # path_out = "../data/results_motion/"
+    path = "../data/projet_officiel/"
     path_out = "../data/results_motion/"
     files_list = os.listdir(path)
     
@@ -422,11 +536,16 @@ if __name__== '__main__':
     
     # to run GUI event loop
     cid1 = fig_stems.canvas.mpl_connect('button_press_event', onclick)
-
+    cid2 = fig_stems.canvas.mpl_connect('key_press_event', on_press)
+    plt.ion()
+    plt.show()
 
     header_location=10
     for sample in files_list[:1]:
-        sample='W007_chest1secDataTable.csv'
+        # sample='W007_chest1secDataTable.csv'
+        
+        prefix = 'A004'
+        sample=prefix+'_chest.csv'
         print('file: ', sample)
         
         try:
@@ -442,60 +561,13 @@ if __name__== '__main__':
             nights_list = df_nights['night'].unique().tolist()
             # print('nights: ', nights_list)
             
-            df_active_nights = pd.DataFrame()
-            df_non_active_nights = pd.DataFrame()
+            first_night = nights_list[0]
+            last_night = nights_list[-1]
 
-            for night_num in nights_list[:1]:
-                # print('night: ', night_num)
-                df_n = df_nights.loc[(df_nights['night']==night_num)]
-                # print('df_n.info: ', df_n.info())
-                # print(df_n.head())
-                # print(df_n.tail())
+            night_num = first_night
+            # for night_num in nights_list[:]:
 
-                # identifying sectors of activity per night where gaps of 10s of inactivity are considered part of the activity section
-                min_gap=10 # seconds
-                min_value=3 # Vector Magnitude should be greater than this value to be considered as a valid motor activity
-
-                df_n['activity'] = df_n[vec_mag] > min_value
-                # boolean array where True means activity higher than min_value
-                activity_vector = df_n['activity'].to_numpy()
-
-                duration_active, duration_inactive, start_active, end_active=activity_sectors(activity_vector)
-
-                activity_vector=redefinition_activity(duration_active, duration_inactive, start_active, end_active, min_gap)
-
-                duration_active, duration_inactive, start_active, end_active=activity_sectors(activity_vector)
-                
-                #########
-                idx_ini, idx_end = activity_intervals(activity_vector)
-
-                # print('idx_ini: ', len(idx_ini), idx_ini)
-                # print('idx_end: ', len(idx_end), idx_end)
-
-                # plot_activity(df_n[vec_mag].to_numpy(), activity_vector, idx_ini,idx_end)
-                # plot_areas(df_n[vec_mag].to_numpy(), idx_ini,idx_end)
-
-                
-                # df_act_night = pd.DataFrame()
-                df_act_night['t_ini']=idx_ini
-                df_act_night['t_end']=idx_end
-                df_act_night['night']=night_num
-                df_act_night['duration']=duration_active
-
-                df_active_nights=pd.concat([df_active_nights, df_act_night], ignore_index=True)
-
-                #########
-                idx_ini, idx_end = non_activity_intervals(activity_vector)
-
-                df_non_act_night = pd.DataFrame()
-                df_non_act_night['t_ini']=idx_ini
-                df_non_act_night['t_end']=idx_end
-                df_non_act_night['night']=night_num
-                df_non_act_night['duration']=duration_inactive
-
-                df_non_active_nights=pd.concat([df_non_active_nights, df_non_act_night], ignore_index=True)
-
-                plot_areas(df_n[vec_mag].to_numpy(), df_act_night['t_ini'].to_numpy(), df_act_night['t_end'].to_numpy(), df_non_act_night['t_ini'].to_numpy(), df_non_act_night['t_end'].to_numpy())
+            plot_night()
 
             # print(df_active_nights)
             # save on disk df_active_nights
