@@ -23,7 +23,7 @@ plot_inclinometers_class.py
 We define a Class called 'Actigraphy' to facilitate simultaneous visualization of chest and thigh collected actigraphy. Additionally, we represent inclinometers' information with stems. This script reads inclinometers information (off, lyi, sit, sta) and creates a DataFrame including columns with the following information: incl, id_ini, id_end, duration, night. It is worth to mention that among the inclinometers, only one at a time is active in a 1s epocs.
 
 plot_vec_mag_class.py
-
+Simultaneously, plotting of actigraphy chest and thigh per night; additionally, highlighthing activity regions following Vector Magnitude data and two conditions: Vector Magnitude greater than a 'min_value' and consecutive activity samples with a distance less than 'min_gap' are considered part of the same group of activity.
 
 
 
