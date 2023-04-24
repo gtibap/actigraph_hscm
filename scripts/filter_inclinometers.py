@@ -29,9 +29,72 @@ import matplotlib.pyplot as plt
 # global instances
 obj_chest=Actigraphy()
 obj_thigh=Actigraphy()
+vec_mag  ='Vector Magnitude'
+incl_off ='Inclinometer Off'
+incl_sta ='Inclinometer Standing'
+incl_sit ='Inclinometer Sitting'
+incl_lyi ='Inclinometer Lying'
+fig_chest=[]
+ax_chest=[]
+fig_chest2=[]
+ax_chest2=[]
+
+def plot_actigraphy(df,night_num,filename,fig,ax):
+        
+        df_night = df.loc[(df['night']==night_num)]
+        
+        for i in np.arange(5):
+            ax[i].cla()
+
+        ax[0].set_title(filename+', night:'+str(night_num))
+        ax[0].set_ylabel('v.m.')
+        ax[1].set_ylabel('off')
+        ax[2].set_ylabel('lyi')
+        ax[3].set_ylabel('sit')
+        ax[4].set_ylabel('sta')
+        
+        ax[0].plot(df_night[vec_mag].to_numpy())
+        ax[1].plot(df_night[incl_off].to_numpy())
+        ax[2].plot(df_night[incl_lyi].to_numpy())
+        ax[3].plot(df_night[incl_sit].to_numpy())
+        ax[4].plot(df_night[incl_sta].to_numpy())
+        
+        fig.canvas.draw()
+        fig.canvas.flush_events()
+        
+        return 0
 
 
+def on_press(event):
+    global fig_chest, ax_chest, fig_chest2, ax_chest2 
+    
+    print('press', event.key)
+    sys.stdout.flush()
+    
+    if event.key == 'x':
+        plt.close('all')
+    elif event.key == 'm':
+        if (obj_chest.night_num < obj_chest.last_night) and (obj_thigh.night_num < obj_thigh.last_night):
+            obj_chest.night_num+=1
+            obj_thigh.night_num+=1
+            plot_actigraphy(obj_chest.getActigraphyData(), obj_chest.night_num, obj_chest.filename, fig_chest, ax_chest)
+            plot_actigraphy(obj_chest.getFilteredActigraphyData(), obj_chest.night_num, obj_chest.filename, fig_chest2, ax_chest2)
+        else:
+            pass
+    elif event.key == 'n':
+        if (obj_chest.night_num > obj_chest.first_night) and (obj_thigh.night_num > obj_thigh.first_night):
+            obj_chest.night_num-=1
+            obj_thigh.night_num-=1
+            plot_actigraphy(obj_chest.getActigraphyData(), obj_chest.night_num, obj_chest.filename, fig_chest, ax_chest)
+            plot_actigraphy(obj_chest.getFilteredActigraphyData(), obj_chest.night_num, obj_chest.filename, fig_chest2, ax_chest2)
+        else:
+            pass
+    else:
+        pass
+        
+        
 def main(args):
+    global fig_chest, ax_chest, fig_chest2, ax_chest2 
     
     path = "../data/projet_officiel/"
     prefix = 'A004'
@@ -61,6 +124,29 @@ def main(args):
         
         obj_chest.filterInclinometers()
         # obj_thigh.filterInclinometers()
+        
+        fig_chest, ax_chest = plt.subplots(nrows=5, ncols=1, sharex=True)
+        # df_act_chest = obj_chest.getActigraphyData()
+        # cid_chest  = fig_chest.canvas.mpl_connect('key_press_event', on_press)
+        fig_chest2, ax_chest2 = plt.subplots(nrows=5, ncols=1, sharex=True)
+        
+        # df_act_chest = obj_chest.getActigraphyData()
+        plot_actigraphy(obj_chest.getActigraphyData(), obj_chest.night_num, obj_chest.filename, fig_chest, ax_chest)
+        plot_actigraphy(obj_chest.getFilteredActigraphyData(), obj_chest.night_num, obj_chest.filename, fig_chest2, ax_chest2)
+        
+        
+        cid_chest  = fig_chest.canvas.mpl_connect('key_press_event', on_press)
+        cid_chest2 = fig_chest2.canvas.mpl_connect('key_press_event', on_press)
+        
+        # cid_thigh  = fig_actigraphy_thigh.canvas.mpl_connect('key_press_event', on_press)
+        # cid_vecMag = fig_vectMag.canvas.mpl_connect('key_press_event', on_press)
+        # cid_stems = fig_incl_stems.canvas.mpl_connect('key_press_event', on_press)
+                
+        # cid1 = fig_incl_stems.canvas.mpl_connect('button_press_event', onclick)
+        # cid2 = fig_incl_stems.canvas.mpl_connect('key_press_event', on_press)
+        plt.ion()
+        # plt.show()
+        plt.show(block=True)
         
         # print(obj_chest.df_inclinometers)
         
