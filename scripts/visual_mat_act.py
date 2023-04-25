@@ -296,9 +296,9 @@ if __name__== '__main__':
     path_mattress = '../data/mattress_actigraph/mattress/new_format/'
     path_actigraph = '../data/mattress_actigraph/actigraph/'
     
-    day_n='day03' # ['day00', 'day01', 'day02'] day number
+    day_n='day01' # ['day00', 'day01', 'day02'] day number
     pp = 'p00' # ['p00','p01','p02','p03','p04'] subject number
-    nt='' # ['','1','2', 'tech'] test number
+    nt='2' # ['','1','2', 'tech'] test number
 
     th = 'thigh.csv'
     ch = 'chest.csv'

@@ -25,6 +25,10 @@ We define a Class called 'Actigraphy' to facilitate simultaneous visualization o
 plot_vec_mag_class.py
 Simultaneously, plotting of actigraphy chest and thigh per night; additionally, highlighthing activity regions following Vector Magnitude data and two conditions: Vector Magnitude greater than a 'min_value' and consecutive activity samples with a distance less than 'min_gap' are considered part of the same group of activity.
 
+filter_inclinometers.py
+Inclinometer Standing provides information of patient activity. In bed, however, signals of Inclinometer Standing are short in duration. The idea here is to translate the activity of Inclinometer Standing to the others inclinometers to make them smoother.
 
+visual_mat_act_thigh_2.py
+last version for visualization interface pressure and actigraphy simultaneously.
 
 

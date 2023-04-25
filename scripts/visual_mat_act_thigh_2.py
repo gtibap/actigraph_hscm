@@ -24,8 +24,13 @@ id_frame=0
 id_frame_ini = 0
 id_frame_end = 0
 id_act=0
-
+flag_run=True
 flag_start=True
+exit_key=False
+frames_sec=[]
+df_thigh_a=[]
+time_mattress=[]
+time_actigraph=[]
 pressed_key='nan'
 incl_off ='Inclinometer Off'
 incl_sta ='Inclinometer Standing'
@@ -202,6 +207,7 @@ def plot_inclinometers(df_sel, fig, ax, time, title):
     ax[3].plot(sit)    
     ax[4].plot(sta)   
 
+    print('time ',time)
     # only one line may be specified; full height
     for id in np.arange(5):
         ax[id].axvline(x = time, color = 'r', label = 'axvline - full height')
@@ -218,7 +224,7 @@ def plot_inclinometers(df_sel, fig, ax, time, title):
     fig.canvas.draw()
     fig.canvas.flush_events()
 
-    return
+    return fig, ax
 
 def plot_actigraphy(img, df_chest_a, df_thigh_a, time, id_frame):
     global figure_1, figure_2, ax_1, ax_2, flag_start
@@ -346,11 +352,53 @@ def onclick(event):
     
    
 def on_press(event):
-    global pressed_key
+    global exit_key, flag_run, id_frame, id_act, step, figure_4, ax_4
 
     print('pressed', event.key)
     pressed_key = event.key
     sys.stdout.flush()
+    
+    if pressed_key == 'x':
+        print ("pressed x")
+        exit_key=True
+    elif pressed_key == 'm':
+        step=1
+        flag_run = True
+    elif pressed_key == 'n':
+        step=0
+        flag_run = False
+    else:
+        pass
+    
+    if exit_key==True:
+        plt.close('all')
+    else:
+        pass
+    
+    while (id_frame <len(frames_sec)) and flag_run:
+        # print('id_frame: ',id_frame)
+    
+        frame=frames_sec[id_frame]
+
+        plot_mattress(frame, id_frame)
+        # print('id_act ', id_act)
+        figure_4, ax_4 = plot_inclinometers(df_thigh_a, figure_4, ax_4, id_act, 'thigh')
+        plt.pause(0.1)
+            
+        # plot_actigraphy(frame, vm_chest, vm_thigh, off_chest, off_thigh, id_frame)
+        if time_mattress[id_frame] == time_actigraph[id_act]:
+            id_frame+=step
+            id_act+=step
+
+        elif time_mattress[id_frame] > time_actigraph[id_act]:
+            id_act+=step
+
+        else:
+            id_frame+=step
+            
+        print('id_frame, id_act: ', id_frame, id_act)
+    
+    return
 
 
 ####### main function ###########
@@ -362,7 +410,7 @@ if __name__== '__main__':
     path_actigraph = '../data/mattress_actigraph/actigraph/'
     
     day_n='day03' # ['day00', 'day01', 'day02'] day number
-    pp = 'p00' # ['p00','p01','p02','p03','p04'] subject number
+    pp = 'p01' # ['p00','p01','p02','p03','p04'] subject number
     nt='' # ['','1','2', 'tech'] test number
 
     th = 'thigh.csv'
@@ -446,37 +494,38 @@ if __name__== '__main__':
     id_frame_ini = 0
     id_frame_end = len(frames_sec)
 
-    while (exit_key==False) and (id_frame <len(frames_sec)) and flag:
+    # while (exit_key==False) and (id_frame <len(frames_sec)) and flag:
         # print('id_frame: ',id_frame)
-        frame=frames_sec[id_frame]
+    
+    # frame=frames_sec[id_frame]
 
-        plot_mattress(frame, id_frame)
-        plot_inclinometers(df_thigh_a, figure_4, ax_4, id_act, 'thigh')
-        plt.pause(0.1)
+    # plot_mattress(frame, id_frame)
+    # plot_inclinometers(df_thigh_a, figure_4, ax_4, id_act, 'thigh')
+    # plt.pause(0.1)
         
-        # plot_actigraphy(frame, vm_chest, vm_thigh, off_chest, off_thigh, id_frame)
-        if time_mattress[id_frame] == time_actigraph[id_act]:
-            id_frame+=step
-            id_act+=step
+    # plot_actigraphy(frame, vm_chest, vm_thigh, off_chest, off_thigh, id_frame)
+    # if time_mattress[id_frame] == time_actigraph[id_act]:
+        # id_frame+=step
+        # id_act+=step
 
-        elif time_mattress[id_frame] > time_actigraph[id_act]:
-            id_act+=step
+    # elif time_mattress[id_frame] > time_actigraph[id_act]:
+        # id_act+=step
 
-        else:
-            id_frame+=step
+    # else:
+        # id_frame+=step
 
-        if pressed_key == 'x':
-            print ("pressed x")
-            exit_key=True
-        elif pressed_key == 'm':
-            step=1
-        elif pressed_key == 'n':
-            step=0
-        else:
-            pass
+    # if pressed_key == 'x':
+        # print ("pressed x")
+        # exit_key=True
+    # elif pressed_key == 'm':
+        # step=1
+    # elif pressed_key == 'n':
+        # step=0
+    # else:
+        # pass
 
-        print('id_frame, id_act: ', id_frame, id_act)
+    # print('id_frame, id_act: ', id_frame, id_act)
         # print('id frame: ', id_frame, df_f.iloc[id_frame]['time_stamp'])
 
     plt.show(block=True)
-    plt.close('all')
+    # plt.close('all')
