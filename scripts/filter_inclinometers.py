@@ -45,6 +45,8 @@ def plot_actigraphy(df,night_num,filename,fig,ax):
         
         for i in np.arange(5):
             ax[i].cla()
+            
+        ax[0].set_xlim(0,5000)
 
         ax[0].set_title(filename+', night:'+str(night_num))
         ax[0].set_ylabel('v.m.')
@@ -52,6 +54,7 @@ def plot_actigraphy(df,night_num,filename,fig,ax):
         ax[2].set_ylabel('lyi')
         ax[3].set_ylabel('sit')
         ax[4].set_ylabel('sta')
+        ax[4].set_xlabel('time (s)')
         
         ax[0].plot(df_night[vec_mag].to_numpy())
         ax[1].plot(df_night[incl_off].to_numpy())
@@ -124,6 +127,10 @@ def main(args):
         
         obj_chest.filterInclinometers()
         # obj_thigh.filterInclinometers()
+        
+        obj_chest.filterInclinometersStep2()
+        # obj_thigh.filterInclinometers()
+        
         
         fig_chest, ax_chest = plt.subplots(nrows=5, ncols=1, sharex=True)
         # df_act_chest = obj_chest.getActigraphyData()
