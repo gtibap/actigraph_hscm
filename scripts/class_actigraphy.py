@@ -391,29 +391,34 @@ class Actigraphy:
         
         # print('self.df_night_length: ', self.df_night_length)
         
-        id_first = 0
-        id_last = size_array
-        
-        duration_activity_arr = arr_end - arr_ini
-        
-        duration_non_activity_arr=np.array([arr_ini[0]-id_first])
-        duration_non_activity_arr=np.concatenate((duration_non_activity_arr, (arr_ini[1:] - arr_end[:-1])), axis=None)
-        duration_non_activity_arr=np.concatenate((duration_non_activity_arr, (id_last-arr_end[-1])), axis=None)
+        if arr_ini.size > 0:
+            id_first = 0
+            id_last = size_array
+            duration_activity_arr = arr_end - arr_ini
+            duration_non_activity_arr=np.array([arr_ini[0]-id_first])
+            duration_non_activity_arr=np.concatenate((duration_non_activity_arr, (arr_ini[1:] - arr_end[:-1])), axis=None)
+            duration_non_activity_arr=np.concatenate((duration_non_activity_arr, (id_last-arr_end[-1])), axis=None)
+        else:
+            duration_activity_arr = np.array([0])
+            duration_non_activity_arr=np.array([size_array])
         
         return duration_activity_arr, duration_non_activity_arr
     
     
-    def filterInclinometersStep2(self):
+    def filterInclinometersStep2(self, width_filter):
         # here start the second step of filtering. We detect inclinometers activity for 1s; we add these activities to the inclinometers signals that were active just before the 1s activity, if the activity of the former inclinometer last more than 1s.
         
+        # df_in provides indexes of activity for each inclinometer per night. In this case, df_in contains the results of filtering with inclinometer standing
         df_in  = self.getFilteredInclinometersData()
+        # df_act provides signals of actigraphy, i.e., Vector Magnitude and Inclinometers per second per night
         df_act = self.getFilteredActigraphyData()
         
+        # new dataframes to collect indexes and signals of inclinometers after filtering them
         df_incl_indexes_all = pd.DataFrame([],columns=['incl', 'idx_ini', 'idx_end'])
         df_incl_signals_all = pd.DataFrame([],columns=[self.incl_off, self.incl_lyi, self.incl_sit, self.incl_sta])
         
         nights_list = df_in['night'].unique().tolist()
-        for night_num in nights_list[:1]:
+        for night_num in nights_list:
             print('night: ', night_num)
             df_night_off = df_in.loc[(df_in['night']==night_num) & (df_in['incl']==self.incl_off)]
             df_night_lyi = df_in.loc[(df_in['night']==night_num) & (df_in['incl']==self.incl_lyi)]
@@ -432,13 +437,42 @@ class Actigraphy:
             arr_sit_end = df_night_sit['idx_end'].to_numpy()
             # arr_sta_end = df_night_sta['idx_end'].to_numpy()
             
-            arr_off_end, arr_lyi_end = self.filteredOneSecond(arr_off_ini, arr_off_end, arr_lyi_ini, arr_lyi_end)
-            # arr_off_end, arr_sit_end = self.filteredOneSecond(arr_off_ini, arr_off_end, arr_sit_ini, arr_sit_end)
-            # arr_lyi_end, arr_sit_end = self.filteredOneSecond(arr_lyi_ini, arr_lyi_end, arr_sit_ini, arr_sit_end)
-            
-            # new_arr_off_end = self.filterInclStanding(arr_sta_ini, arr_sta_end, arr_off_end)
-            # new_arr_lyi_end = self.filterInclStanding(arr_sta_ini, arr_sta_end, arr_lyi_end)
-            # new_arr_sit_end = self.filterInclStanding(arr_sta_ini, arr_sta_end, arr_sit_end)
+            # we repeat the process until no more changes 
+            cont_filter=7
+            while cont_filter > 6:
+                cont_filter=0
+                
+                # print('off and lyi')
+                arr_off_ini, arr_off_end, arr_lyi_ini, arr_lyi_end, cont_off_lyi = self.filteredOneSecond(arr_off_ini, arr_off_end, arr_lyi_ini, arr_lyi_end, self.samples_per_night[int(night_num)], width_filter)
+                
+                cont_filter+=cont_off_lyi
+                
+                # print('lyi and off')
+                arr_lyi_ini, arr_lyi_end, arr_off_ini, arr_off_end, cont_lyi_off = self.filteredOneSecond(arr_lyi_ini, arr_lyi_end, arr_off_ini, arr_off_end, self.samples_per_night[int(night_num)], width_filter)
+                
+                cont_filter+=cont_lyi_off
+                
+                # print('off and sit')
+                arr_off_ini, arr_off_end, arr_sit_ini, arr_sit_end, cont_off_sit = self.filteredOneSecond(arr_off_ini, arr_off_end, arr_sit_ini, arr_sit_end, self.samples_per_night[int(night_num)], width_filter)
+                
+                cont_filter+=cont_off_sit
+                
+                # print('sit and off')
+                arr_sit_ini, arr_sit_end, arr_off_ini, arr_off_end, cont_sit_off = self.filteredOneSecond(arr_sit_ini, arr_sit_end, arr_off_ini, arr_off_end, self.samples_per_night[int(night_num)], width_filter)
+                
+                cont_filter+=cont_sit_off
+                
+                # print('lyi and sit')
+                arr_lyi_ini, arr_lyi_end, arr_sit_ini, arr_sit_end, cont_lyi_sit = self.filteredOneSecond(arr_lyi_ini, arr_lyi_end, arr_sit_ini, arr_sit_end, self.samples_per_night[int(night_num)], width_filter)
+                
+                cont_filter+=cont_lyi_sit
+                
+                # print('sit and lyi')
+                arr_sit_ini, arr_sit_end, arr_lyi_ini, arr_lyi_end, cont_sit_lyi = self.filteredOneSecond(arr_sit_ini, arr_sit_end, arr_lyi_ini, arr_lyi_end, self.samples_per_night[int(night_num)], width_filter)
+                
+                cont_filter+=cont_sit_lyi
+                
+                # print('\ncont filter: ', cont_filter)
             
             # now, we reconstruct the activity signals for each inclinometer; thereafter, we get the indexes for each activity segment for each inclinometer
             
@@ -465,46 +499,57 @@ class Actigraphy:
         df_incl_indexes_all['duration']=df_incl_indexes_all['idx_end'] - df_incl_indexes_all['idx_ini']
         df_incl_signals_all[self.vec_mag]=df_act[self.vec_mag]
         
-        self.setFilteredInclinometers_indexesStep2(df_incl_indexes_all)
-        # self.setFilteredInclinometers_signals(df_incl_signals_all)
-        self.setFilteredActigraphyDataStep2(df_incl_signals_all)
+        # self.setFilteredInclinometers_indexesStep2(df_incl_indexes_all)
+        # self.setFilteredActigraphyDataStep2(df_incl_signals_all)
+        self.setFilteredInclinometers_indexes(df_incl_indexes_all)
+        self.setFilteredActigraphyData(df_incl_signals_all)
+        
                 
         return 0
         
 
-    def filteredOneSecond(self, arr_0_ini, arr_0_end, arr_1_ini, arr_1_end):
+    def filteredOneSecond(self, arr_0_ini, arr_0_end, arr_1_ini, arr_1_end, arr_size, width_filter):
         
-        arr_0_diff = arr_0_end - arr_0_ini
-        arr_indexes = np.argwhere(arr_0_diff==1)
-        print('diff: ', arr_0_diff)
-        print('arr_indexes: ', arr_indexes[:,0])
-        
-        for idx in arr_indexes[:,0]:
-            if arr_0_ini[idx] in arr_1_end:
-                idy = np.argwhere(arr_1_end==arr_0_ini[idx])[0][0]
-                val_diff = arr_1_end[idy] - arr_1_ini[idy]
-                if val_diff > 1:
-                    arr_1_end[idy] = arr_0_end[idx]
-                    arr_0_end[idx] = arr_0_ini[idx]
+        flag_change=True
+        cont=0
+        while flag_change:
+            flag_change=False
+            arr_0_diff = arr_0_end - arr_0_ini
+            arr_indexes = np.argwhere(arr_0_diff<=width_filter)
+            # print('diff: ', arr_0_diff)
+            # print('arr_indexes: ', arr_indexes[:,0])
+            
+            for idx in arr_indexes[:,0]:
+                if arr_0_ini[idx] in arr_1_end:
+                    idy = np.argwhere(arr_1_end==arr_0_ini[idx])[0][0]
+                    val_diff = arr_1_end[idy] - arr_1_ini[idy]
+                    if val_diff > width_filter:
+                        arr_1_end[idy] = arr_0_end[idx]
+                        arr_0_end[idx] = arr_0_ini[idx]
+                        flag_change=True
+                    else:
+                        pass
                 else:
                     pass
-            else:
-                pass
+
+            arr_0_ini, arr_0_end = self.indexes_redefinition(arr_0_ini, arr_0_end, arr_size)
+            arr_1_ini, arr_1_end = self.indexes_redefinition(arr_1_ini, arr_1_end, arr_size)
             
-        
-        now the same but changing the order
+            cont+=1
                 
-             
-        # for id0, id1 in zip(arr_sta_ini, arr_sta_end):
-            # if id0 in arr_end:
-                # print(idx, np.argwhere(arr_off_end==idx)[0][0])
-                # id_end = np.argwhere(arr_end==id0)[0][0]
-                # replace end
-                # arr_copy[id_end] = id1
-            # else:
-                # pass
+        return arr_0_ini, arr_0_end, arr_1_ini, arr_1_end, cont
         
-        return arr_0_end, arr_1_end
+        
+    def indexes_redefinition(self, arr_ini, arr_end, arr_size):
+        
+        active_arr, inactive_arr = self.getDurationActivity(arr_ini, arr_end, arr_size)
+        
+        new_activity_arr = self.redefinition_activity_arr(active_arr, inactive_arr, start_active=False, end_active=False, min_gap=0)
+        
+        indexes_ini, indexes_end =self.activity_sectors_indexes(new_activity_arr)
+        
+        return indexes_ini, indexes_end
+        
         
         
     def getInclinometersData(self):
@@ -513,8 +558,15 @@ class Actigraphy:
     def getFilteredInclinometersData(self):
         return self.df_filtered_inclinometers
     
-    def getFilteredActigraphyData(self, df_signals):
+    def getFilteredActigraphyData(self):
         return self.df_filtered_actigraphy_nights
+    
+    def getFilteredInclinometers_indexesStep2(self):
+        return self.df_filtered_inclinometers_step_2
+        
+        
+    def getFilteredActigraphyDataStep2(self):
+        return self.df_filtered_actigraphy_nights_step_2
         
     def getVectMagActivity(self):
         return self.df_vectMag
@@ -549,7 +601,6 @@ class Actigraphy:
         self.df_filtered_inclinometers_step_2=df_indexes
         return 0
         
-    
     def setFilteredActigraphyDataStep2(self, df_signals):
         self.df_filtered_actigraphy_nights_step_2=df_signals
         return 0

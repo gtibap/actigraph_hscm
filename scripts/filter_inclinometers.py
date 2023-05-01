@@ -38,6 +38,9 @@ fig_chest=[]
 ax_chest=[]
 fig_chest2=[]
 ax_chest2=[]
+fig_chest3=[]
+ax_chest3=[]
+
 
 def plot_actigraphy(df,night_num,filename,fig,ax):
         
@@ -46,7 +49,7 @@ def plot_actigraphy(df,night_num,filename,fig,ax):
         for i in np.arange(5):
             ax[i].cla()
             
-        ax[0].set_xlim(0,5000)
+        # ax[0].set_xlim(0,5000)
 
         ax[0].set_title(filename+', night:'+str(night_num))
         ax[0].set_ylabel('v.m.')
@@ -69,7 +72,7 @@ def plot_actigraphy(df,night_num,filename,fig,ax):
 
 
 def on_press(event):
-    global fig_chest, ax_chest, fig_chest2, ax_chest2 
+    global fig_chest, ax_chest, fig_chest2, ax_chest2, fig_chest3, ax_chest3 
     
     print('press', event.key)
     sys.stdout.flush()
@@ -82,6 +85,7 @@ def on_press(event):
             obj_thigh.night_num+=1
             plot_actigraphy(obj_chest.getActigraphyData(), obj_chest.night_num, obj_chest.filename, fig_chest, ax_chest)
             plot_actigraphy(obj_chest.getFilteredActigraphyData(), obj_chest.night_num, obj_chest.filename, fig_chest2, ax_chest2)
+            # plot_actigraphy(obj_chest.getFilteredActigraphyDataStep2(), obj_chest.night_num, obj_chest.filename, fig_chest3, ax_chest3)
         else:
             pass
     elif event.key == 'n':
@@ -90,6 +94,7 @@ def on_press(event):
             obj_thigh.night_num-=1
             plot_actigraphy(obj_chest.getActigraphyData(), obj_chest.night_num, obj_chest.filename, fig_chest, ax_chest)
             plot_actigraphy(obj_chest.getFilteredActigraphyData(), obj_chest.night_num, obj_chest.filename, fig_chest2, ax_chest2)
+            # plot_actigraphy(obj_chest.getFilteredActigraphyDataStep2(), obj_chest.night_num, obj_chest.filename, fig_chest3, ax_chest3)
         else:
             pass
     else:
@@ -97,7 +102,7 @@ def on_press(event):
         
         
 def main(args):
-    global fig_chest, ax_chest, fig_chest2, ax_chest2 
+    global fig_chest, ax_chest, fig_chest2, ax_chest2, fig_chest3, ax_chest3
     
     path = "../data/projet_officiel/"
     prefix = 'A004'
@@ -128,22 +133,34 @@ def main(args):
         obj_chest.filterInclinometers()
         # obj_thigh.filterInclinometers()
         
-        obj_chest.filterInclinometersStep2()
+        for width_filter in np.arange(600):
+            print('\nwidth_filter: ', width_filter)
+            obj_chest.filterInclinometersStep2(width_filter)
         # obj_thigh.filterInclinometers()
         
+        # width_filter=2
+        # obj_chest.filterInclinometersStep2(width_filter)
+        
+        # width_filter=3
+        # obj_chest.filterInclinometersStep2(width_filter)
         
         fig_chest, ax_chest = plt.subplots(nrows=5, ncols=1, sharex=True)
         # df_act_chest = obj_chest.getActigraphyData()
         # cid_chest  = fig_chest.canvas.mpl_connect('key_press_event', on_press)
         fig_chest2, ax_chest2 = plt.subplots(nrows=5, ncols=1, sharex=True)
         
+        # fig_chest3, ax_chest3 = plt.subplots(nrows=5, ncols=1, sharex=True)
+        
         # df_act_chest = obj_chest.getActigraphyData()
         plot_actigraphy(obj_chest.getActigraphyData(), obj_chest.night_num, obj_chest.filename, fig_chest, ax_chest)
         plot_actigraphy(obj_chest.getFilteredActigraphyData(), obj_chest.night_num, obj_chest.filename, fig_chest2, ax_chest2)
         
+        # plot_actigraphy(obj_chest.getFilteredActigraphyDataStep2(), obj_chest.night_num, obj_chest.filename, fig_chest3, ax_chest3)
+        
         
         cid_chest  = fig_chest.canvas.mpl_connect('key_press_event', on_press)
         cid_chest2 = fig_chest2.canvas.mpl_connect('key_press_event', on_press)
+        # cid_chest3 = fig_chest3.canvas.mpl_connect('key_press_event', on_press)
         
         # cid_thigh  = fig_actigraphy_thigh.canvas.mpl_connect('key_press_event', on_press)
         # cid_vecMag = fig_vectMag.canvas.mpl_connect('key_press_event', on_press)
