@@ -38,41 +38,43 @@ fig_chest=[]
 ax_chest=[]
 fig_chest2=[]
 ax_chest2=[]
-fig_chest3=[]
-ax_chest3=[]
+fig_thigh=[]
+fig_thigh2=[]
+ax_thigh=[]
+ax_thigh2=[]
 
 
 def plot_actigraphy(df,night_num,filename,fig,ax):
+    
+    df_night = df.loc[(df['night']==night_num)]
+    
+    for i in np.arange(5):
+        ax[i].cla()
         
-        df_night = df.loc[(df['night']==night_num)]
-        
-        for i in np.arange(5):
-            ax[i].cla()
-            
-        # ax[0].set_xlim(0,5000)
+    # ax[0].set_xlim(0,5000)
 
-        ax[0].set_title(filename+', night:'+str(night_num))
-        ax[0].set_ylabel('v.m.')
-        ax[1].set_ylabel('off')
-        ax[2].set_ylabel('lyi')
-        ax[3].set_ylabel('sit')
-        ax[4].set_ylabel('sta')
-        ax[4].set_xlabel('time (s)')
-        
-        ax[0].plot(df_night[vec_mag].to_numpy())
-        ax[1].plot(df_night[incl_off].to_numpy())
-        ax[2].plot(df_night[incl_lyi].to_numpy())
-        ax[3].plot(df_night[incl_sit].to_numpy())
-        ax[4].plot(df_night[incl_sta].to_numpy())
-        
-        fig.canvas.draw()
-        fig.canvas.flush_events()
-        
-        return 0
+    ax[0].set_title(filename+', night:'+str(night_num))
+    ax[0].set_ylabel('v.m.')
+    ax[1].set_ylabel('off')
+    ax[2].set_ylabel('lyi')
+    ax[3].set_ylabel('sit')
+    ax[4].set_ylabel('sta')
+    ax[4].set_xlabel('time (s)')
+    
+    ax[0].plot(df_night[vec_mag].to_numpy())
+    ax[1].plot(df_night[incl_off].to_numpy())
+    ax[2].plot(df_night[incl_lyi].to_numpy())
+    ax[3].plot(df_night[incl_sit].to_numpy())
+    ax[4].plot(df_night[incl_sta].to_numpy())
+    
+    fig.canvas.draw()
+    fig.canvas.flush_events()
+    
+    return 0
 
 
 def on_press(event):
-    global fig_chest, ax_chest, fig_chest2, ax_chest2, fig_chest3, ax_chest3 
+    # global fig_chest, ax_chest, fig_chest2, ax_chest2, fig_chest3, ax_chest3 
     
     print('press', event.key)
     sys.stdout.flush()
@@ -83,29 +85,36 @@ def on_press(event):
         if (obj_chest.night_num < obj_chest.last_night) and (obj_thigh.night_num < obj_thigh.last_night):
             obj_chest.night_num+=1
             obj_thigh.night_num+=1
-            plot_actigraphy(obj_chest.getActigraphyData(), obj_chest.night_num, obj_chest.filename, fig_chest, ax_chest)
-            plot_actigraphy(obj_chest.getFilteredActigraphyData(), obj_chest.night_num, obj_chest.filename, fig_chest2, ax_chest2)
-            # plot_actigraphy(obj_chest.getFilteredActigraphyDataStep2(), obj_chest.night_num, obj_chest.filename, fig_chest3, ax_chest3)
+            plot_all()
         else:
             pass
     elif event.key == 'n':
         if (obj_chest.night_num > obj_chest.first_night) and (obj_thigh.night_num > obj_thigh.first_night):
             obj_chest.night_num-=1
             obj_thigh.night_num-=1
-            plot_actigraphy(obj_chest.getActigraphyData(), obj_chest.night_num, obj_chest.filename, fig_chest, ax_chest)
-            plot_actigraphy(obj_chest.getFilteredActigraphyData(), obj_chest.night_num, obj_chest.filename, fig_chest2, ax_chest2)
-            # plot_actigraphy(obj_chest.getFilteredActigraphyDataStep2(), obj_chest.night_num, obj_chest.filename, fig_chest3, ax_chest3)
+            plot_all()
         else:
             pass
     else:
         pass
         
+
+def plot_all():
+    # global fig_chest, ax_chest, fig_chest2, ax_chest2, fig_thigh, fig_thigh2, ax_thigh, ax_thigh2
+    
+    plot_actigraphy(obj_chest.getActigraphyDataCropped(), obj_chest.night_num, obj_chest.filename, fig_chest, ax_chest)
+    plot_actigraphy(obj_chest.getFilteredActigraphyDataCropped(), obj_chest.night_num, obj_chest.filename, fig_chest2, ax_chest2)
+    plot_actigraphy(obj_thigh.getActigraphyDataCropped(), obj_thigh.night_num, obj_thigh.filename, fig_thigh, ax_thigh)
+    plot_actigraphy(obj_thigh.getFilteredActigraphyDataCropped(), obj_thigh.night_num, obj_thigh.filename, fig_thigh2, ax_thigh2)
+    
+    return
         
 def main(args):
-    global fig_chest, ax_chest, fig_chest2, ax_chest2, fig_chest3, ax_chest3
+    global fig_chest, ax_chest, fig_chest2, ax_chest2, fig_thigh, fig_thigh2, ax_thigh, ax_thigh2
     
     path = "../data/projet_officiel/"
-    prefix = 'A004'
+    path_filtered = "../data/projet_officiel_filtered/"
+    prefix = 'A003'
     files_list=[prefix+'_chest.csv', prefix+'_thigh.csv']
     
     flag_chest=False
@@ -128,15 +137,51 @@ def main(args):
     if flag_chest and flag_thigh:
         
         obj_chest.readInclinometers()
-        # obj_thigh.readInclinometers()
+        obj_thigh.readInclinometers()
         
         obj_chest.filterInclinometers()
-        # obj_thigh.filterInclinometers()
+        obj_thigh.filterInclinometers()
         
-        for width_filter in np.arange(600):
+        path_base = path_filtered + prefix
+        mark_value = 60
+        step=1
+        
+        # [1,900]
+        for width_filter in np.arange(1,901):
             print('\nwidth_filter: ', width_filter)
             obj_chest.filterInclinometersStep2(width_filter)
-        # obj_thigh.filterInclinometers()
+            obj_thigh.filterInclinometersStep2(width_filter)
+            
+            # 1 min [0, 60)
+            if width_filter == (mark_value*step):
+                file_name_chest = path_base + '_chest_'+ str(mark_value*step) + '.csv'
+                file_name_thigh = path_base + '_thigh_'+ str(mark_value*step) + '.csv'
+                df_chest_filtered = obj_chest.getFilteredActigraphyDataCropped()
+                df_thigh_filtered = obj_thigh.getFilteredActigraphyDataCropped()
+                df_chest_filtered.to_csv(file_name_chest, index=False)
+                df_thigh_filtered.to_csv(file_name_thigh, index=False)
+                step+=2
+            else:
+                pass
+                
+            # 2 min [0, 120)
+            # elif width_filter == 119:
+                # file_name_chest = path_base + '_chest_120.csv'
+                # file_name_thigh = path_base + '_thigh_120.csv'
+                # df_chest_filtered = obj_chest.getFilteredActigraphyDataCropped()
+                # df_thigh_filtered = obj_thigh.getFilteredActigraphyDataCropped()
+                # df_chest_filtered.to_csv(file_name_chest, index=False)
+                # df_thigh_filtered.to_csv(file_name_thigh, index=False)
+            # 5 min [0, 120)
+            # elif width_filter == 119:
+                # file_name_chest = path_base + '_chest_120.csv'
+                # file_name_thigh = path_base + '_thigh_120.csv'
+                # df_chest_filtered = obj_chest.getFilteredActigraphyDataCropped()
+                # df_thigh_filtered = obj_thigh.getFilteredActigraphyDataCropped()
+                # df_chest_filtered.to_csv(file_name_chest, index=False)
+                # df_thigh_filtered.to_csv(file_name_thigh, index=False)
+        
+        
         
         # width_filter=2
         # obj_chest.filterInclinometersStep2(width_filter)
@@ -145,21 +190,29 @@ def main(args):
         # obj_chest.filterInclinometersStep2(width_filter)
         
         fig_chest, ax_chest = plt.subplots(nrows=5, ncols=1, sharex=True)
-        # df_act_chest = obj_chest.getActigraphyData()
-        # cid_chest  = fig_chest.canvas.mpl_connect('key_press_event', on_press)
         fig_chest2, ax_chest2 = plt.subplots(nrows=5, ncols=1, sharex=True)
+
+        fig_thigh,  ax_thigh  = plt.subplots(nrows=5, ncols=1, sharex=True)
+        fig_thigh2, ax_thigh2 = plt.subplots(nrows=5, ncols=1, sharex=True)
         
         # fig_chest3, ax_chest3 = plt.subplots(nrows=5, ncols=1, sharex=True)
         
         # df_act_chest = obj_chest.getActigraphyData()
-        plot_actigraphy(obj_chest.getActigraphyData(), obj_chest.night_num, obj_chest.filename, fig_chest, ax_chest)
-        plot_actigraphy(obj_chest.getFilteredActigraphyData(), obj_chest.night_num, obj_chest.filename, fig_chest2, ax_chest2)
+        plot_all()
+        # plot_actigraphy(obj_chest.getActigraphyData(), obj_chest.night_num, obj_chest.filename, fig_chest, ax_chest)
+        # plot_actigraphy(obj_chest.getFilteredActigraphyData(), obj_chest.night_num, obj_chest.filename, fig_chest2, ax_chest2)
+        
+        # plot_actigraphy(obj_thigh.getActigraphyData(), obj_thigh.night_num, obj_thigh.filename, fig_thigh, ax_thigh)
+        # plot_actigraphy(obj_thigh.getFilteredActigraphyData(), obj_thigh.night_num, obj_thigh.filename, fig_thigh2, ax_thigh2)
         
         # plot_actigraphy(obj_chest.getFilteredActigraphyDataStep2(), obj_chest.night_num, obj_chest.filename, fig_chest3, ax_chest3)
         
         
         cid_chest  = fig_chest.canvas.mpl_connect('key_press_event', on_press)
         cid_chest2 = fig_chest2.canvas.mpl_connect('key_press_event', on_press)
+        cid_thigh  = fig_thigh.canvas.mpl_connect('key_press_event', on_press)
+        cid_thigh2 = fig_thigh2.canvas.mpl_connect('key_press_event', on_press)
+        
         # cid_chest3 = fig_chest3.canvas.mpl_connect('key_press_event', on_press)
         
         # cid_thigh  = fig_actigraphy_thigh.canvas.mpl_connect('key_press_event', on_press)

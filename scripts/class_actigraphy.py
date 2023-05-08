@@ -9,6 +9,8 @@ class Actigraphy:
 
     # the header in line 10 of the csv actigraphy files
     header_location=10
+    padding = 900 # 900s (15 min)
+    time_pre='21:45:00'
     time_ini='22:00:00'
     time_end='07:59:59'
     same_day=False
@@ -70,7 +72,8 @@ class Actigraphy:
         if self.same_day==False:
             for day_now, day_next in zip(dates_list, dates_list[1:]):
 
-                df_night_part0 = self.df1.loc[(self.df1['Date']==day_now)  & (self.df1[' Time']>=self.time_ini)]
+                # df_night_part0 = self.df1.loc[(self.df1['Date']==day_now)  & (self.df1[' Time']>=self.time_ini)]
+                df_night_part0 = self.df1.loc[(self.df1['Date']==day_now)  & (self.df1[' Time']>=self.time_pre)]
                 df_night_part1 = self.df1.loc[(self.df1['Date']==day_next) & (self.df1[' Time']<=self.time_end)]
 
                 df_night = pd.concat([df_night_part0,df_night_part1],  ignore_index=True)
@@ -81,7 +84,8 @@ class Actigraphy:
                 cont_nights+=1
         else:
             for day_now in dates_list:
-                df_night = df.loc[(df['Date']==day_now) & (df[' Time']>=self.time_ini) & (df[' Time']<=self.time_end)]
+                # df_night = df.loc[(df['Date']==day_now) & (df[' Time']>=self.time_ini) & (df[' Time']<=self.time_end)]
+                df_night = df.loc[(df['Date']==day_now) & (df[' Time']>=self.time_pre) & (df[' Time']<=self.time_end)]
                 df_night['night']=cont_nights
                 df_all=pd.concat([df_all, df_night], ignore_index=True)
                 # number of samples per night
@@ -419,7 +423,7 @@ class Actigraphy:
         
         nights_list = df_in['night'].unique().tolist()
         for night_num in nights_list:
-            print('night: ', night_num)
+            # print('night: ', night_num)
             df_night_off = df_in.loc[(df_in['night']==night_num) & (df_in['incl']==self.incl_off)]
             df_night_lyi = df_in.loc[(df_in['night']==night_num) & (df_in['incl']==self.incl_lyi)]
             df_night_sit = df_in.loc[(df_in['night']==night_num) & (df_in['incl']==self.incl_sit)]
@@ -574,8 +578,14 @@ class Actigraphy:
     def getActigraphyData(self):
         return self.df_actigraphy_nights
     
+    def getActigraphyDataCropped(self):
+        return self.df_actigraphy_nights[self.padding:]
+    
     def getFilteredActigraphyData(self):
         return self.df_filtered_actigraphy_nights
+    
+    def getFilteredActigraphyDataCropped(self):
+        return self.df_filtered_actigraphy_nights[self.padding:]
         
     def setMinGap(self, value):
         self.min_gap=value
