@@ -152,17 +152,18 @@ def main(args):
             obj_chest.filterInclinometersStep2(width_filter)
             obj_thigh.filterInclinometersStep2(width_filter)
             
-            # 1 min [0, 60)
-            if width_filter == (mark_value*step):
-                file_name_chest = path_base + '_chest_'+ str(mark_value*step) + '.csv'
-                file_name_thigh = path_base + '_thigh_'+ str(mark_value*step) + '.csv'
-                df_chest_filtered = obj_chest.getFilteredActigraphyDataCropped()
-                df_thigh_filtered = obj_thigh.getFilteredActigraphyDataCropped()
-                df_chest_filtered.to_csv(file_name_chest, index=False)
-                df_thigh_filtered.to_csv(file_name_thigh, index=False)
-                step+=2
-            else:
-                pass
+            
+            # save in disk every 60*i, i+=2, i=[1,3,5,...,15]
+            # if width_filter == (mark_value*step):
+                # file_name_chest = path_base + '_chest_'+ str(mark_value*step) + '.csv'
+                # file_name_thigh = path_base + '_thigh_'+ str(mark_value*step) + '.csv'
+                # df_chest_filtered = obj_chest.getFilteredActigraphyDataCropped()
+                # df_thigh_filtered = obj_thigh.getFilteredActigraphyDataCropped()
+                # df_chest_filtered.to_csv(file_name_chest, index=False)
+                # df_thigh_filtered.to_csv(file_name_thigh, index=False)
+                # step+=2
+            # else:
+                # pass
                 
             # 2 min [0, 120)
             # elif width_filter == 119:

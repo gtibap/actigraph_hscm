@@ -34,7 +34,7 @@ class Actigraphy:
         self.df_vectMag = pd.DataFrame()
         self.df_filtered_inclinometers=pd.DataFrame()
         self.df_filtered_actigraphy_nights=pd.DataFrame()
-        
+
 
     def openFile(self, path, filename):
         
