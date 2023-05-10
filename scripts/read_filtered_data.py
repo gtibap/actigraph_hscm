@@ -123,6 +123,88 @@ def plot_all():
     
     return 0
 
+
+def pos_changing(df):
+    # print('pos changing:')
+    
+    df_pos_changing = pd.DataFrame([], columns=['night', 'location', 'width_filter', 'off_lyi', 'off_sit', 'lyi_off', 'lyi_sit', 'sit_off', 'sit_lyi'])
+    
+    df_chest = df.loc[(df['location']=='chest')]
+    df_thigh = df.loc[(df['location']=='thigh')]
+    
+    # print('\ndf info:\n', df)
+    # print('\ndf_chest:\n', len(df_chest))
+    # print('\ndf_thigh:\n', len(df_thigh))
+    
+    
+    df_counts=counting_per_location(df_chest)
+    df_counts['location']='chest'
+    df_pos_changing = pd.concat([df_pos_changing,df_counts], ignore_index=True)
+    
+    df_counts=counting_per_location(df_thigh)
+    df_counts['location']='thigh'
+    df_pos_changing = pd.concat([df_pos_changing,df_counts], ignore_index=True)
+    
+    df_pos_changing['total'] = df_pos_changing[['off_lyi', 'off_sit', 'lyi_off', 'lyi_sit', 'sit_off', 'sit_lyi']].sum(axis=1).astype(int)
+    
+    # print('\n df_pos_changing:\n', df_pos_changing)
+    
+    return df_pos_changing
+    
+    
+def counting_per_location(df):
+    df_per_location = pd.DataFrame([], columns=['night', 'width_filter', 'off_lyi', 'off_sit', 'lyi_off', 'lyi_sit', 'sit_off', 'sit_lyi'])
+    
+    nights_list = df['night'].unique().tolist()
+    for night_num in nights_list:
+        df_night = df.loc[(df['night']==night_num)]
+        
+        df_counts = counting_per_night(df_night)
+        df_counts['night']=night_num
+        
+        df_per_location=pd.concat([df_per_location,df_counts], ignore_index=True)
+    
+    # print('\ndf_per_location:\n', df_per_location)
+    
+    return df_per_location
+    
+    
+def counting_per_night(df):
+    df_per_night = pd.DataFrame([], columns=['width_filter', 'off_lyi', 'off_sit', 'lyi_off', 'lyi_sit', 'sit_off', 'sit_lyi'])
+    
+    list_width_filter = df['width_filter'].unique().tolist()
+    for width_filter in list_width_filter:
+        df_wf = df.loc[df['width_filter']==width_filter]
+        df_counts = counting_per_wf(df_wf)
+        df_counts['width_filter']=width_filter
+        df_per_night=pd.concat([df_per_night,df_counts], ignore_index=True)
+    
+    # print('\ndf_per_night:\n', df_per_night)
+    
+    return df_per_night
+    
+def counting_per_wf(df):
+    
+    arr_off = df[incl_off].to_numpy()
+    arr_lyi = df[incl_lyi].to_numpy()
+    arr_sit = df[incl_sit].to_numpy()
+    
+    off_lyi=counting_per_two_incl(arr_off, arr_lyi)
+    off_sit=counting_per_two_incl(arr_off, arr_sit)
+    lyi_off=counting_per_two_incl(arr_lyi, arr_off)
+    lyi_sit=counting_per_two_incl(arr_lyi, arr_sit)
+    sit_off=counting_per_two_incl(arr_sit, arr_off)
+    sit_lyi=counting_per_two_incl(arr_sit, arr_lyi)
+    
+    df_per_wf = pd.DataFrame([[off_lyi, off_sit, lyi_off, lyi_sit, sit_off, sit_lyi]], columns=['off_lyi', 'off_sit', 'lyi_off', 'lyi_sit', 'sit_off', 'sit_lyi'])
+    
+    return df_per_wf
+    
+
+def counting_per_two_incl(arr0, arr1):
+    arr = (arr0[:-1] == arr1[1:]) & (arr0[:-1]==1)
+    return np.sum(arr)
+
     
 def main(args):
     global arr_fig, arr_axs, df_filtered_all, list_width_filter, prefix
@@ -163,7 +245,7 @@ def main(args):
         
         list_width_filter = np.arange(start,end+step,step)
         
-        df_filtered_all = pd.DataFrame(columns=['night', 'location', 'width_filter', vec_mag, incl_off,incl_lyi, incl_sit, incl_sta])
+        df_filtered_all = pd.DataFrame([],columns=['night', 'location', 'width_filter', vec_mag, incl_off,incl_lyi, incl_sit, incl_sta])
         for width_filter in list_width_filter:
             print('\nwidth_filter: ', width_filter)
             # save in disk every 60*i, i+=2, i=[1,3,5,...,15]
@@ -186,8 +268,17 @@ def main(args):
             # print('\n width filter: ', width_filter)
             # print(df_chest_filtered.info())
             # print(df_thigh_filtered.info())
-            df_filtered_all = pd.concat([df_filtered_all, df_chest_filtered, df_thigh_filtered], ignore_index=True)
-            print(df_filtered_all.info())
+            df_filtered_all = pd.concat([df_filtered_all, df_chest_filtered], ignore_index=True)
+            df_filtered_all = pd.concat([df_filtered_all, df_thigh_filtered], ignore_index=True)
+        
+        # print('\nfiltered info:\n', df_filtered_all.info())
+        # print(df_filtered_all)
+        
+            
+        df_results = pos_changing(df_filtered_all)
+        print(df_results.info())
+        print(df_results)
+        
                     
         flag_filtered=True
         
@@ -197,11 +288,8 @@ def main(args):
             
         
     if flag_chest and flag_thigh:
-        print('Great!')
+        print('Reading data: Success')
         
-        
-        
-
         arr_fig[0], arr_axs[0] = plt.subplots(nrows=5, ncols=1, sharex=True)
         arr_fig[1], arr_axs[1] = plt.subplots(nrows=5, ncols=1, sharex=True)
         arr_fig[2], arr_axs[2] = plt.subplots(nrows=5, ncols=1, sharex=True)
@@ -216,7 +304,7 @@ def main(args):
         plt.ion()
         plt.show(block=True)
     else:
-        print('Incompleted data.')
+        print('Reading data: Incompleted data.')
         
     return 0
 

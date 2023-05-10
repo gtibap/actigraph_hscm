@@ -29,11 +29,13 @@ filter_inclinometers.py
 Inclinometer Standing provides information of patient activity. In bed, however, signals of Inclinometer Standing are short in duration. The idea here is to translate the activity of Inclinometer Standing to the others inclinometers to make them smoother. I applyed this idea, extending the activity of any inclinometer (off, lyi, sit) with the inclinometer sta. It happens that only one at a time will be extended. The condition applied was that,
  if the end (idx_end) of any inclinometer is equal to the begining (idx_ini) of incl. sta, then
     the end (idx_end) of the activity of any inclinometer will be the end (idx_end) of the incl. sta.
-    
-
-    
-
+The next step in this script (filter_inclinometers.py) filters the inclinometers off, lyi, and sit removing events of duration less than a threshold (300s for example [5min]). Iteratively, the filter adds those short periods to the previous activity with a larger duration.
+   
 visual_mat_act_thigh_2.py
 last version for visualization interface pressure and actigraphy simultaneously.
+
+read_filtered_data.py
+Read and plot results of filter_inclinometers.py (.csv files). We can observe filtering results using different width_filter values, for each night, for chest and thigh of a particular patient's records.
+Here also we count position changing and non-changing.
 
 
