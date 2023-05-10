@@ -243,7 +243,7 @@ def main(args):
         end   = 15*delta
         step  = 2*delta
         
-        list_width_filter = np.arange(start,end+step,step)
+        list_width_filter = np.concatenate([[0],np.arange(start,end+step,step)]) 
         
         df_filtered_all = pd.DataFrame([],columns=['night', 'location', 'width_filter', vec_mag, incl_off,incl_lyi, incl_sit, incl_sta])
         for width_filter in list_width_filter:
@@ -274,12 +274,13 @@ def main(args):
         # print('\nfiltered info:\n', df_filtered_all.info())
         # print(df_filtered_all)
         
-            
-        df_results = pos_changing(df_filtered_all)
-        print(df_results.info())
-        print(df_results)
+        file_name_pos_changing=path_filtered+prefix+'_pos_changing.csv'
         
-                    
+        df_pos_changing = pos_changing(df_filtered_all)
+        df_pos_changing.to_csv(file_name_pos_changing, index=False)
+        # print(df_results.info())
+        # print(df_results)
+                            
         flag_filtered=True
         
     except ValueError:
