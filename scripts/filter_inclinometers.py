@@ -143,9 +143,19 @@ def main(args):
         obj_thigh.filterInclinometers()
         
         path_base = path_filtered + prefix
-        mark_value = 60
-        step=1
-        initial=0
+        # mark_value = 60
+        # step=1
+        # initial=0
+        
+        delta = 60
+        start = 1*delta
+        end   = 15*delta
+        step  = 1*delta 
+        
+        list_width_filter = np.concatenate([[0],np.arange(start,end+step,step)])
+        print('list_width_filter: ', list_width_filter)
+
+        id_width=0
         # [1,900]
         for width_filter in np.arange(0,901):
             print('\nwidth_filter: ', width_filter)
@@ -154,18 +164,38 @@ def main(args):
             
             
             # save in disk every 60*i, i+=2, i=[1,3,5,...,15]
-            if width_filter == (initial*mark_value*step):
-                file_name_chest = path_base + '_chest_'+ str(width_filter) + '.csv'
-                file_name_thigh = path_base + '_thigh_'+ str(width_filter) + '.csv'
+            # if width_filter == (initial*mark_value*step):
+            if width_filter == list_width_filter[id_width]:
+                # file_name_chest = path_base + '_chest_'+ str(width_filter) + '.csv'
+                # file_name_thigh = path_base + '_thigh_'+ str(width_filter) + '.csv'
                 df_chest_filtered = obj_chest.getFilteredActigraphyDataCropped()
                 df_thigh_filtered = obj_thigh.getFilteredActigraphyDataCropped()
-                df_chest_filtered.to_csv(file_name_chest, index=False)
-                df_thigh_filtered.to_csv(file_name_thigh, index=False)
-                step+=2
-                initial=1
+                
+                obj_chest.counting_repositioning(width_filter)
+                obj_thigh.counting_repositioning(width_filter)
+                
+                # print(obj_chest.getCountsRepositioning())
+                # print(obj_thigh.getCountsRepositioning())
+                
+                # df_chest_filtered.to_csv(file_name_chest, index=False)
+                # df_thigh_filtered.to_csv(file_name_thigh, index=False)
+                # step+=2
+                # initial=1
+                id_width+=1
             else:
                 pass
-                
+            
+        df_counts_chest = obj_chest.getCountsRepositioning()
+        df_counts_thigh = obj_thigh.getCountsRepositioning()
+        
+        
+        file_name_chest = path_base + '_chest_counts.csv'
+        file_name_thigh = path_base + '_thigh_counts.csv'
+        df_counts_chest.to_csv(file_name_chest, index=False)
+        df_counts_thigh.to_csv(file_name_thigh, index=False)
+        
+        
+        
             # 2 min [0, 120)
             # elif width_filter == 119:
                 # file_name_chest = path_base + '_chest_120.csv'

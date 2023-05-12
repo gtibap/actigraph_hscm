@@ -34,6 +34,7 @@ class Actigraphy:
         self.df_vectMag = pd.DataFrame()
         self.df_filtered_inclinometers=pd.DataFrame()
         self.df_filtered_actigraphy_nights=pd.DataFrame()
+        self.df_repositioning = pd.DataFrame([], columns=['width_filter', 'night', 'off_lyi', 'off_sit', 'lyi_off', 'lyi_sit', 'sit_off', 'sit_lyi', 'total'])
 
 
     def openFile(self, path, filename):
@@ -554,6 +555,48 @@ class Actigraphy:
         
         return indexes_ini, indexes_end
         
+
+    def counting_repositioning(self, width_filter):
+        
+        df_counts = pd.DataFrame([], columns=['night', 'off_lyi', 'off_sit', 'lyi_off', 'lyi_sit', 'sit_off', 'sit_lyi'])
+        
+        df = self.getFilteredActigraphyDataCropped()
+        nights_list = df['night'].unique().tolist()
+
+        for night_num in nights_list:
+            df_night = df.loc[(df['night']==night_num)]
+        
+            arr_off = df_night[self.incl_off].to_numpy()
+            arr_lyi = df_night[self.incl_lyi].to_numpy()
+            arr_sit = df_night[self.incl_sit].to_numpy()
+            
+            off_lyi=self.counting_per_two_incl(arr_off, arr_lyi)
+            off_sit=self.counting_per_two_incl(arr_off, arr_sit)
+            lyi_off=self.counting_per_two_incl(arr_lyi, arr_off)
+            lyi_sit=self.counting_per_two_incl(arr_lyi, arr_sit)
+            sit_off=self.counting_per_two_incl(arr_sit, arr_off)
+            sit_lyi=self.counting_per_two_incl(arr_sit, arr_lyi)
+            
+            df_per_n = pd.DataFrame([[night_num, off_lyi, off_sit, lyi_off, lyi_sit, sit_off, sit_lyi]], columns=['night', 'off_lyi', 'off_sit', 'lyi_off', 'lyi_sit', 'sit_off', 'sit_lyi'])
+            
+            df_counts=pd.concat([df_counts, df_per_n], ignore_index=True)
+        
+        df_counts['total'] = df_counts[['off_lyi', 'off_sit', 'lyi_off', 'lyi_sit', 'sit_off', 'sit_lyi']].sum(axis=1).astype(int)
+        
+        df_counts['width_filter']=width_filter
+        
+        self.df_repositioning=pd.concat([self.df_repositioning, df_counts], ignore_index=True)
+        
+        return 0
+        
+
+    def counting_per_two_incl(self, arr0, arr1):
+        arr = (arr0[:-1] == arr1[1:]) & (arr0[:-1]==1)
+        return np.sum(arr)
+
+
+    def getCountsRepositioning(self):
+        return self.df_repositioning
         
         
     def getInclinometersData(self):

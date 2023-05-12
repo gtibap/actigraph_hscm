@@ -236,9 +236,9 @@ def main(args):
             print(f'Problem reading the file {self.filename}.')
             flag_thigh=False
             
-    # read filtered actigraphy data
+    # ## read filtered actigraphy data
     try:
-        delta=60
+        delta = 60
         start = 1*delta
         end   = 15*delta
         step  = 2*delta
@@ -248,8 +248,8 @@ def main(args):
         df_filtered_all = pd.DataFrame([],columns=['night', 'location', 'width_filter', vec_mag, incl_off,incl_lyi, incl_sit, incl_sta])
         for width_filter in list_width_filter:
             print('\nwidth_filter: ', width_filter)
-            # save in disk every 60*i, i+=2, i=[1,3,5,...,15]
-            # df_filtered_all = pd.DataFrame(columns=[])
+            # ## save in disk every 60*i, i+=2, i=[1,3,5,...,15]
+            # ## df_filtered_all = pd.DataFrame(columns=[])
             
             file_name_chest = path_base + '_chest_'+ str(width_filter) + '.csv'
             file_name_thigh = path_base + '_thigh_'+ str(width_filter) + '.csv'
@@ -265,19 +265,19 @@ def main(args):
             df_chest_filtered['width_filter']=width_filter
             df_thigh_filtered['width_filter']=width_filter
             
-            # print('\n width filter: ', width_filter)
-            # print(df_chest_filtered.info())
-            # print(df_thigh_filtered.info())
+            print('\n width filter: ', width_filter)
+            print(df_chest_filtered.info())
+            print(df_thigh_filtered.info())
             df_filtered_all = pd.concat([df_filtered_all, df_chest_filtered], ignore_index=True)
             df_filtered_all = pd.concat([df_filtered_all, df_thigh_filtered], ignore_index=True)
         
-        # print('\nfiltered info:\n', df_filtered_all.info())
-        # print(df_filtered_all)
+        print('\nfiltered info:\n', df_filtered_all.info())
+        print(df_filtered_all)
         
-        file_name_pos_changing=path_filtered+prefix+'_pos_changing.csv'
+        # file_name_pos_changing=path_filtered+prefix+'_pos_changing.csv'
         
-        df_pos_changing = pos_changing(df_filtered_all)
-        df_pos_changing.to_csv(file_name_pos_changing, index=False)
+        # df_pos_changing = pos_changing(df_filtered_all)
+        # df_pos_changing.to_csv(file_name_pos_changing, index=False)
         # print(df_results.info())
         # print(df_results)
                             
