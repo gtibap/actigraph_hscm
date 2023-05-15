@@ -114,8 +114,10 @@ def main(args):
     
     path = "../data/projet_officiel/"
     path_filtered = "../data/projet_officiel_filtered/"
-    prefix = 'A003'
+    prefix = 'A006'
     files_list=[prefix+'_chest.csv', prefix+'_thigh.csv']
+    
+    print('files_list: ', files_list)
     
     flag_chest=False
     flag_thigh=False
@@ -147,6 +149,7 @@ def main(args):
         # step=1
         # initial=0
         
+        ## these values allow to collect filtered signals every 'delta' seconds
         delta = 60
         start = 1*delta
         end   = 15*delta
@@ -168,8 +171,8 @@ def main(args):
             if width_filter == list_width_filter[id_width]:
                 # file_name_chest = path_base + '_chest_'+ str(width_filter) + '.csv'
                 # file_name_thigh = path_base + '_thigh_'+ str(width_filter) + '.csv'
-                df_chest_filtered = obj_chest.getFilteredActigraphyDataCropped()
-                df_thigh_filtered = obj_thigh.getFilteredActigraphyDataCropped()
+                # df_chest_filtered = obj_chest.getFilteredActigraphyDataCropped()
+                # df_thigh_filtered = obj_thigh.getFilteredActigraphyDataCropped()
                 
                 obj_chest.counting_repositioning(width_filter)
                 obj_thigh.counting_repositioning(width_filter)

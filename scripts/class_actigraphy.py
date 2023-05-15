@@ -9,8 +9,8 @@ class Actigraphy:
 
     # the header in line 10 of the csv actigraphy files
     header_location=10
-    padding = 900 # 900s (15 min)
-    time_pre='21:45:00'
+    padding = 3600 # seconds
+    time_pre='21:00:00' # 10pm - padding
     time_ini='22:00:00'
     time_end='07:59:59'
     same_day=False
@@ -561,6 +561,7 @@ class Actigraphy:
         df_counts = pd.DataFrame([], columns=['night', 'off_lyi', 'off_sit', 'lyi_off', 'lyi_sit', 'sit_off', 'sit_lyi'])
         
         df = self.getFilteredActigraphyDataCropped()
+        
         nights_list = df['night'].unique().tolist()
 
         for night_num in nights_list:
@@ -605,8 +606,6 @@ class Actigraphy:
     def getFilteredInclinometersData(self):
         return self.df_filtered_inclinometers
     
-    def getFilteredActigraphyData(self):
-        return self.df_filtered_actigraphy_nights
     
     def getFilteredInclinometers_indexesStep2(self):
         return self.df_filtered_inclinometers_step_2
@@ -622,13 +621,35 @@ class Actigraphy:
         return self.df_actigraphy_nights
     
     def getActigraphyDataCropped(self):
-        return self.df_actigraphy_nights[self.padding:]
+        
+        df = self.getActigraphyData()
+        nights_list = df['night'].unique().tolist()
+        
+        df_cropped = pd.DataFrame([],columns=df.columns.tolist())
+        
+        for night_num in nights_list:
+            df_night = df.loc[(df['night']==night_num)]
+            df_cropped=pd.concat([df_cropped, df_night[self.padding:]], ignore_index=True) 
+            
+        return df_cropped
+        
     
     def getFilteredActigraphyData(self):
         return self.df_filtered_actigraphy_nights
     
     def getFilteredActigraphyDataCropped(self):
-        return self.df_filtered_actigraphy_nights[self.padding:]
+        
+        df = self.getFilteredActigraphyData()
+        nights_list = df['night'].unique().tolist()
+        
+        df_cropped = pd.DataFrame([],columns=df.columns.tolist())
+        
+        for night_num in nights_list:
+            df_night = df.loc[(df['night']==night_num)]
+            df_cropped=pd.concat([df_cropped, df_night[self.padding:]], ignore_index=True) 
+            
+        return df_cropped
+        
         
     def setMinGap(self, value):
         self.min_gap=value
