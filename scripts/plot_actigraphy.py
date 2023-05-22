@@ -111,7 +111,9 @@ def main(args):
     
     path = "../data/projet_officiel/"
     path_filtered = "../data/projet_officiel_filtered/"
-    prefix = 'A003'
+    # prefix = 'A003'
+    prefix = args[1]
+    print('prefix: ', prefix)
     files_list=[prefix+'_chest.csv', prefix+'_thigh.csv']
     path_base = path_filtered + prefix
     mark_value = 60

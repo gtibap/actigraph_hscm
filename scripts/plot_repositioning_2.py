@@ -67,8 +67,16 @@ class countsClass:
             indexes = np.arange(len(arr_thigh))
             weights_thigh = (indexes / np.sum(indexes)) ## percentage
             
-            self.list_active_chest.append(np.sum(np.multiply(weights_chest, arr_chest)))
-            self.list_active_thigh.append(np.sum(np.multiply(weights_thigh, arr_thigh)))
+            # if np.sum(arr_chest)>0:
+            # self.list_active_chest.append(np.sum(np.multiply(weights_chest, arr_chest)))
+            self.list_active_chest.append(np.mean(arr_chest[1:]))
+            # else:
+                # pass
+            # if np.sum(arr_thigh)>0:
+            # self.list_active_thigh.append(np.sum(np.multiply(weights_thigh, arr_thigh)))
+            self.list_active_thigh.append(np.mean(arr_thigh[1:]))
+            # else:
+                # pass
         
         return 0
         
@@ -102,7 +110,7 @@ def main(args):
     # print('repositioning!')
     ## read cvs files data repositioning at different scales after filtering with filter_width from 0 to 15 min every 60 seconds
     path_filtered = "../data/projet_officiel_filtered/"
-    prefix = 'A005'
+    prefix = 'A001'
     
     list_files = ['A001','A002','A003','A004','A005','A006','A008','A009','A010']
     
@@ -183,6 +191,8 @@ def main(args):
         # list_active_chest.append(np.sum(bool_chest))
         # list_active_thigh.append(np.sum(bool_thigh))
         
+        # print(arr_chest)
+        
         list_active_chest.append(np.sum(np.multiply(weights_chest, arr_chest)))
         list_active_thigh.append(np.sum(np.multiply(weights_thigh, arr_thigh)))
         
@@ -251,6 +261,12 @@ def main(args):
     arr_axs[0].boxplot(list_chest_all)
     arr_axs[1].boxplot(list_thigh_all)
     
+    arr_axs[0].set_xticks(np.arange(1,len(list_files)+1), list_files)
+    arr_axs[1].set_xticks(np.arange(1,len(list_files)+1), list_files)
+    arr_axs[0].set_title('Chest')
+    arr_axs[1].set_title('Thigh')
+    # plt.xticks([1, 2, 3], ['mon', 'tue', 'wed'])
+    
     # arr_axs[0].boxplot([list_active_chest, list_active_thigh])
     # arr_axs[0].boxplot([list_active_chest, list_active_thigh])
     
@@ -272,7 +288,7 @@ def main(args):
     cid_1  = arr_fig[1].canvas.mpl_connect('key_press_event', on_press)
      
     ## show plot
-    plt.legend()
+    # plt.legend()
     # plt.show()
     plt.ion()
     plt.show(block=True)

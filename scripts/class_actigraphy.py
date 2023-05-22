@@ -13,6 +13,7 @@ class Actigraphy:
     time_pre='21:00:00' # 10pm - padding
     time_ini='22:00:00'
     time_end='07:59:59'
+    time_pos='08:59:59'
     same_day=False
     vec_mag  ='Vector Magnitude'
     incl_off ='Inclinometer Off'
@@ -75,7 +76,8 @@ class Actigraphy:
 
                 # df_night_part0 = self.df1.loc[(self.df1['Date']==day_now)  & (self.df1[' Time']>=self.time_ini)]
                 df_night_part0 = self.df1.loc[(self.df1['Date']==day_now)  & (self.df1[' Time']>=self.time_pre)]
-                df_night_part1 = self.df1.loc[(self.df1['Date']==day_next) & (self.df1[' Time']<=self.time_end)]
+                # df_night_part1 = self.df1.loc[(self.df1['Date']==day_next) & (self.df1[' Time']<=self.time_end)]
+                df_night_part1 = self.df1.loc[(self.df1['Date']==day_next) & (self.df1[' Time']<=self.time_pos)]
 
                 df_night = pd.concat([df_night_part0,df_night_part1],  ignore_index=True)
                 df_night['night']=cont_nights
@@ -86,7 +88,8 @@ class Actigraphy:
         else:
             for day_now in dates_list:
                 # df_night = df.loc[(df['Date']==day_now) & (df[' Time']>=self.time_ini) & (df[' Time']<=self.time_end)]
-                df_night = df.loc[(df['Date']==day_now) & (df[' Time']>=self.time_pre) & (df[' Time']<=self.time_end)]
+                # df_night = df.loc[(df['Date']==day_now) & (df[' Time']>=self.time_pre) & (df[' Time']<=self.time_end)]
+                df_night = df.loc[(df['Date']==day_now) & (df[' Time']>=self.time_pre) & (df[' Time']<=self.time_pos)]
                 df_night['night']=cont_nights
                 df_all=pd.concat([df_all, df_night], ignore_index=True)
                 # number of samples per night
@@ -629,7 +632,7 @@ class Actigraphy:
         
         for night_num in nights_list:
             df_night = df.loc[(df['night']==night_num)]
-            df_cropped=pd.concat([df_cropped, df_night[self.padding:]], ignore_index=True) 
+            df_cropped=pd.concat([df_cropped, df_night[self.padding:-self.padding]], ignore_index=True) 
             
         return df_cropped
         
@@ -646,7 +649,7 @@ class Actigraphy:
         
         for night_num in nights_list:
             df_night = df.loc[(df['night']==night_num)]
-            df_cropped=pd.concat([df_cropped, df_night[self.padding:]], ignore_index=True) 
+            df_cropped=pd.concat([df_cropped, df_night[self.padding:-self.padding]], ignore_index=True) 
             
         return df_cropped
         

@@ -114,7 +114,8 @@ def main(args):
     
     path = "../data/projet_officiel/"
     path_filtered = "../data/projet_officiel_filtered/"
-    prefix = 'A006'
+    # prefix = 'A010'
+    prefix = args[1]
     files_list=[prefix+'_chest.csv', prefix+'_thigh.csv']
     
     print('files_list: ', files_list)
@@ -155,12 +156,17 @@ def main(args):
         end   = 15*delta
         step  = 1*delta 
         
-        list_width_filter = np.concatenate([[0],np.arange(start,end+step,step)])
+        list_width_filter = np.concatenate([[0],[1],np.arange(start,end+step,step)])
+        # list_width_filter = np.concatenate([[0],[1]])
         print('list_width_filter: ', list_width_filter)
 
         id_width=0
         # [1,900]
-        for width_filter in np.arange(0,901):
+        filter_ini =0
+        filter_end =901
+        # filter_ini =0
+        # filter_end =2
+        for width_filter in np.arange(filter_ini, filter_end):
             print('\nwidth_filter: ', width_filter)
             obj_chest.filterInclinometersStep2(width_filter)
             obj_thigh.filterInclinometersStep2(width_filter)
@@ -196,6 +202,8 @@ def main(args):
         file_name_thigh = path_base + '_thigh_counts.csv'
         df_counts_chest.to_csv(file_name_chest, index=False)
         df_counts_thigh.to_csv(file_name_thigh, index=False)
+        # print('file_name_chest:\n', df_counts_chest)
+        # print('file_name_thigh:\n', df_counts_thigh)
         
         
         
