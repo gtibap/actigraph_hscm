@@ -153,9 +153,9 @@ def main(args):
         # initial=0
         
         ## these values allow to collect filtered signals every 'delta' seconds
-        delta = 60
+        delta = 30
         start = 1*delta
-        end   = 1*delta
+        end   = 2*delta
         step  = 1*delta 
         
         list_width_filter = np.concatenate([[0],np.arange(start,end+step,step)])
@@ -203,10 +203,10 @@ def main(args):
         df_counts_thigh = obj_thigh.getCountsRepositioning()
         
         
-        file_name_chest = path_base + '_chest_counts.csv'
-        file_name_thigh = path_base + '_thigh_counts.csv'
-        # df_counts_chest.to_csv(file_name_chest, index=False)
-        # df_counts_thigh.to_csv(file_name_thigh, index=False)
+        file_name_chest = path_base + '_chest_counts_sta.csv'
+        file_name_thigh = path_base + '_thigh_counts_sta.csv'
+        df_counts_chest.to_csv(file_name_chest, index=False)
+        df_counts_thigh.to_csv(file_name_thigh, index=False)
         # print('file_name_chest:\n', df_counts_chest)
         # print('file_name_thigh:\n', df_counts_thigh)
         

@@ -46,7 +46,7 @@ class Actigraphy:
         self.df_vectMag = pd.DataFrame()
         self.df_filtered_inclinometers=pd.DataFrame()
         self.df_filtered_actigraphy_nights=pd.DataFrame()
-        self.df_repositioning = pd.DataFrame([], columns=['width_filter', 'night', 'off_lyi', 'off_sit', 'lyi_off', 'lyi_sit', 'sit_off', 'sit_lyi', 'total'])
+        self.df_repositioning = pd.DataFrame([], columns=['width_filter', 'night', 'hour', 'off_lyi', 'off_sit', 'lyi_off', 'lyi_sit', 'sit_off', 'sit_lyi', 'total'])
 
 
     def openFile(self, path, filename):
@@ -576,17 +576,41 @@ class Actigraphy:
             while cont_filter > 12:
                 cont_filter=0
                 
-                arr_off_ini, arr_off_end, arr_lyi_ini, arr_lyi_end, cont_filter = self.parInclinometers(arr_off_ini, arr_off_end, arr_lyi_ini, arr_lyi_end, night_num, width_filter, cont_filter)
-                
-                arr_off_ini, arr_off_end, arr_sit_ini, arr_sit_end, cont_filter = self.parInclinometers(arr_off_ini, arr_off_end, arr_sit_ini, arr_sit_end, night_num, width_filter, cont_filter)
-                
+                # (1) off - sta
                 arr_off_ini, arr_off_end, arr_sta_ini, arr_sta_end, cont_filter = self.parInclinometers(arr_off_ini, arr_off_end, arr_sta_ini, arr_sta_end, night_num, width_filter, cont_filter)
                 
-                arr_lyi_ini, arr_lyi_end, arr_sit_ini, arr_sit_end, cont_filter = self.parInclinometers(arr_lyi_ini, arr_lyi_end, arr_sit_ini, arr_sit_end, night_num, width_filter, cont_filter)
-                
+                # (2) lyi - sta
                 arr_lyi_ini, arr_lyi_end, arr_sta_ini, arr_sta_end, cont_filter = self.parInclinometers(arr_lyi_ini, arr_lyi_end, arr_sta_ini, arr_sta_end, night_num, width_filter, cont_filter)
                 
+                # (3) sit - sta
                 arr_sit_ini, arr_sit_end, arr_sta_ini, arr_sta_end, cont_filter = self.parInclinometers(arr_sit_ini, arr_sit_end, arr_sta_ini, arr_sta_end, night_num, width_filter, cont_filter)
+                
+                # (4) off - sit
+                arr_off_ini, arr_off_end, arr_sit_ini, arr_sit_end, cont_filter = self.parInclinometers(arr_off_ini, arr_off_end, arr_sit_ini, arr_sit_end, night_num, width_filter, cont_filter)
+                
+                # (5) lyi - sit
+                arr_lyi_ini, arr_lyi_end, arr_sit_ini, arr_sit_end, cont_filter = self.parInclinometers(arr_lyi_ini, arr_lyi_end, arr_sit_ini, arr_sit_end, night_num, width_filter, cont_filter)
+                
+                # (6) off - lyi
+                arr_off_ini, arr_off_end, arr_lyi_ini, arr_lyi_end, cont_filter = self.parInclinometers(arr_off_ini, arr_off_end, arr_lyi_ini, arr_lyi_end, night_num, width_filter, cont_filter)
+                
+                # (7) lyi - off
+                arr_lyi_ini, arr_lyi_end, arr_off_ini, arr_off_end, cont_filter = self.parInclinometers( arr_lyi_ini, arr_lyi_end, arr_off_ini, arr_off_end, night_num, width_filter, cont_filter)
+                
+                # (8) sit - lyi
+                arr_sit_ini, arr_sit_end, arr_lyi_ini, arr_lyi_end, cont_filter = self.parInclinometers(arr_sit_ini, arr_sit_end, arr_lyi_ini, arr_lyi_end, night_num, width_filter, cont_filter)
+                
+                # (9) sit - off
+                arr_sit_ini, arr_sit_end, arr_off_ini, arr_off_end, cont_filter = self.parInclinometers(arr_sit_ini, arr_sit_end, arr_off_ini, arr_off_end, night_num, width_filter, cont_filter)
+                
+                # (10) sta - sit
+                arr_sta_ini, arr_sta_end, arr_sit_ini, arr_sit_end, cont_filter = self.parInclinometers(arr_sta_ini, arr_sta_end, arr_sit_ini, arr_sit_end, night_num, width_filter, cont_filter)
+                
+                # (11) sta - lyi
+                arr_sta_ini, arr_sta_end, arr_lyi_ini, arr_lyi_end, cont_filter = self.parInclinometers(arr_sta_ini, arr_sta_end, arr_lyi_ini, arr_lyi_end, night_num, width_filter, cont_filter)
+                
+                # (12) sta - off
+                arr_sta_ini, arr_sta_end, arr_off_ini, arr_off_end,  cont_filter = self.parInclinometers(arr_sta_ini, arr_sta_end, arr_off_ini, arr_off_end, night_num, width_filter, cont_filter)
                 
                 # print('\ncont filter: ', cont_filter)
             
@@ -632,16 +656,16 @@ class Actigraphy:
         
         cont_filter+=cont_0_1
         
-        # print('lyi and off')
-        arr_1_ini, arr_1_end, arr_0_ini, arr_0_end, cont_1_0 = self.filteredOneSecond(arr_1_ini, arr_1_end, arr_0_ini, arr_0_end, self.samples_per_night[int(night_num)], width_filter)
+        ## print('lyi and off')
+        # arr_1_ini, arr_1_end, arr_0_ini, arr_0_end, cont_1_0 = self.filteredOneSecond(arr_1_ini, arr_1_end, arr_0_ini, arr_0_end, self.samples_per_night[int(night_num)], width_filter)
         
-        cont_filter+=cont_1_0
+        # cont_filter+=cont_1_0
         
         return arr_0_ini, arr_0_end, arr_1_ini, arr_1_end, cont_filter
 
 
 
-    def filteredOneSecond(self, arr_0_ini, arr_0_end, arr_1_ini, arr_1_end, arr_size, width_filter):
+    def filteredOneSecond(self, arr_1_ini, arr_1_end, arr_0_ini, arr_0_end, arr_size, width_filter):
         
         flag_change=True
         cont=0
@@ -670,7 +694,7 @@ class Actigraphy:
             
             cont+=1
                 
-        return arr_0_ini, arr_0_end, arr_1_ini, arr_1_end, cont
+        return arr_1_ini, arr_1_end, arr_0_ini, arr_0_end, cont
         
         
     def indexes_redefinition(self, arr_ini, arr_end, arr_size):
@@ -686,7 +710,7 @@ class Actigraphy:
 
     def counting_repositioning(self, width_filter):
         
-        df_counts = pd.DataFrame([], columns=['night', 'off_lyi', 'off_sit', 'lyi_off', 'lyi_sit', 'sit_off', 'sit_lyi'])
+        df_counts = pd.DataFrame([], columns=['night', 'hour', 'off_lyi', 'off_sit', 'off_sta', 'lyi_off', 'lyi_sit', 'lyi_sta', 'sit_off', 'sit_lyi', 'sit_sta', 'sta_off', 'sta_lyi', 'sta_sit'])
         
         df = self.getFilteredActigraphyDataCropped()
         
@@ -695,22 +719,48 @@ class Actigraphy:
         for night_num in nights_list:
             df_night = df.loc[(df['night']==night_num)]
         
-            arr_off = df_night[self.incl_off].to_numpy()
-            arr_lyi = df_night[self.incl_lyi].to_numpy()
-            arr_sit = df_night[self.incl_sit].to_numpy()
+            arr_off_night = df_night[self.incl_off].to_numpy()
+            arr_lyi_night = df_night[self.incl_lyi].to_numpy()
+            arr_sit_night = df_night[self.incl_sit].to_numpy()
+            arr_sta_night = df_night[self.incl_sta].to_numpy()
             
-            off_lyi=self.counting_per_two_incl(arr_off, arr_lyi)
-            off_sit=self.counting_per_two_incl(arr_off, arr_sit)
-            lyi_off=self.counting_per_two_incl(arr_lyi, arr_off)
-            lyi_sit=self.counting_per_two_incl(arr_lyi, arr_sit)
-            sit_off=self.counting_per_two_incl(arr_sit, arr_off)
-            sit_lyi=self.counting_per_two_incl(arr_sit, arr_lyi)
+            ## per hour, each hour 3600 seconds
+            step_h = 3600
+            ## integer number
+            num_hours = (arr_off_night.size//step_h)
             
-            df_per_n = pd.DataFrame([[night_num, off_lyi, off_sit, lyi_off, lyi_sit, sit_off, sit_lyi]], columns=['night', 'off_lyi', 'off_sit', 'lyi_off', 'lyi_sit', 'sit_off', 'sit_lyi'])
+            for id_h in np.arange(num_hours): 
+                id_ini = step_h*id_h
+                id_end = step_h*(id_h+1)
+                arr_off=arr_off_night[id_ini:id_end]
+                arr_lyi=arr_lyi_night[id_ini:id_end]
+                arr_sit=arr_sit_night[id_ini:id_end]
+                arr_sta=arr_sta_night[id_ini:id_end]
+            
+            
+                off_lyi=self.counting_per_two_incl(arr_off, arr_lyi)
+                off_sit=self.counting_per_two_incl(arr_off, arr_sit)
+                off_sta=self.counting_per_two_incl(arr_off, arr_sta)
+                
+                lyi_off=self.counting_per_two_incl(arr_lyi, arr_off)
+                lyi_sit=self.counting_per_two_incl(arr_lyi, arr_sit)
+                lyi_sta=self.counting_per_two_incl(arr_lyi, arr_sta)
+                
+                sit_off=self.counting_per_two_incl(arr_sit, arr_off)
+                sit_lyi=self.counting_per_two_incl(arr_sit, arr_lyi)
+                sit_sta=self.counting_per_two_incl(arr_sit, arr_sta)
+                
+                sta_off=self.counting_per_two_incl(arr_sta, arr_off)
+                sta_lyi=self.counting_per_two_incl(arr_sta, arr_lyi)
+                sta_sit=self.counting_per_two_incl(arr_sta, arr_sit)
+            
+                df_per_n = pd.DataFrame([[id_h, off_lyi, off_sit, off_sta, lyi_off, lyi_sit, lyi_sta, sit_off, sit_lyi, sit_sta, sta_off, sta_lyi, sta_sit]], columns=['hour', 'off_lyi', 'off_sit', 'off_sta', 'lyi_off', 'lyi_sit', 'lyi_sta', 'sit_off', 'sit_lyi', 'sit_sta', 'sta_off', 'sta_lyi', 'sta_sit'])
+                
+            df_per_n['night']=night_num
             
             df_counts=pd.concat([df_counts, df_per_n], ignore_index=True)
         
-        df_counts['total'] = df_counts[['off_lyi', 'off_sit', 'lyi_off', 'lyi_sit', 'sit_off', 'sit_lyi']].sum(axis=1).astype(int)
+        df_counts['total'] = df_counts[['off_lyi', 'off_sit', 'off_sta', 'lyi_off', 'lyi_sit', 'lyi_sta', 'sit_off', 'sit_lyi', 'sit_sta', 'sta_off', 'sta_lyi', 'sta_sit']].sum(axis=1).astype(int)
         
         df_counts['width_filter']=width_filter
         
