@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import os
+import re
 import sys
 
 
@@ -15,11 +16,14 @@ class Seg_Actigraphy:
         self.incl_sta ='Inclinometer Standing'
         self.incl_sit ='Inclinometer Sitting'
         self.incl_lyi ='Inclinometer Lying'
+        self.label_time = ' Time'
+        self.label_date = 'Date'
         self.df1 = pd.DataFrame([])
         self.df_activity_indexes = pd.DataFrame([], columns=['idx_ini','idx_end','length'])
-        self.min_gap=300 # seconds
+        self.min_gap=3600 # seconds
         self.arr_fig = [[] for i in range(10)]
         self.arr_axs = [[] for i in range(10)]
+        # self.colors=np.array([])
 
 
 
@@ -27,8 +31,25 @@ class Seg_Actigraphy:
         self.path = path
         self.filename = filename
         self.df1 = pd.read_csv(self.path+self.filename, header=self.header_location, decimal=',')
+        self.colorsActigraphy()
         return 0
 
+    def colorsActigraphy(self):
+        hours=[]
+        arr_time = self.df1[self.label_time].to_numpy()
+        for sample in arr_time:
+            hhmmss = re.split('[:]', sample)
+            # hhmmss = np.array(hhmmss).astype(float)
+            # print(hhmmss)
+            # hours.append(hhmmss[0]+hhmmss[1]/60+hhmmss[2]/3600)
+            hours.append(hhmmss[0])
+            # hours=np.array()
+        # print(arr_time)
+        hours = np.array(hours).astype(int)
+        # colors= 0.5*(1+np.cos(np.pi*hours/12))
+        # self.df1['color']=colors
+        # print(colors)
+        return 0
         
     def inclinometersStateChanging(self):
         arr_off = self.df1[self.incl_off].to_numpy()
@@ -161,16 +182,21 @@ class Seg_Actigraphy:
         
     def plotActigraphy(self):
         self.arr_fig[0], self.arr_axs[0] = plt.subplots(nrows=7, ncols=1, sharex=True)
-        self.plotSignals(self.arr_fig[0], self.arr_axs[0])
+        # self.plotSignals(self.arr_fig[0], self.arr_axs[0])
+        self.plotWithColors(self.arr_fig[0], self.arr_axs[0])
         
         return 0
+    
+    def plotWithColors(self,fig,ax):
         
-    def plotSignals(self,fig,ax):
+        time_ini='22:00:00'
+        time_end='07:59:59'
         
         for i in np.arange(7):
             ax[i].cla()
         # ax[0].set_xlim(0,5000)
-        # ax[0].set_title(filename+', night:'+str(night_num))
+        ax[0].set_ylim(0,400)
+        ax[0].set_title(self.filename)
         ax[0].set_ylabel('v.m.')
         ax[1].set_ylabel('off')
         ax[2].set_ylabel('lyi')
@@ -180,15 +206,66 @@ class Seg_Actigraphy:
         ax[6].set_ylabel('signal')
         ax[6].set_xlabel('time (s)')
         
-        ax[0].plot(self.df1[self.vec_mag].to_numpy())
-        ax[1].plot(self.df1[self.incl_off].to_numpy())
-        ax[2].plot(self.df1[self.incl_lyi].to_numpy())
-        ax[3].plot(self.df1[self.incl_sit].to_numpy())
-        ax[4].plot(self.df1[self.incl_sta].to_numpy())
-        ax[5].plot(self.df1['activity'].to_numpy())
-        ax[6].plot(self.df1['signal'].to_numpy())
+        dates_list = self.df1[self.label_date].unique().tolist()
+        print(dates_list)
+        for date in dates_list:
+            df_date = self.df1.loc[self.df1[self.label_date]== date]
+            
+            ## from 00:00:00 to 07:59:59
+            df_segment = df_date.loc[df_date[self.label_time]<=time_end]
+            color='purple'
+            self.plotSignals(fig, ax, df_segment, color)
+            
+            ## from 08:00:00 to 21:59:59
+            df_segment = df_date.loc[(df_date[self.label_time] > time_end) & (df_date[self.label_time] <= time_ini)]
+            color='orange'
+            self.plotSignals(fig, ax, df_segment, color)
+            
+            ## from 22:00:00 to 23:59:59
+            df_segment = df_date.loc[df_date[self.label_time] > time_ini]
+            color='purple'
+            self.plotSignals(fig, ax, df_segment, color)
+            # print(df_segment)
+            # print(df_segment.index.tolist())
         
-        plt.show()
+        
+        
+        return 0
+            
+    def plotSignals(self,fig,ax,df,cr):
+        
+        # for i in np.arange(7):
+            # ax[i].cla()
+        # ax[0].set_xlim(0,5000)
+        # ax[0].set_ylim(0,400)
+        # ax[0].set_title(filename+', night:'+str(night_num))
+        # ax[0].set_ylabel('v.m.')
+        # ax[1].set_ylabel('off')
+        # ax[2].set_ylabel('lyi')
+        # ax[3].set_ylabel('sit')
+        # ax[4].set_ylabel('sta')
+        # ax[5].set_ylabel('act')
+        # ax[6].set_ylabel('signal')
+        # ax[6].set_xlabel('time (s)')
+        
+        # ax[0].plot(self.df1[self.vec_mag].to_numpy())
+        # ax[1].plot(self.df1[self.incl_off].to_numpy())
+        # ax[2].plot(self.df1[self.incl_lyi].to_numpy())
+        # ax[3].plot(self.df1[self.incl_sit].to_numpy())
+        # ax[4].plot(self.df1[self.incl_sta].to_numpy())
+        # ax[5].plot(self.df1['activity'].to_numpy())
+        # ax[6].plot(self.df1['signal'].to_numpy())
+        
+        x_values = df.index.tolist()
+        
+        ax[0].plot(x_values, df[self.vec_mag].to_numpy(), color=cr)
+        ax[1].plot(x_values, df[self.incl_off].to_numpy(), color=cr)
+        ax[2].plot(x_values, df[self.incl_lyi].to_numpy(), color=cr)
+        ax[3].plot(x_values, df[self.incl_sit].to_numpy(), color=cr)
+        ax[4].plot(x_values, df[self.incl_sta].to_numpy(), color=cr)
+        ax[5].plot(x_values, df['activity'].to_numpy(), color=cr)
+        ax[6].plot(x_values, df['signal'].to_numpy(), color=cr)
+        
         
         return 0
         

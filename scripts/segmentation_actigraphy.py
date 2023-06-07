@@ -22,6 +22,7 @@
 #  
 #  
 from class_segmentation import Seg_Actigraphy
+import matplotlib.pyplot as plt
 
 # global instances
 obj_chest=Seg_Actigraphy()
@@ -59,19 +60,25 @@ def main(args):
         print('reading success!')
         # print(obj_chest.df1)
         # print(obj_thigh.df1)
-        print('inclinometers state changing')
+        
+        # print('inclinometers state changing')
         obj_chest.inclinometersStateChanging()
-        df_actigraphy = obj_chest.getActigraphyData()
-        
-        # file_name_chest=path_out+prefix+'chest_act.csv'
-        # df_actigraphy.to_csv(file_name_chest, index=False)
-        
+        # df_actigraphy = obj_chest.getActigraphyData()
         obj_chest.plotActigraphy()
-        # plt.show(block=True)
+        
+        # obj_chest.colorsActigraphy()
+        # obj_chest.plotWithColors()
+        
+        obj_thigh.inclinometersStateChanging()
+        # df_actigraphy = obj_thigh.getActigraphyData()
+        obj_thigh.plotActigraphy()
+        
+        plt.show()
+        ## plt.show(block=True)
         
         
-          
-            
+        ## file_name_chest=path_out+prefix+'chest_act.csv'
+        ## df_actigraphy.to_csv(file_name_chest, index=False)
     
     
     return 0
