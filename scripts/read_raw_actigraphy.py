@@ -100,9 +100,11 @@ def main(args):
     
     path_gt3x = "../data/projet_officiel/gt3x/"
     path_agd  = "../data/projet_officiel/agd/"
+    path_csv = "../data/projet_officiel/csv/"
     # prefix = 'A010'
     prefix = args[1]
     files_gt3x=[prefix+'_chest.gt3x', prefix+'_thigh.gt3x']
+    files_csv=[prefix+'_chest.csv', prefix+'_thigh.csv']
     # files_agd=[prefix+'_chest.agd', prefix+'_thigh.agd']
     
     filename_chest = path_gt3x + files_gt3x[0]
@@ -176,21 +178,42 @@ def main(args):
         
         print(df)
         
+        df_all = pd.DataFrame([],columns=['Date','Time','X','Y','Z'])
         
-        X_mean = []
-        Y_mean = []
-        Z_mean = []
         ## average samples per second
         dates_list = df['Date'].unique().tolist()
         for dateI in dates_list:
+            print('date: ', dateI)
             df_date = df.loc[df['Date']==dateI]
-            ## 
             times_list = df_date['Time'].unique().tolist()
+            ## 
+            df_day = pd.DataFrame()
+            X_mean = []
+            Y_mean = []
+            Z_mean = []
+            
             for timeI in times_list:
                 df_time = df_date.loc[df_date['Time']==timeI]
                 X_mean.append(df_time['X'].mean())
                 Y_mean.append(df_time['Y'].mean())
                 Z_mean.append(df_time['Z'].mean())
+                
+            df_day['Time']=times_list
+            df_day['X']=X_mean
+            df_day['Y']=Y_mean
+            df_day['Z']=Z_mean
+            df_day['Date']=dateI
+            
+            # print(df_day)
+            
+            df_all = pd.concat([df_all, df_day], ignore_index=True)
+            df_all.to_csv(files_csv[0], index=False)
+            
+        print(df_all)
+        
+        
+            
+            
                 
                 
                 
