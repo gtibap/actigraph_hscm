@@ -41,6 +41,15 @@ def main(args):
         obj_chest.plotActigraphy()
         obj_thigh.plotActigraphy()
         
+        obj_chest.countChanges()
+        obj_thigh.countChanges()
+        
+        print('\nchest\n',obj_chest.getNightCounts())
+        print('\nthigh\n',obj_thigh.getNightCounts())
+        
+        obj_chest.plotActigraphyMod()
+        obj_thigh.plotActigraphyMod()
+        
         plt.ion()
         # plt.show()
         plt.show(block=True)
