@@ -38,17 +38,23 @@ def main(args):
     if flag_read==True:
         print('reading success!')
         
-        obj_chest.plotActigraphy()
-        obj_thigh.plotActigraphy()
+        obj_chest.waveletTransform(0)
+        obj_chest.waveletTransform(10)
         
-        obj_chest.countChanges()
-        obj_thigh.countChanges()
+        # obj_chest.rollingWindow()
+       
+
+        # obj_chest.plotActigraphy()
+        # obj_thigh.plotActigraphy()
         
-        print('\nchest\n',obj_chest.getNightCounts())
-        print('\nthigh\n',obj_thigh.getNightCounts())
+        # obj_chest.countChanges()
+        # obj_thigh.countChanges()
         
-        obj_chest.plotActigraphyMod()
-        obj_thigh.plotActigraphyMod()
+        # print('\nchest\n',obj_chest.getNightCounts())
+        # print('\nthigh\n',obj_thigh.getNightCounts())
+        
+        # obj_chest.plotActigraphyMod()
+        # obj_thigh.plotActigraphyMod()
         
         plt.ion()
         # plt.show()

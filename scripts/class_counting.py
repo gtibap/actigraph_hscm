@@ -1,8 +1,10 @@
 from scipy import ndimage
+from scipy import signal
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import os
+import pywt
 import re
 import sys
 
@@ -48,7 +50,7 @@ class Counting_Actigraphy:
         self.df_activity_indexes = pd.DataFrame([], columns=['idx_ini','idx_end','length'])
         self.min_vma = 3 # counts
         self.min_gap_act =10 # seconds
-        self.min_gap_rep =600 # seconds (10 min)
+        self.min_gap_rep =600 # seconds (1 min)
         self.arr_fig = [[] for i in range(10)]
         self.arr_axs = [[] for i in range(10)]
         # self.colors=np.array([])
@@ -170,6 +172,189 @@ class Counting_Actigraphy:
         
         return 0
 
+    
+    def rollingWindow(self):
+        
+        dates_list = self.df1[self.label_date].unique().tolist()
+        
+        df_loc = self.df1.loc[(self.df1[self.label_date]>=dates_list[1]) & (self.df1[self.label_date]<=dates_list[2])]
+        
+        arr_off = df_loc[self.incl_off].to_numpy()
+        arr_lyi = df_loc[self.incl_lyi].to_numpy()
+        arr_sit = df_loc[self.incl_sit].to_numpy()
+        arr_sta = df_loc[self.incl_sta].to_numpy()
+        
+        ## window size: from 2 hours (original data) to the decomposition scale of dwt_level (2**dwt_level)
+        hours = 1/3 ## number of hours 1/3 h = 20 min
+        sph = 3600 ## seconds per hour
+        window_size = int(sph*hours)
+        print('window size (s): ', window_size)
+        ## window to average values (same weight)
+        win = signal.windows.boxcar(window_size)
+        
+        off_filtered = signal.convolve(arr_off, win, mode='same') / sum(win)
+        lyi_filtered = signal.convolve(arr_lyi, win, mode='same') / sum(win)
+        sit_filtered = signal.convolve(arr_sit, win, mode='same') / sum(win)
+        sta_filtered = signal.convolve(arr_sta, win, mode='same') / sum(win)
+        
+        
+        incl_stack = np.vstack((off_filtered,lyi_filtered,sit_filtered,sta_filtered))
+        index_incl = np.argmax(incl_stack, axis=0)
+        
+        index_off = (index_incl==0).astype(int)
+        index_lyi = (index_incl==1).astype(int)
+        index_sit = (index_incl==2).astype(int)
+        index_sta = (index_incl==3).astype(int)
+
+        
+        fig, axarr = plt.subplots(nrows=5, ncols=1, sharex=True)
+        
+        axarr[0].plot(off_filtered)
+        axarr[1].plot(lyi_filtered)
+        axarr[2].plot(sit_filtered)
+        axarr[3].plot(sta_filtered)
+        axarr[4].plot(index_off)
+        axarr[4].plot(index_lyi)
+        axarr[4].plot(index_sit)
+        axarr[4].plot(index_sta)
+        
+        return 0
+
+    def waveletTransform(self, nlevel):
+        
+        
+        dates_list = self.df1[self.label_date].unique().tolist()
+        
+        df_loc = self.df1.loc[(self.df1[self.label_date]>=dates_list[1]) & (self.df1[self.label_date]<=dates_list[2])]
+        # if inclinometer == 0:
+            # data = df_loc[ self.incl_off].to_numpy()
+            # title='_off'
+        # elif inclinometer == 1:
+            # data = df_loc[ self.incl_lyi].to_numpy()
+            # title='_lyi'
+        # elif inclinometer == 2:
+            # data = df_loc[ self.incl_sit].to_numpy()
+            # title='_sit'
+        # elif inclinometer == 3:
+            # data = df_loc[ self.incl_sta].to_numpy()
+            # title='_sta'
+        # else:
+            # pass
+        
+        arr_off = df_loc[self.incl_off].to_numpy()
+        arr_lyi = df_loc[self.incl_lyi].to_numpy()
+        arr_sit = df_loc[self.incl_sit].to_numpy()
+        arr_sta = df_loc[self.incl_sta].to_numpy()
+        
+        # fig, ax = plt.subplots(figsize=(6,1))
+        # ax.set_title("Original Signal: ")
+        # ax.plot(data)
+
+        waveletname = 'Haar'
+        dwt_level = nlevel
+        coeff_off = pywt.wavedec(arr_off, waveletname, mode='symmetric', level=dwt_level, axis=-1)
+        coeff_lyi = pywt.wavedec(arr_lyi, waveletname, mode='symmetric', level=dwt_level, axis=-1)
+        coeff_sit = pywt.wavedec(arr_sit, waveletname, mode='symmetric', level=dwt_level, axis=-1)
+        coeff_sta = pywt.wavedec(arr_sta, waveletname, mode='symmetric', level=dwt_level, axis=-1)
+        
+        coeff_all = coeff_off[0] + coeff_lyi[0] + coeff_sit[0] + coeff_sta[0]
+        mean_coeff = coeff_all.mean()
+        std_coeff = coeff_all.std()
+        print('mean, std: ', mean_coeff, std_coeff)
+        
+        coeff_off[0] = coeff_off[0]/mean_coeff
+        coeff_lyi[0] = coeff_lyi[0]/mean_coeff
+        coeff_sit[0] = coeff_sit[0]/mean_coeff
+        coeff_sta[0] = coeff_sta[0]/mean_coeff
+        coeff_all = coeff_all/mean_coeff
+        
+        coeff_stack = np.vstack((coeff_off[0],coeff_lyi[0],coeff_sit[0],coeff_sta[0]))
+        index_coeff = np.argmax(coeff_stack, axis=0)
+        index_off = (index_coeff==0).astype(int)
+        index_lyi = (index_coeff==1).astype(int)
+        index_sit = (index_coeff==2).astype(int)
+        index_sta = (index_coeff==3).astype(int)
+        
+        fig, axarr = plt.subplots(nrows=5, ncols=1, sharex=True)
+        
+        # print(len(data))
+        # coeff_wave = pywt.wavedec(data, waveletname, mode='symmetric', level=9, axis=-1)
+        # print(len(coeff_wave[0]))
+        
+        axarr[0].plot(coeff_off[0], color='tab:blue')
+        axarr[1].plot(coeff_lyi[0], color='tab:orange')
+        axarr[2].plot(coeff_sit[0], color='tab:green')
+        axarr[3].plot(coeff_sta[0], color='tab:red')
+        axarr[4].plot(index_off, color='tab:blue')
+        axarr[4].plot(index_lyi, color='tab:orange')
+        axarr[4].plot(index_sit, color='tab:green')
+        axarr[4].plot(index_sta, color='tab:red')
+        
+        
+        
+        df_coeff = pd.DataFrame([])
+
+        df_coeff['off']=coeff_off[0]
+        df_coeff['lyi']=coeff_lyi[0]
+        df_coeff['sit']=coeff_sit[0]
+        df_coeff['sta']=coeff_sta[0]
+        df_coeff['all']=coeff_all
+        
+        
+        '''
+        ## simple moving averages using pandas
+        ## window size: from 2 hours (original data) to the decomposition scale of dwt_level (2**dwt_level)
+        hours = 1/3 ## number of hours
+        sph = 3600 ## seconds per hour
+        window_size = int((sph*hours)/(2**dwt_level))
+        print('window size: ', window_size)
+        windows = df_coeff.rolling(window_size)
+        ## Create a series of moving
+        ## averages of each window
+        moving_averages = windows.mean()
+        # print(df_coeff)
+        # print(windows)
+        print(moving_averages)
+        
+        
+        coeff_stack2 = np.vstack((moving_averages['off'].to_numpy(),moving_averages['lyi'].to_numpy(),moving_averages['sit'].to_numpy(),moving_averages['sta'].to_numpy()))
+        index_coeff2 = np.argmax(coeff_stack2, axis=0)
+
+        index_off = (index_coeff2==0).astype(int)
+        index_lyi = (index_coeff2==1).astype(int)
+        index_sit = (index_coeff2==2).astype(int)
+        index_sta = (index_coeff2==3).astype(int)
+        
+        fig1, axarr1 = plt.subplots(nrows=5, ncols=1, sharex=True)
+        
+        axarr1[0].plot(moving_averages['off'].to_numpy(), color='tab:blue')
+        axarr1[1].plot(moving_averages['lyi'].to_numpy(), color='tab:orange')
+        axarr1[2].plot(moving_averages['sit'].to_numpy(), color='tab:green')
+        axarr1[3].plot(moving_averages['sta'].to_numpy(), color='tab:red')
+        axarr1[4].plot(index_off, color='tab:blue')
+        axarr1[4].plot(index_lyi, color='tab:orange')
+        axarr1[4].plot(index_sit, color='tab:green')
+        axarr1[4].plot(index_sta, color='tab:red')
+        
+        
+        # axarr[1].plot(coeff_wave[0])
+        # axarr[0].set_title("Approximation coefficients"+title, fontsize=14)
+        
+        # for ii in range(levels):
+            # (data, coeff_d) = pywt.dwt(data, waveletname)
+            # axarr[ii, 0].plot(data, 'r')
+            # axarr[ii, 1].plot(coeff_d, 'g')
+            # axarr[ii, 0].set_ylabel("Level {}".format(ii + 1), fontsize=14, rotation=90)
+            # axarr[ii, 0].set_yticklabels([])
+            # if ii == 0:
+                # axarr[ii, 0].set_title("Approximation coefficients"+title, fontsize=14)
+                # axarr[ii, 1].set_title("Detail coefficients", fontsize=14)
+            # axarr[ii, 1].set_yticklabels([])
+        # plt.tight_layout()
+        '''
+
+        return 0
+    
     
     def on_press(self, event):
         # print('press', event.key)
