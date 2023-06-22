@@ -27,9 +27,19 @@ from pygt3x.reader import FileReader
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import pywt
 
 
-def plot_actigraphy(df):
+def plot_wavelet(arr1, arr2):
+    
+    fig, ax = plt.subplots(nrows=2, ncols=1)
+    ax[0].plot(arr1)
+    ax[1].plot(arr2)
+    
+    return 0
+
+
+def plot_actigraphy(df, title_name):
     ts = df.index.tolist()
     axis_x = df['X'].to_numpy()
     axis_y = df['Y'].to_numpy()
@@ -40,18 +50,32 @@ def plot_actigraphy(df):
     theta_y = np.rad2deg(np.arccos(axis_y / arr_vm))
     theta_z = np.rad2deg(np.arccos(axis_z / arr_vm))
     
-    fig, ax = plt.subplots(nrows=4, ncols=1, sharex=True)
+    fig, ax = plt.subplots(nrows=3, ncols=1, sharex=True, sharey=True)
+    ax[0].set_ylim(-5,185)
     ax[0].plot(ts, theta_x)
     ax[1].plot(ts, theta_y)
     ax[2].plot(ts, theta_z)
-    ax[3].plot(ts, arr_vm)
+    # ax[3].plot(ts, arr_vm)
     
-    ax[0].set_title(files_gt3x[0])
+    # ## vertical lines for 22h00
+    # for idx in indexes_ini:
+        # ax[0].axvline(x = idx, color = 'tab:purple')
+        # ax[1].axvline(x = idx, color = 'tab:purple')
+        # ax[2].axvline(x = idx, color = 'tab:purple')
+        
+    
+    # ## vertical lines for 8h00
+    # for idx in indexes_end:
+        # ax[0].axvline(x = idx, color = 'tab:olive')
+        # ax[1].axvline(x = idx, color = 'tab:olive')
+        # ax[2].axvline(x = idx, color = 'tab:olive')
+    
+    ax[0].set_title(title_name)
     ax[0].set_ylabel('accel. X')
     ax[1].set_ylabel('accel. Y')
     ax[2].set_ylabel('accel. Z')
-    ax[3].set_ylabel('accel. vm')
-    ax[3].set_xlabel('samples')
+    # ax[3].set_ylabel('accel. vm')
+    ax[2].set_xlabel('samples')
     
     return 0
 
@@ -106,13 +130,15 @@ def main(args):
     files_gt3x=[prefix+'_chest.gt3x', prefix+'_thigh.gt3x']
     files_csv=[prefix+'_chest.csv', prefix+'_thigh.csv']
     # files_agd=[prefix+'_chest.agd', prefix+'_thigh.agd']
+    time_ini='22:00:00'
+    time_end='07:59:59'
     
     filename_chest = path_gt3x + files_gt3x[0]
     filename_thigh = path_gt3x + files_gt3x[1]
     
     # filename_chest = path_agd + files_agd[0]
     # filename_thigh = path_agd + files_agd[1]
-    
+    title_name = files_gt3x[0]
    ## Read raw data and calibrate, then export to pandas data frame
     with FileReader(filename_chest) as reader:
         was_idle_sleep_mode_used = reader.idle_sleep_mode_activated
@@ -132,7 +158,24 @@ def main(args):
         print('delta: ', delta_time)
         
         
+        waveletname = 'Haar'
+        dwt_level = 16
+        coeff_X = pywt.wavedec(df['X'].to_numpy(), waveletname, mode='symmetric', level=dwt_level, axis=-1)
+        coeff_Y = pywt.wavedec(df['Y'].to_numpy(), waveletname, mode='symmetric', level=dwt_level, axis=-1)
+        coeff_Z = pywt.wavedec(df['Z'].to_numpy(), waveletname, mode='symmetric', level=dwt_level, axis=-1)
         
+        df_coeff = pd.DataFrame([])
+        df_coeff['X'] = coeff_X[0]
+        df_coeff['Y'] = coeff_Y[0]
+        df_coeff['Z'] = coeff_Z[0]
+        
+        plot_actigraphy(df, title_name)
+        plot_actigraphy(df_coeff, title_name)
+        plt.ion()
+        # plt.show()
+        plt.show(block=True)
+        
+        ''' 
         ## zero second
         # t_0s = timedelta(microseconds = 0)
         
@@ -178,8 +221,39 @@ def main(args):
         
         print(df)
         
-        df_all = pd.DataFrame([],columns=['Date','Time','X','Y','Z'])
+        dates_list = df['Date'].unique().tolist()
         
+        indexes_ini = []
+        indexes_end = []
+        
+        for date0 in dates_list:
+            df_ini = df.loc[(df['Date']==date0) & (df['Time']==time_ini)]
+            df_end = df.loc[(df['Date']==date0) & (df['Time']==time_end)]
+            indexes_ini.append(df_ini.index.values[0])
+            indexes_end.append(df_end.index.values[0])
+            
+        # index_0 = df.index.values[0]
+        
+        # indexes_ini = df_ini.index.values - index_0
+        # indexes_end = df_end.index.values - index_0
+        
+        plot_actigraphy(df, title_name)
+        
+        indexes_ini = (indexes_ini / (2**dwt_level)).astype(int)
+        indexes_end = (indexes_end / (2**dwt_level)).astype(int) 
+        
+        print('indexes_ini:', indexes_ini)
+        print('indexes_end:', indexes_end)
+        
+        plot_actigraphy(df_coeff, title_name)
+        
+        plt.ion()
+        # plt.show()
+        plt.show(block=True)
+
+               
+        df_all = pd.DataFrame([],columns=['Date','Time','X','Y','Z'])
+
         ## average samples per second
         dates_list = df['Date'].unique().tolist()
         for dateI in dates_list:
@@ -212,7 +286,7 @@ def main(args):
         print(df_all)
         
         
-            
+        '''    
             
                 
                 

@@ -225,21 +225,26 @@ class Counting_Actigraphy:
         
         dates_list = self.df1[self.label_date].unique().tolist()
         
-        df_loc = self.df1.loc[(self.df1[self.label_date]>=dates_list[1]) & (self.df1[self.label_date]<=dates_list[2])]
-        # if inclinometer == 0:
-            # data = df_loc[ self.incl_off].to_numpy()
-            # title='_off'
-        # elif inclinometer == 1:
-            # data = df_loc[ self.incl_lyi].to_numpy()
-            # title='_lyi'
-        # elif inclinometer == 2:
-            # data = df_loc[ self.incl_sit].to_numpy()
-            # title='_sit'
-        # elif inclinometer == 3:
-            # data = df_loc[ self.incl_sta].to_numpy()
-            # title='_sta'
-        # else:
-            # pass
+        # df_loc = self.df1.loc[(self.df1[self.label_date]>=dates_list[1]) & (self.df1[self.label_date]<=dates_list[2])]
+        df_loc = self.df1
+        
+        ## samples 22h and 8h
+        
+        df_ini = df_loc.loc[df_loc[self.label_time]==self.time_ini]
+        df_end = df_loc.loc[df_loc[self.label_time]==self.time_end]
+        
+        # print(df_ini)
+        # print(df_ini.index.values)
+        # print(df_end)
+        # print(df_end.index.values)
+        
+        index_0 = df_loc.index.values[0]
+        
+        indexes_ini = df_ini.index.values - index_0
+        indexes_end = df_end.index.values - index_0
+        
+        indexes_ini = (indexes_ini / (2**nlevel)).astype(int)
+        indexes_end = (indexes_end / (2**nlevel)).astype(int) 
         
         arr_off = df_loc[self.incl_off].to_numpy()
         arr_lyi = df_loc[self.incl_lyi].to_numpy()
@@ -268,6 +273,8 @@ class Counting_Actigraphy:
         coeff_sta[0] = coeff_sta[0]/mean_coeff
         coeff_all = coeff_all/mean_coeff
         
+        print('len coeff: ', len(coeff_all))
+        
         coeff_stack = np.vstack((coeff_off[0],coeff_lyi[0],coeff_sit[0],coeff_sta[0]))
         index_coeff = np.argmax(coeff_stack, axis=0)
         index_off = (index_coeff==0).astype(int)
@@ -275,7 +282,8 @@ class Counting_Actigraphy:
         index_sit = (index_coeff==2).astype(int)
         index_sta = (index_coeff==3).astype(int)
         
-        fig, axarr = plt.subplots(nrows=5, ncols=1, sharex=True)
+        fig, axarr = plt.subplots(nrows=5, ncols=1, sharex=True, sharey=True)
+        fig.canvas.mpl_connect('key_press_event', self.on_press)
         
         # print(len(data))
         # coeff_wave = pywt.wavedec(data, waveletname, mode='symmetric', level=9, axis=-1)
@@ -290,8 +298,41 @@ class Counting_Actigraphy:
         axarr[4].plot(index_sit, color='tab:green')
         axarr[4].plot(index_sta, color='tab:red')
         
+        ## vertical lines for 22h00
+        for idx in indexes_ini:
+            axarr[0].axvline(x = idx, color = 'tab:purple')
+            axarr[1].axvline(x = idx, color = 'tab:purple')
+            axarr[2].axvline(x = idx, color = 'tab:purple')
+            axarr[3].axvline(x = idx, color = 'tab:purple')
+            axarr[4].axvline(x = idx, color = 'tab:purple')
+        
+        ## vertical lines for 8h00
+        for idx in indexes_end:
+            axarr[0].axvline(x = idx, color = 'tab:olive')
+            axarr[1].axvline(x = idx, color = 'tab:olive')
+            axarr[2].axvline(x = idx, color = 'tab:olive')
+            axarr[3].axvline(x = idx, color = 'tab:olive')
+            axarr[4].axvline(x = idx, color = 'tab:olive')
+        
+        axarr[0].set_title(self.filename, loc='left')
+        axarr[0].set_ylabel('off')
+        axarr[1].set_ylabel('lyi')
+        axarr[2].set_ylabel('sit')
+        axarr[3].set_ylabel('sta')
+        axarr[4].set_ylabel('rep.')
+        axarr[4].set_xlabel('samples')
+ 
+        resampling_value = 2**nlevel
+        arr_time = df_loc[self.label_time].to_numpy()
+        
+        rt = arr_time[::resampling_value]
+        print('len resampled:', len(arr_time), len(rt))
+        print(rt)
         
         
+        
+        
+        '''
         df_coeff = pd.DataFrame([])
 
         df_coeff['off']=coeff_off[0]
@@ -300,8 +341,6 @@ class Counting_Actigraphy:
         df_coeff['sta']=coeff_sta[0]
         df_coeff['all']=coeff_all
         
-        
-        '''
         ## simple moving averages using pandas
         ## window size: from 2 hours (original data) to the decomposition scale of dwt_level (2**dwt_level)
         hours = 1/3 ## number of hours

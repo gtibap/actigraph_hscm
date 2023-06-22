@@ -38,7 +38,7 @@ def main(args):
     if flag_read==True:
         print('reading success!')
         
-        obj_chest.waveletTransform(0)
+        # obj_chest.waveletTransform(0)
         obj_chest.waveletTransform(10)
         
         # obj_chest.rollingWindow()
