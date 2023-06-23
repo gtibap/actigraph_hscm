@@ -22,6 +22,7 @@ def main(args):
     # prefix = 'A010'
     prefix = args[1]
     files_list=[prefix+'_chest.csv', prefix+'_thigh.csv']
+    files_list_out=[prefix+'_chest_counts.csv', prefix+'_thigh_counts.csv']
     
     # print('files_list: ', files_list)
     
@@ -38,23 +39,35 @@ def main(args):
     if flag_read==True:
         print('reading success!')
         
-        # obj_chest.waveletTransform(0)
-        obj_chest.waveletTransform(10)
+        dwt_level=10
+        obj_chest.inclinometersDWT(dwt_level)
+        obj_thigh.inclinometersDWT(dwt_level)
         
-        # obj_chest.rollingWindow()
-       
+        obj_chest.plotDWTInclinometers()
+        obj_thigh.plotDWTInclinometers()
 
+        df_counts_chest=obj_chest.nightCounts()
+        df_counts_thigh=obj_thigh.nightCounts()
+
+        print(df_counts_chest)
+        print(df_counts_thigh)
+        
+        df_counts_chest.to_csv(path_out+files_list_out[0], index=False)
+        df_counts_chest.to_csv(path_out+files_list_out[1], index=False)
+        
+        
+        
+        # dwt_level_vma=10
+        # obj_chest.vecMagDWT(dwt_level_vma)
+        # obj_thigh.vecMagDWT(dwt_level_vma)
+        
         # obj_chest.plotActigraphy()
         # obj_thigh.plotActigraphy()
         
-        # obj_chest.countChanges()
-        # obj_thigh.countChanges()
         
-        # print('\nchest\n',obj_chest.getNightCounts())
-        # print('\nthigh\n',obj_thigh.getNightCounts())
         
-        # obj_chest.plotActigraphyMod()
-        # obj_thigh.plotActigraphyMod()
+        
+        
         
         plt.ion()
         # plt.show()
