@@ -51,11 +51,14 @@ class Counting_Actigraphy:
         
         self.label_time = ' Time'
         self.label_date = 'Date'
+
         self.df1 = pd.DataFrame([])
+        self.df_activity_indexes = pd.DataFrame([], columns=['idx_ini','idx_end','length'])
+        self.df_all_nights = pd.DataFrame()
+        # self.df_counts = pd.DataFrame([])
         self.df_inclinometers = pd.DataFrame([])
         self.df_vma = pd.DataFrame([])
-        self.df_counts = pd.DataFrame([])
-        self.df_activity_indexes = pd.DataFrame([], columns=['idx_ini','idx_end','length'])
+
         self.delta_samples_incl=1
         self.delta_samples_vma=1
         self.min_vma = 3 # counts
@@ -63,6 +66,8 @@ class Counting_Actigraphy:
         self.min_gap_rep =600 # seconds (1 min)
         self.arr_fig = [[] for i in range(10)]
         self.arr_axs = [[] for i in range(10)]
+        
+        self.list_start_end_night=[]
         # self.colors=np.array([])
 
 
@@ -81,32 +86,38 @@ class Counting_Actigraphy:
         
         ## apply discrete wavelet transform (DWT)
         waveletname = 'Haar'
+        # waveletname = 'coif5'
+        # waveletname = 'sym5'
+        # waveletname = 'db5'
+        # waveletname = 'bior2.4'
         coeff_vma = pywt.wavedec(arr_vma, waveletname, mode='symmetric', level=nlevel, axis=-1)
         
-        ## resampling 'Date' and 'Time'
-        arr_date = self.df1[self.label_date].to_numpy()
-        arr_time = self.df1[self.label_time].to_numpy()
+        # win = signal.windows.hann(30)
+        # filtered = signal.convolve(arr_vma, win, mode='same') / sum(win)
         
-        self.delta_samples_vma = 2**nlevel
-        arr_new_date = arr_date[::self.delta_samples_vma]
-        arr_new_time = arr_time[::self.delta_samples_vma]
         
-        ## grouping the resultant data
-        self.df_vma[self.label_date]=arr_new_date
-        self.df_vma[self.label_time]=arr_new_time
-        self.df_vma[self.dwt_vma]=coeff_vma[0]
+        # ## resampling 'Date' and 'Time'
+        # arr_date = self.df1[self.label_date].to_numpy()
+        # arr_time = self.df1[self.label_time].to_numpy()
+        
+        # self.delta_samples_vma = 2**nlevel
+        # arr_new_date = arr_date[::self.delta_samples_vma]
+        # arr_new_time = arr_time[::self.delta_samples_vma]
+        
+        # ## grouping the resultant data
+        # self.df_vma[self.label_date]=arr_new_date
+        # self.df_vma[self.label_time]=arr_new_time
+        # self.df_vma[self.dwt_vma]=coeff_vma[0]
         
         fig, ax = plt.subplots(nrows=2, ncols=1)
         fig.canvas.mpl_connect('key_press_event', self.on_press)
         
         ax[0].plot(arr_vma)
         ax[1].plot(coeff_vma[0])
+        # ax[1].plot(filtered)
         
         return 0
     
-
-
-
 
     def inclinometersDWT(self, nlevel):
         
@@ -146,9 +157,16 @@ class Counting_Actigraphy:
         arr_date = self.df1[self.label_date].to_numpy()
         arr_time = self.df1[self.label_time].to_numpy()
         
-        self.delta_samples_incl = 2**nlevel
-        arr_new_date = arr_date[::self.delta_samples_incl]
-        arr_new_time = arr_time[::self.delta_samples_incl]
+        size_org = len(arr_date)
+        size_sampled = len(coeff_off[0])
+        last_index = size_org-1
+
+        indexes_datetime, delta_sampled = np.linspace(0, last_index, size_sampled, endpoint=True, retstep=True)
+        
+        idx_samples = np.rint(indexes_datetime).astype(int)
+        
+        arr_new_date = arr_date[idx_samples]
+        arr_new_time = arr_time[idx_samples]
         
         ## grouping the resultant data
         self.df_inclinometers[self.label_date]=arr_new_date
@@ -168,18 +186,23 @@ class Counting_Actigraphy:
     def nightCounts(self):
         ## from 22:00:00 until 07:59:59 (next day)
         
-        df_all_nights = pd.DataFrame()
         dates_list = self.df_inclinometers[self.label_date].unique().tolist()
         
         id_night=1
         for date0, date1 in zip(dates_list[:-1], dates_list[1:]):
             
             ## from 22:00:00 to 23:59:59
-            df_nightA = self.df_inclinometers.loc[(self.df_inclinometers[self.label_date]==date0) & (self.df_inclinometers[self.label_time] > self.time_ini)]
+            df_nightA = self.df_inclinometers.loc[(self.df_inclinometers[self.label_date]==date0) & (self.df_inclinometers[self.label_time] >= self.time_ini)]
             ## from 00:00:00 to 07:59:59
             df_nightB = self.df_inclinometers.loc[(self.df_inclinometers[self.label_date]== date1) & (self.df_inclinometers[self.label_time] <=self.time_end)] 
             
             df_night = pd.concat([df_nightA, df_nightB], ignore_index=True)
+            
+            # print(f'indexes: {df_nightA.index.values[0]}:{df_nightB.index.values[-1]}')
+            id_start=df_nightA.index.values[0]
+            id_end=df_nightB.index.values[-1]
+            
+            self.list_start_end_night.append([id_start,id_end])
             
             len_night = len(df_night)
             # normalized number of counts per inclinometer
@@ -190,15 +213,15 @@ class Counting_Actigraphy:
             
             repos_labels, repos_data  = self.counting_repositioning(df_night)
             
-            counts_data = [id_night] + repos_data + [counts_off, counts_lyi, counts_sit, counts_sta]
-            counts_labels = ['night'] + repos_labels + ['counts_off','counts_lyi','counts_sit','counts_sta']
+            counts_data = [id_night,id_start,id_end] + repos_data + [counts_off, counts_lyi, counts_sit, counts_sta]
+            counts_labels = ['night','id_start','id_end'] + repos_labels + ['counts_off','counts_lyi','counts_sit','counts_sta']
             
             df_counts_night = pd.DataFrame([counts_data], columns=counts_labels)
-            df_all_nights = pd.concat([df_all_nights, df_counts_night], ignore_index=True)
+            self.df_all_nights = pd.concat([self.df_all_nights, df_counts_night], ignore_index=True)
             
             id_night+=1
         
-        return df_all_nights
+        return 0
         
         
     def counting_repositioning(self, df):
@@ -207,7 +230,7 @@ class Counting_Actigraphy:
         arr_lyi = df[self.incl_lyi].to_numpy()
         arr_sit = df[self.incl_sit].to_numpy()
         arr_sta = df[self.incl_sta].to_numpy()
-            
+        
         off_lyi=self.counting_per_two_incl(arr_off, arr_lyi)
         off_sit=self.counting_per_two_incl(arr_off, arr_sit)
         off_sta=self.counting_per_two_incl(arr_off, arr_sta)
@@ -362,19 +385,10 @@ class Counting_Actigraphy:
     
     def plotVerticalLines(self, axarr, delta):
         
-        df = self.df1
+        arr_indexes = np.array(self.list_start_end_night)
         
-        # ## samples 22h and 8h
-        df_ini = df.loc[df[self.label_time]==self.time_ini]
-        df_end = df.loc[df[self.label_time]==self.time_end]
-        
-        index_0 = df.index.values[0]
-        
-        indexes_ini = df_ini.index.values - index_0
-        indexes_end = df_end.index.values - index_0
-        
-        indexes_ini = (indexes_ini / delta).astype(int)
-        indexes_end = (indexes_end / delta).astype(int) 
+        indexes_ini = arr_indexes[:,0]
+        indexes_end = arr_indexes[:,1]
         
         ## vertical lines for 22h00
         for idx in indexes_ini:
@@ -399,6 +413,6 @@ class Counting_Actigraphy:
         return self.df1
         
     def getNightCounts(self):
-        return self.df_counts
+        return self.df_all_nights
 
 

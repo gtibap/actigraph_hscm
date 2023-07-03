@@ -43,30 +43,26 @@ def main(args):
         obj_chest.inclinometersDWT(dwt_level)
         obj_thigh.inclinometersDWT(dwt_level)
         
-        obj_chest.plotDWTInclinometers()
-        obj_thigh.plotDWTInclinometers()
+        obj_chest.nightCounts()
+        obj_thigh.nightCounts()
 
-        df_counts_chest=obj_chest.nightCounts()
-        df_counts_thigh=obj_thigh.nightCounts()
+        df_counts_chest=obj_chest.getNightCounts()
+        df_counts_thigh=obj_thigh.getNightCounts()
 
-        print(df_counts_chest)
-        print(df_counts_thigh)
+        ## write csv files 
+        # df_counts_chest.to_csv(path_out+files_list_out[0], index=False)
+        # df_counts_thigh.to_csv(path_out+files_list_out[1], index=False)
         
-        df_counts_chest.to_csv(path_out+files_list_out[0], index=False)
-        df_counts_chest.to_csv(path_out+files_list_out[1], index=False)
+        ## plot position changing
+        # obj_chest.plotDWTInclinometers()
+        # obj_thigh.plotDWTInclinometers()
         
-        
-        
-        # dwt_level_vma=10
-        # obj_chest.vecMagDWT(dwt_level_vma)
-        # obj_thigh.vecMagDWT(dwt_level_vma)
+        dwt_level_vma=5
+        obj_chest.vecMagDWT(dwt_level_vma)
+        obj_thigh.vecMagDWT(dwt_level_vma)
         
         # obj_chest.plotActigraphy()
         # obj_thigh.plotActigraphy()
-        
-        
-        
-        
         
         
         plt.ion()
