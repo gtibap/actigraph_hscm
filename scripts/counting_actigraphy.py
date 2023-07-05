@@ -48,21 +48,34 @@ def main(args):
 
         df_counts_chest=obj_chest.getNightCounts()
         df_counts_thigh=obj_thigh.getNightCounts()
+        
+        # obj_chest.vecMagCounting()
+        # obj_thigh.vecMagCounting()
+        
+        # obj_chest.rollingWindow()
+        # obj_thigh.rollingWindow()
 
         ## write csv files 
         # df_counts_chest.to_csv(path_out+files_list_out[0], index=False)
         # df_counts_thigh.to_csv(path_out+files_list_out[1], index=False)
         
-        ## plot position changing
+        # ## plot position changing
         # obj_chest.plotDWTInclinometers()
         # obj_thigh.plotDWTInclinometers()
         
-        dwt_level_vma=5
+        
+        dwt_level_vma=10
         obj_chest.vecMagDWT(dwt_level_vma)
         obj_thigh.vecMagDWT(dwt_level_vma)
         
-        # obj_chest.plotActigraphy()
-        # obj_thigh.plotActigraphy()
+        obj_chest.nightCountsVM()
+        obj_thigh.nightCountsVM()
+        
+        # obj_chest.nightCountsVMOriginal()
+        # obj_thigh.nightCountsVMOriginal()
+        
+        obj_chest.plotActigraphy()
+        obj_thigh.plotActigraphy()
         
         
         plt.ion()
