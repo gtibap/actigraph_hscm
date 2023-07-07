@@ -49,41 +49,27 @@ def main(args):
         df_counts_chest=obj_chest.getNightCounts()
         df_counts_thigh=obj_thigh.getNightCounts()
         
-        # obj_chest.vecMagCounting()
-        # obj_thigh.vecMagCounting()
+        vma_act_chest=obj_chest.vecMagCounting()
+        vma_act_thigh=obj_thigh.vecMagCounting()
         
-        # obj_chest.rollingWindow()
-        # obj_thigh.rollingWindow()
-
+        df_counts_chest['vma_act']=vma_act_chest
+        df_counts_thigh['vma_act']=vma_act_thigh
+        
         ## write csv files 
-        # df_counts_chest.to_csv(path_out+files_list_out[0], index=False)
-        # df_counts_thigh.to_csv(path_out+files_list_out[1], index=False)
+        df_counts_chest.to_csv(path_out+files_list_out[0], index=False)
+        df_counts_thigh.to_csv(path_out+files_list_out[1], index=False)
         
-        # ## plot position changing
+        ## plot position changing
         # obj_chest.plotDWTInclinometers()
         # obj_thigh.plotDWTInclinometers()
-        
-        
-        dwt_level_vma=10
-        obj_chest.vecMagDWT(dwt_level_vma)
-        obj_thigh.vecMagDWT(dwt_level_vma)
-        
-        obj_chest.nightCountsVM()
-        obj_thigh.nightCountsVM()
-        
-        # obj_chest.nightCountsVMOriginal()
-        # obj_thigh.nightCountsVMOriginal()
+  
         
         obj_chest.plotActigraphy()
         obj_thigh.plotActigraphy()
         
         
         plt.ion()
-        # plt.show()
         plt.show(block=True)
-        
-        ## file_name_chest=path_out+prefix+'chest_act.csv'
-        ## df_actigraphy.to_csv(file_name_chest, index=False)
     
     return 0
 

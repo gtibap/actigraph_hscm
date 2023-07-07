@@ -64,6 +64,8 @@ class Counting_Actigraphy:
         self.delta_samples_incl=1
         self.delta_samples_vma=1
         self.min_vma = 3 # counts
+        self.min_samples = 2 # min number of samples inside the window (function: rollingWindow())
+        self.window_min = 10 ## window size in min
         self.min_gap_act =15 # seconds
         self.min_gap_rep =600 # seconds (1 min)
         self.arr_fig = [[] for i in range(10)]
@@ -81,26 +83,76 @@ class Counting_Actigraphy:
         return 0
 
 
-    def rollingWindow(self):
+    def vecMagCounting(self):
         
         arr_vma = self.df1[self.vec_mag].to_numpy()
+        ## we set to one any activity greater than or equal to the minimum value of counts (self.min_vma)
+        arr_vma = (arr_vma >=self.min_vma).astype(int)
         ## window size: from 2 hours (original data) to the decomposition scale of dwt_level (2**dwt_level)
-        hours = 1/3 ## number of hours 1/3 h = 20 min
-        sph = 3600 ## seconds per hour
-        window_size = int(sph*hours)
-        print('window size (s): ', window_size)
+        
+        spm = 60 ## seconds per min
+        window_size = int(spm*self.window_min)
+        # print(  'window size (s): ', window_size)
         ## window to average values (same weight)
         win = signal.windows.boxcar(window_size)
         
-        arr_vma_mod = signal.convolve(arr_vma, win, mode='same') / sum(win)
+        arr_vma_mod = np.rint(signal.convolve(arr_vma, win, mode='same'))
+        ## the sample is valid if the magnitude is greater than or equal to a min number of samples (self.min_samples)
+        self.df1[self.vma_act] = (arr_vma_mod>=self.min_samples).astype(int) 
         
-        fig, ax = plt.subplots(nrows=2, ncols=1, sharex=True)
-        fig.canvas.mpl_connect('key_press_event', self.on_press)
+        df_nights = self.nightsDataFrame(self.df1)
         
-        ax[0].plot(arr_vma)
-        ax[1].plot(arr_vma_mod)
+        list_nights = df_nights[self.night].unique().tolist()
+
+        list_mov_night = []
+        for num_night in list_nights:
+            df = df_nights.loc[df_nights[self.night]==num_night]
+            ## number of movements estimation
+            num_mov = df[self.vma_act].sum() / np.sum(win)
+            ## max. possible number of movements
+            num_max = len(df)/np.sum(win)
+            ## number of movements normalization 
+            list_mov_night.append(num_mov/num_max)
         
-        return 0
+        print(f'num mov: {np.around(list_mov_night,2)}')
+        
+        # fig, ax = plt.subplots(nrows=3, ncols=1, sharex=True)
+        # fig.canvas.mpl_connect('key_press_event', self.on_press)
+        
+        # ax[0].plot(arr_vma)
+        # ax[1].plot(arr_vma_mod)
+        # ax[2].plot(arr_vma_bin)
+        
+        return np.around(list_mov_night,3)
+        
+        
+    def nightsDataFrame(self, df):
+        
+        df_all_nights = pd.DataFrame()
+        dates_list = df[self.label_date].unique().tolist()
+        
+        id_night=1
+        for date0, date1 in zip(dates_list[:-1], dates_list[1:]):
+            ## from 22:00:00 to 23:59:59
+            df_nightA = df.loc[(df[self.label_date]==date0) & (df[self.label_time] >= self.time_ini)]
+            ## from 00:00:00 to 07:59:59
+            df_nightB = df.loc[(df[self.label_date]== date1) & (df[self.label_time] <=self.time_end)] 
+            
+            df_night = pd.concat([df_nightA, df_nightB], ignore_index=True)
+            df_night[self.night] = id_night
+            
+            df_all_nights = pd.concat([df_all_nights, df_night], ignore_index=True)
+            
+            id_night+=1
+            
+        # fig, ax = plt.subplots(nrows=1, ncols=1)
+        # fig.canvas.mpl_connect('key_press_event', self.on_press)
+        # sns.boxplot(x='night', y=self.dwt_vma, data=self.df_nights_dwt_vma, ax=ax, color="skyblue")
+        
+        # self.nightStatisticsVM()
+        
+        return df_all_nights
+    
         
 
 
@@ -115,29 +167,29 @@ class Counting_Actigraphy:
 
     
 
-    def vecMagCounting(self):
+    # def vecMagCounting(self):
         
-        ## read inclinometers 
-        arr_vma = self.df1[self.vec_mag].to_numpy()
-        arr_vma_binary = (arr_vma > self.min_vma).astype(int)
+        # ## read inclinometers 
+        # arr_vma = self.df1[self.vec_mag].to_numpy()
+        # arr_vma_binary = (arr_vma > self.min_vma).astype(int)
         
-        arr_vma_mod = self.binaryClosing(arr_vma_binary, int(self.min_gap_act/2))
+        # arr_vma_mod = self.binaryClosing(arr_vma_binary, int(self.min_gap_act/2))
         
         
-        fig, ax = plt.subplots(nrows=2, ncols=1, sharex=True)
-        fig.canvas.mpl_connect('key_press_event', self.on_press)
+        # fig, ax = plt.subplots(nrows=2, ncols=1, sharex=True)
+        # fig.canvas.mpl_connect('key_press_event', self.on_press)
         
-        ax[0].plot(arr_vma)
-        ax[1].plot(arr_vma_mod)
+        # ax[0].plot(arr_vma)
+        # ax[1].plot(arr_vma_mod)
         
-        return 0
+        # return 0
 
 
     def vecMagDWT(self, nlevel):
         
         ## read inclinometers 
         arr_vma = self.df1[self.vec_mag].to_numpy()
-        # arr_vma = (arr_vma > 3).astype(int)
+        arr_vma = (arr_vma >=3).astype(int)
         ## apply discrete wavelet transform (DWT)
         waveletname = 'Haar'
         coeff_vma = pywt.wavedec(arr_vma, waveletname, mode='symmetric', level=nlevel, axis=-1)
@@ -185,31 +237,32 @@ class Counting_Actigraphy:
         
         return 0
     
-    def nightCountsVM(self):
+     
+    # def nightCountsVM(self, df):
         
-        dates_list = self.df_dwt_vma[self.label_date].unique().tolist()
+        # dates_list = self.df_dwt_vma[self.label_date].unique().tolist()
         
-        id_night=1
-        for date0, date1 in zip(dates_list[:-1], dates_list[1:]):
-            ## from 22:00:00 to 23:59:59
-            df_nightA = self.df_dwt_vma.loc[(self.df_dwt_vma[self.label_date]==date0) & (self.df_dwt_vma[self.label_time] >= self.time_ini)]
-            ## from 00:00:00 to 07:59:59
-            df_nightB = self.df_dwt_vma.loc[(self.df_dwt_vma[self.label_date]== date1) & (self.df_dwt_vma[self.label_time] <=self.time_end)] 
+        # id_night=1
+        # for date0, date1 in zip(dates_list[:-1], dates_list[1:]):
+            # ## from 22:00:00 to 23:59:59
+            # df_nightA = self.df_dwt_vma.loc[(self.df_dwt_vma[self.label_date]==date0) & (self.df_dwt_vma[self.label_time] >= self.time_ini)]
+            # ## from 00:00:00 to 07:59:59
+            # df_nightB = self.df_dwt_vma.loc[(self.df_dwt_vma[self.label_date]== date1) & (self.df_dwt_vma[self.label_time] <=self.time_end)] 
             
-            df_night = pd.concat([df_nightA, df_nightB], ignore_index=True)
-            df_night['night'] = id_night
+            # df_night = pd.concat([df_nightA, df_nightB], ignore_index=True)
+            # df_night['night'] = id_night
             
-            self.df_nights_dwt_vma = pd.concat([self.df_nights_dwt_vma, df_night], ignore_index=True)
+            # self.df_nights_dwt_vma = pd.concat([self.df_nights_dwt_vma, df_night], ignore_index=True)
             
-            id_night+=1
+            # id_night+=1
             
-        fig, ax = plt.subplots(nrows=1, ncols=1)
-        fig.canvas.mpl_connect('key_press_event', self.on_press)
-        sns.boxplot(x='night', y=self.dwt_vma, data=self.df_nights_dwt_vma, ax=ax, color="skyblue")
+        # fig, ax = plt.subplots(nrows=1, ncols=1)
+        # fig.canvas.mpl_connect('key_press_event', self.on_press)
+        # sns.boxplot(x='night', y=self.dwt_vma, data=self.df_nights_dwt_vma, ax=ax, color="skyblue")
         
-        self.nightStatisticsVM()
+        # self.nightStatisticsVM()
         
-        return 0
+        # return 0
 
     
     def nightStatisticsVM(self):
@@ -220,7 +273,11 @@ class Counting_Actigraphy:
         for night in list_nights:
             df_n = self.df_nights_dwt_vma.loc[self.df_nights_dwt_vma['night']==night]
             arr_dwt_vma = df_n[self.dwt_vma].to_numpy()
-            df_s = pd.DataFrame([np.percentile(arr_dwt_vma, [25,50,75,100]).tolist()], columns=['q1','q2','q3','q4'])
+            # print(type(arr_dwt_vma), arr_dwt_vma, 'sum:',np.sum(arr_dwt_vma))
+            list_results = np.percentile(arr_dwt_vma, [25,50,75,100]).tolist()
+            list_results.append(np.sum(arr_dwt_vma))
+            # print(list_results)
+            df_s = pd.DataFrame([list_results], columns=['q1','q2','q3','q4', 'sum'])
             df_s['night']=night
             
             df_vma_stats=pd.concat([df_vma_stats, df_s], ignore_index=True)
@@ -445,7 +502,7 @@ class Counting_Actigraphy:
         
         dates_list = self.df1[self.label_date].unique().tolist()
         
-        print(self.filename,' dates: ',dates_list)
+        # print(self.filename,' dates: ',dates_list)
         for date in dates_list:
             df_date = self.df1.loc[self.df1[self.label_date]== date]
 
