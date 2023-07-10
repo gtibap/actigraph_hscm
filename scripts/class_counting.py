@@ -72,6 +72,7 @@ class Counting_Actigraphy:
         self.arr_axs = [[] for i in range(10)]
         
         self.list_start_end_night=[]
+        self.list_start_end_night_original=[]
         # self.colors=np.array([])
 
 
@@ -83,7 +84,13 @@ class Counting_Actigraphy:
         return 0
 
 
-    def vecMagCounting(self):
+    def vecMagCounting(self, min_value, win_size_minutes, min_samples_window):
+        
+        ## parameters definition: minimum vector magnitude intensity, sliding window size, and minimum number of samples in the window
+        
+        self.min_vma = min_value
+        self.window_min = win_size_minutes
+        self.min_samples = min_samples_window
         
         arr_vma = self.df1[self.vec_mag].to_numpy()
         ## we set to one any activity greater than or equal to the minimum value of counts (self.min_vma)
@@ -100,6 +107,7 @@ class Counting_Actigraphy:
         ## the sample is valid if the magnitude is greater than or equal to a min number of samples (self.min_samples)
         self.df1[self.vma_act] = (arr_vma_mod>=self.min_samples).astype(int) 
         
+        ## retrieve only data of nights; from 22h to 8h
         df_nights = self.nightsDataFrame(self.df1)
         
         list_nights = df_nights[self.night].unique().tolist()
@@ -107,14 +115,16 @@ class Counting_Actigraphy:
         list_mov_night = []
         for num_night in list_nights:
             df = df_nights.loc[df_nights[self.night]==num_night]
-            ## number of movements estimation
-            num_mov = df[self.vma_act].sum() / np.sum(win)
-            ## max. possible number of movements
-            num_max = len(df)/np.sum(win)
-            ## number of movements normalization 
-            list_mov_night.append(num_mov/num_max)
+            # ## number of movements estimation divided by the window size
+            # num_mov = df[self.vma_act].sum() / np.sum(win)
+            # ## max. possible number of movements
+            # num_max = len(df)/np.sum(win)
+            # ## number of movements normalization 
+            # list_mov_night.append(num_mov/num_max)
+            ## mean activity every night
+            list_mov_night.append(df[self.vma_act].mean())
         
-        print(f'num mov: {np.around(list_mov_night,2)}')
+        print(f'mean mov: {np.around(list_mov_night,2)}')
         
         # fig, ax = plt.subplots(nrows=3, ncols=1, sharex=True)
         # fig.canvas.mpl_connect('key_press_event', self.on_press)
@@ -143,6 +153,11 @@ class Counting_Actigraphy:
             
             df_all_nights = pd.concat([df_all_nights, df_night], ignore_index=True)
             
+            id_start=df_nightA.index.values[0]
+            id_end=df_nightB.index.values[-1]
+            
+            self.list_start_end_night_original.append([id_start,id_end])
+            
             id_night+=1
             
         # fig, ax = plt.subplots(nrows=1, ncols=1)
@@ -156,14 +171,14 @@ class Counting_Actigraphy:
         
 
 
-    def binaryClosing(self, arr_in, dist):
-        ## structuring element: odd number
-        gap = int((2*dist)+1)
-        struct1 = np.ones(gap).astype(int)
+    # def binaryClosing(self, arr_in, dist):
+        # ## structuring element: odd number
+        # gap = int((2*dist)+1)
+        # struct1 = np.ones(gap).astype(int)
         
-        arr_out= ndimage.binary_closing(arr_in, structure=struct1).astype(int)
+        # arr_out= ndimage.binary_closing(arr_in, structure=struct1).astype(int)
         
-        return arr_out
+        # return arr_out
 
     
 
@@ -185,48 +200,48 @@ class Counting_Actigraphy:
         # return 0
 
 
-    def vecMagDWT(self, nlevel):
+    # def vecMagDWT(self, nlevel):
         
         ## read inclinometers 
-        arr_vma = self.df1[self.vec_mag].to_numpy()
-        arr_vma = (arr_vma >=3).astype(int)
+        # arr_vma = self.df1[self.vec_mag].to_numpy()
+        # arr_vma = (arr_vma >=3).astype(int)
         ## apply discrete wavelet transform (DWT)
-        waveletname = 'Haar'
-        coeff_vma = pywt.wavedec(arr_vma, waveletname, mode='symmetric', level=nlevel, axis=-1)
+        # waveletname = 'Haar'
+        # coeff_vma = pywt.wavedec(arr_vma, waveletname, mode='symmetric', level=nlevel, axis=-1)
         
         ## resampling 'Date' and 'Time'
-        arr_date = self.df1[self.label_date].to_numpy()
-        arr_time = self.df1[self.label_time].to_numpy()
+        # arr_date = self.df1[self.label_date].to_numpy()
+        # arr_time = self.df1[self.label_time].to_numpy()
        
-        size_org = len(arr_date)
-        size_sampled = len(coeff_vma[0])
-        last_index = size_org-1
+        # size_org = len(arr_date)
+        # size_sampled = len(coeff_vma[0])
+        # last_index = size_org-1
 
-        indexes_datetime, delta_sampled = np.linspace(0, last_index, size_sampled, endpoint=True, retstep=True)
+        # indexes_datetime, delta_sampled = np.linspace(0, last_index, size_sampled, endpoint=True, retstep=True)
         # print(f'delta_sampled dwt: {arr_date.shape}, {arr_time.shape}, {delta_sampled}')
         
-        idx_samples = np.rint(indexes_datetime).astype(int)
+        # idx_samples = np.rint(indexes_datetime).astype(int)
         
-        arr_new_date = arr_date[idx_samples]
-        arr_new_time = arr_time[idx_samples] 
+        # arr_new_date = arr_date[idx_samples]
+        # arr_new_time = arr_time[idx_samples] 
         
         # self.delta_samples_vma = 2**nlevel
         # arr_new_date = arr_date[::self.delta_samples_vma]
         # arr_new_time = arr_time[::self.delta_samples_vma]
         
         ## grouping the resultant data
-        self.df_dwt_vma[self.label_date]=arr_new_date
-        self.df_dwt_vma[self.label_time]=arr_new_time
-        self.df_dwt_vma[self.dwt_vma]=coeff_vma[0]
+        # self.df_dwt_vma[self.label_date]=arr_new_date
+        # self.df_dwt_vma[self.label_time]=arr_new_time
+        # self.df_dwt_vma[self.dwt_vma]=coeff_vma[0]
         
         # print(self.df_dwt_vma)
         
-        fig, ax = plt.subplots(nrows=2, ncols=1)
-        fig.canvas.mpl_connect('key_press_event', self.on_press)
+        # fig, ax = plt.subplots(nrows=2, ncols=1)
+        # fig.canvas.mpl_connect('key_press_event', self.on_press)
         
-        ax[0].plot(arr_vma)
+        # ax[0].plot(arr_vma)
         
-        ax[1].plot(coeff_vma[0])
+        # ax[1].plot(coeff_vma[0])
         
         
         # ax[1].plot(filtered)
@@ -235,7 +250,7 @@ class Counting_Actigraphy:
         # fig2.canvas.mpl_connect('key_press_event', self.on_press)
         # ax2.boxplot(coeff_vma[0])
         
-        return 0
+        # return 0
     
      
     # def nightCountsVM(self, df):
@@ -265,26 +280,26 @@ class Counting_Actigraphy:
         # return 0
 
     
-    def nightStatisticsVM(self):
+    # def nightStatisticsVM(self):
         
-        list_nights = self.df_nights_dwt_vma['night'].unique().tolist()
+        # list_nights = self.df_nights_dwt_vma['night'].unique().tolist()
         
-        df_vma_stats=pd.DataFrame()
-        for night in list_nights:
-            df_n = self.df_nights_dwt_vma.loc[self.df_nights_dwt_vma['night']==night]
-            arr_dwt_vma = df_n[self.dwt_vma].to_numpy()
+        # df_vma_stats=pd.DataFrame()
+        # for night in list_nights:
+            # df_n = self.df_nights_dwt_vma.loc[self.df_nights_dwt_vma['night']==night]
+            # arr_dwt_vma = df_n[self.dwt_vma].to_numpy()
             # print(type(arr_dwt_vma), arr_dwt_vma, 'sum:',np.sum(arr_dwt_vma))
-            list_results = np.percentile(arr_dwt_vma, [25,50,75,100]).tolist()
-            list_results.append(np.sum(arr_dwt_vma))
+            # list_results = np.percentile(arr_dwt_vma, [25,50,75,100]).tolist()
+            # list_results.append(np.sum(arr_dwt_vma))
             # print(list_results)
-            df_s = pd.DataFrame([list_results], columns=['q1','q2','q3','q4', 'sum'])
-            df_s['night']=night
+            # df_s = pd.DataFrame([list_results], columns=['q1','q2','q3','q4', 'sum'])
+            # df_s['night']=night
             
-            df_vma_stats=pd.concat([df_vma_stats, df_s], ignore_index=True)
+            # df_vma_stats=pd.concat([df_vma_stats, df_s], ignore_index=True)
         
-        print(df_vma_stats)
+        # print(df_vma_stats)
         
-        return 0
+        # return 0
         
         
     
@@ -608,6 +623,37 @@ class Counting_Actigraphy:
             axarr[3].axvline(x = idx, color = 'tab:olive')
             axarr[4].axvline(x = idx, color = 'tab:olive')
             
+        return 0
+    
+    
+    def plotVectorMagnitude(self):
+        
+        arr_vma = self.df1[self.vec_mag].to_numpy()
+        arr_act = self.df1[self.vma_act].to_numpy()
+        
+        fig, ax = plt.subplots(nrows=2, ncols=1, sharex=True)
+        fig.canvas.mpl_connect('key_press_event', self.on_press)
+        
+        ax[0].plot(arr_vma)
+        ax[1].plot(arr_act)
+        
+        ## plot vertical lines
+        arr_indexes = np.array(self.list_start_end_night_original)
+        
+        indexes_ini = arr_indexes[:,0]
+        indexes_end = arr_indexes[:,1]
+        
+        ## vertical lines for 22h00
+        for idx in indexes_ini:
+            ax[0].axvline(x = idx, color = 'tab:purple')
+            ax[1].axvline(x = idx, color = 'tab:purple')
+        ## vertical lines for 8h00
+        for idx in indexes_end:
+            ax[0].axvline(x = idx, color = 'tab:olive')
+            ax[1].axvline(x = idx, color = 'tab:olive')
+        
+        ax[0].set_title(self.filename)
+        
         return 0
     
         
