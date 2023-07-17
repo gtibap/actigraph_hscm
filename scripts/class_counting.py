@@ -124,7 +124,7 @@ class Counting_Actigraphy:
             ## mean activity every night
             list_mov_night.append(df[self.vma_act].mean())
         
-        print(f'mean mov: {np.around(list_mov_night,2)}')
+        # print(f'mean mov: {np.around(list_mov_night,2)}')
         
         # fig, ax = plt.subplots(nrows=3, ncols=1, sharex=True)
         # fig.canvas.mpl_connect('key_press_event', self.on_press)

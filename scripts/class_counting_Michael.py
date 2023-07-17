@@ -45,8 +45,8 @@ class Counting_Actigraphy:
         self.sta_counts='sta_counts'
         self.night = 'night'
         
-        self.time_ini='22:00:00'
-        self.time_end='07:59:59'
+        self.time_ini='20:00:00'
+        self.time_end='09:59:59'
         # self.time_ini=datetime.strptime('22:00:00','%H:%M:%S')
         # self.time_end=datetime.strptime('07:59:59','%H:%M:%S')
         
@@ -54,8 +54,8 @@ class Counting_Actigraphy:
         self.color_night = 'tab:purple'
         
         self.label_time = ' Time'
-        self.label_time2 = 'time'
         self.label_date = 'Date'
+        self.time_sec = 'time_sec'
 
         self.df1 = pd.DataFrame([])
         self.df_activity_indexes = pd.DataFrame([], columns=['idx_ini','idx_end','length'])
@@ -85,9 +85,10 @@ class Counting_Actigraphy:
         self.filename = filename
         self.df1 = pd.read_csv(self.path+self.filename, header=self.header_location, decimal=',')
         ## adjust format hour
-        self.df1[self.label_time2]=pd.to_datetime(self.df1[self.label_time]).dt.time
-        self.df1[self.label_time2]=self.df1[self.label_time2].astype(str)
+        # self.df1[self.label_time2]=pd.to_datetime(self.df1[self.label_time]).dt.time
+        # self.df1[self.label_time2]=self.df1[self.label_time2].astype(str)
         # print(self.df1[self.label_time2])
+        print(self.df1)
         
         with open(self.path+self.filename) as f:
             for i, line in enumerate(f):             
@@ -108,7 +109,11 @@ class Counting_Actigraphy:
                     elif i == 4:
                         ## epoch period hh:mm:ss
                         epoch_period = list_values[3][:8]
-                        print(epoch_period)
+                        ## epoch period in seconds
+                        list_period = epoch_period.split(':')
+                        delta_sec = int(list_period[0])*3600 + int(list_period[1])*60 + int(list_period[2])
+                        print(delta_sec)
+                        
                     elif i == 5:
                         ## hh:mm:ss
                         download_time = list_values[2][:8]
@@ -128,18 +133,38 @@ class Counting_Actigraphy:
                     break
             
             start_recording = start_date +' '+ start_time
-            end_recording = download_date +' '+ download_time 
+            # end_recording = download_date +' '+ download_time 
+            end_recording = download_date +' '+ '23:59:59'
             
             print(start_recording)
             print(end_recording)
             
             
-            date_range = pd.date_range(start =start_recording, end =end_recording, periods = len(self.df1))
-            print(date_range)
-
-                
-                
-                    
+            # date_range = pd.date_range(start =start_recording, end =end_recording, periods = len(self.df1))
+            date_range_index = pd.date_range(start =start_recording, end =end_recording, freq = str(delta_sec)+'s')
+            
+            # print(date_range_index)
+            
+            df_temp = date_range_index.to_frame(index=False, name='dateTime')
+            df_temp = df_temp.iloc[:len(self.df1)]
+            # print(df_temp)
+            # print(len(self.df1))
+            df_temp['date'] = df_temp['dateTime'].dt.date
+            df_temp['time'] = df_temp['dateTime'].dt.time
+            # print(df_temp)
+            
+            self.df1[self.label_date]= df_temp['date'].astype(str)
+            self.df1[self.label_time]= df_temp['time'].astype(str)
+            
+            ## column time in seconds
+            nsamples=len(self.df1)
+            start=0
+            end=start+(delta_sec*nsamples)
+            time_sec = np.arange(start,end,delta_sec)
+            
+            self.df1[self.time_sec] = time_sec
+        
+        # print(self.df1)
         
         # df=pd.date_range("00:00:00", "23:59:59", freq="240s")
         # print(df)
@@ -587,26 +612,27 @@ class Counting_Actigraphy:
             df_date = self.df1.loc[self.df1[self.label_date]== date]
 
             ## from 00:00:00 to 07:59:59
-            df_segment = df_date.loc[df_date[self.label_time2]<=self.time_end]
+            df_segment = df_date.loc[df_date[self.label_time]<=self.time_end]
             self.plotSignals(fig, ax, df_segment, self.color_night,signals)
             
             # print(f'date {date}')
             # print(df_segment)
 
-            # ## from 08:00:00 to 21:59:59
-            # df_segment = df_date.loc[(df_date[self.label_time] > self.time_end) & (df_date[self.label_time] < self.time_ini)]
-            # self.plotSignals(fig, ax, df_segment, self.color_day,signals)
+            ## from 08:00:00 to 21:59:59
+            df_segment = df_date.loc[(df_date[self.label_time] > self.time_end) & (df_date[self.label_time] < self.time_ini)]
+            self.plotSignals(fig, ax, df_segment, self.color_day,signals)
             
-            # ## from 22:00:00 to 23:59:59
-            # df_segment = df_date.loc[df_date[self.label_time] >= self.time_ini]
-            # self.plotSignals(fig, ax, df_segment, self.color_night,signals)
+            ## from 22:00:00 to 23:59:59
+            df_segment = df_date.loc[df_date[self.label_time] >= self.time_ini]
+            self.plotSignals(fig, ax, df_segment, self.color_night,signals)
         
         return 0
             
 
     def plotSignals(self,fig,ax,df,cr,signals):
         
-        x_values = df.index.tolist()
+        # x_values = df.index.tolist()
+        x_values = df[self.time_sec]
         
         if signals==0:
             ax[0].plot(x_values, df[self.vec_mag].to_numpy(), color=cr)
