@@ -173,6 +173,47 @@ class Counting_Actigraphy:
         return 0
 
 
+    def maximumIds(self):
+        ## We determine the start and the end of each night with the location of maximum values before and after midnight (0h00). We look for one maximum (start) among the Vector Magnitude values between 20h00 and 23:59:59, and for the other between 00:00:00 and 10:00:00
+        
+        df = self.df1
+        time_start = '20:00:00'
+        time_end = '10:00:00'
+        dates_list = df[self.label_date].unique().tolist()
+        
+        id_night=1
+        for date0, date1 in zip(dates_list[:-1], dates_list[1:]):
+            ## from 22:00:00 to 23:59:59
+            df_nightA = df.loc[(df[self.label_date]==date0) & (df[self.label_time] >= time_start)]
+            ## from 00:00:00 to 07:59:59
+            df_nightB = df.loc[(df[self.label_date]== date1) & (df[self.label_time] <=time_end)] 
+            
+            ## maximum value of Vector Magnitude in df_nightA and df_nightB
+            
+            print(f'night {id_night}')
+            print(f'max night A: {df_nightA[self.vec_mag].idxmax()}, {df_nightA.index.values[0]}, {df_nightA.index.values[-1]}')
+            print(f'max night B: {df_nightB[self.vec_mag].idxmax()}, {df_nightB.index.values[0]}, {df_nightB.index.values[-1]}')
+            
+            
+            
+            
+            # df_night = pd.concat([df_nightA, df_nightB], ignore_index=True)
+            # df_night[self.night] = id_night
+            
+            # df_all_nights = pd.concat([df_all_nights, df_night], ignore_index=True)
+            
+            # id_start=df_nightA.index.values[0]
+            # id_end=df_nightB.index.values[-1]
+            
+            # self.list_start_end_night_original.append([id_start,id_end])
+            
+            id_night+=1
+        
+        return 0
+
+
+
+
     def vecMagCounting(self, min_value, win_size_minutes, min_samples_window):
         
         ## parameters definition: minimum vector magnitude intensity, sliding window size, and minimum number of samples in the window

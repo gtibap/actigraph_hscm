@@ -40,6 +40,8 @@ def main(args):
         
     ## plot vector magnitude and inclinometers; all days and nights (original data)
     obj_chest.plotActigraphy()
+    obj_chest.maximumIds()
+    
     plt.ion()
     plt.show(block=True)
         
