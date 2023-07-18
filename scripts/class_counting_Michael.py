@@ -46,7 +46,7 @@ class Counting_Actigraphy:
         self.night = 'night'
         
         self.time_ini='20:00:00'
-        self.time_end='09:59:59'
+        self.time_end='10:59:59'
         # self.time_ini=datetime.strptime('22:00:00','%H:%M:%S')
         # self.time_end=datetime.strptime('07:59:59','%H:%M:%S')
         
@@ -67,6 +67,7 @@ class Counting_Actigraphy:
 
         self.delta_samples_incl=1
         self.delta_samples_vma=1
+        self.delta_samples = 1
         self.min_vma = 3 # counts
         self.min_samples = 2 # min number of samples inside the window (function: rollingWindow())
         self.window_min = 10 ## window size in min
@@ -77,6 +78,7 @@ class Counting_Actigraphy:
         
         self.list_start_end_night=[]
         self.list_start_end_night_original=[]
+        self.list_range_roi=[]
         # self.colors=np.array([])
 
 
@@ -163,6 +165,7 @@ class Counting_Actigraphy:
             time_sec = np.arange(start,end,delta_sec)
             
             self.df1[self.time_sec] = time_sec
+            self.delta_samples = delta_sec
         
         # print(self.df1)
         
@@ -177,8 +180,13 @@ class Counting_Actigraphy:
         ## We determine the start and the end of each night with the location of maximum values before and after midnight (0h00). We look for one maximum (start) among the Vector Magnitude values between 20h00 and 23:59:59, and for the other between 00:00:00 and 10:00:00
         
         df = self.df1
+        
         time_start = '20:00:00'
-        time_end = '10:00:00'
+        time_end = '10:59:59'
+        time_middle = '03:30:00'
+        
+        df_all_nights = pd.DataFrame()
+        
         dates_list = df[self.label_date].unique().tolist()
         
         id_night=1
@@ -188,11 +196,43 @@ class Counting_Actigraphy:
             ## from 00:00:00 to 07:59:59
             df_nightB = df.loc[(df[self.label_date]== date1) & (df[self.label_time] <=time_end)] 
             
+            ## concatenate partA and partB
+            # df_night = pd.concat([df_nightA, df_nightB], ignore_index=True)
+            df_night = pd.concat([df_nightA, df_nightB])
+            # df_night[self.night] = id_night
+            
+            ## looking for maximums in the first and second halfs of the night
+            ## maximum of the first half
+            idx_ini=df_night.iloc[ :len(df_night)//2,:][self.vec_mag].idxmax()
+            ## maximum of the second half
+            idx_end=df_night.iloc[len(df_night)//2: ,:][self.vec_mag].idxmax()
+            
+            ## trimming of 15 min after the maximum first half and 15 min before the maximum second half
+            trim_delta = int(round((15*60)/self.delta_samples))
+            idx_ini = idx_ini + trim_delta
+            idx_end = idx_end - trim_delta
+            
+            self.list_range_roi.append([idx_ini,idx_end])
+            print(self.list_range_roi)
+            
+            # df_half = df_night.loc[df_night[self.label_time]<time_middle]
+            # print(df_half)
+            # id_max = df_half.idxmax()
+            # print(f'id_max: {id_max}', df_night.index.values[0], df_night.index.values[-1])
+            
+            
+            
+            
+            
+            # df_all_nights = pd.concat([df_all_nights, df_night], ignore_index=True)
+            
+            
             ## maximum value of Vector Magnitude in df_nightA and df_nightB
             
-            print(f'night {id_night}')
-            print(f'max night A: {df_nightA[self.vec_mag].idxmax()}, {df_nightA.index.values[0]}, {df_nightA.index.values[-1]}')
-            print(f'max night B: {df_nightB[self.vec_mag].idxmax()}, {df_nightB.index.values[0]}, {df_nightB.index.values[-1]}')
+            # print(f'night {id_night}')
+            # print(f'max night A: {df_nightA[self.vec_mag].idxmax()}, {df_nightA.index.values[0]}, {df_nightA.index.values[-1]}')
+            # print(f'max night B: {df_nightB[self.vec_mag].idxmax()}, {df_nightB.index.values[0]}, {df_nightB.index.values[-1]}')
+            
             
             
             
@@ -615,6 +655,9 @@ class Counting_Actigraphy:
     def plotActigraphy(self):
         self.arr_fig[0], self.arr_axs[0] = plt.subplots(nrows=5, ncols=1, sharex=True)
         self.plotWithColors(self.arr_fig[0], self.arr_axs[0],signals=0)
+        ## transform from id values to seconds
+        arr_range_roi_sec = np.array(self.list_range_roi) * self.delta_samples
+        self.plotVerticalLines(self.arr_axs[0],arr_range_roi_sec)
         return 0
         
     def plotActigraphyMod(self):
