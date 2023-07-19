@@ -79,81 +79,67 @@ class Counting_Actigraphy:
         self.list_start_end_night=[]
         self.list_start_end_night_original=[]
         self.list_range_roi=[]
-        # self.colors=np.array([])
 
 
     def openFile(self, path, filename):
         self.path = path
         self.filename = filename
         self.df1 = pd.read_csv(self.path+self.filename, header=self.header_location, decimal=',')
-        ## adjust format hour
-        # self.df1[self.label_time2]=pd.to_datetime(self.df1[self.label_time]).dt.time
-        # self.df1[self.label_time2]=self.df1[self.label_time2].astype(str)
-        # print(self.df1[self.label_time2])
-        print(self.df1)
-        
+
         with open(self.path+self.filename) as f:
             for i, line in enumerate(f):             
                 if i < 10:
                     list_values = line.split()
-                    print (f'line {i} = {line.split()}')
                     if i == 2:
                         ## hh:mm:ss
                         start_time = list_values[2][:8]
-                        print(start_time)
                     if i == 3:
                         ## date dd/mm/yyyy
                         start_date = list_values[2][:10]
-                        print(start_date)
-                        day, month, year = start_date.split('/')
+                        if '/' in start_date:
+                            day, month, year = start_date.split('/')
+                        elif '-' in start_date:
+                            year, month, day  = start_date.split('-')
+                        else:
+                            print('Date format is not recognized!')
+                            return 0
                         start_date = year+'-'+month+'-'+day
-                        print(start_date)
                     elif i == 4:
                         ## epoch period hh:mm:ss
                         epoch_period = list_values[3][:8]
                         ## epoch period in seconds
                         list_period = epoch_period.split(':')
                         delta_sec = int(list_period[0])*3600 + int(list_period[1])*60 + int(list_period[2])
-                        print(delta_sec)
-                        
                     elif i == 5:
                         ## hh:mm:ss
                         download_time = list_values[2][:8]
-                        print(download_time)
                     elif i == 6:
                         ## date dd/mm/yyyy
                         download_date = list_values[2][:10]
-                        print(download_date)
-                        day, month, year = download_date.split('/')
-                        download_date = year+'-'+month+'-'+day
-                        print(download_date)
+                        if '/' in download_date:
+                            day, month, year = download_date.split('/')
+                        elif '-' in download_date:
+                            year, month, day  = download_date.split('-')
+                        else:
+                            print('Date format is not recognized!')
+                            return 0
                         
+                        download_date = year+'-'+month+'-'+day
                     else:
                         pass
-                    
                 else:
                     break
             
             start_recording = start_date +' '+ start_time
-            # end_recording = download_date +' '+ download_time 
             end_recording = download_date +' '+ '23:59:59'
             
-            print(start_recording)
-            print(end_recording)
-            
-            
-            # date_range = pd.date_range(start =start_recording, end =end_recording, periods = len(self.df1))
             date_range_index = pd.date_range(start =start_recording, end =end_recording, freq = str(delta_sec)+'s')
-            
-            # print(date_range_index)
             
             df_temp = date_range_index.to_frame(index=False, name='dateTime')
             df_temp = df_temp.iloc[:len(self.df1)]
-            # print(df_temp)
-            # print(len(self.df1))
+
             df_temp['date'] = df_temp['dateTime'].dt.date
             df_temp['time'] = df_temp['dateTime'].dt.time
-            # print(df_temp)
             
             self.df1[self.label_date]= df_temp['date'].astype(str)
             self.df1[self.label_time]= df_temp['time'].astype(str)
@@ -166,12 +152,6 @@ class Counting_Actigraphy:
             
             self.df1[self.time_sec] = time_sec
             self.delta_samples = delta_sec
-        
-        # print(self.df1)
-        
-        # df=pd.date_range("00:00:00", "23:59:59", freq="240s")
-        # print(df)
-        
 
         return 0
 
@@ -183,7 +163,7 @@ class Counting_Actigraphy:
         
         time_start = '20:00:00'
         time_end = '10:59:59'
-        time_middle = '03:30:00'
+        # time_middle = '03:30:00'
         
         df_all_nights = pd.DataFrame()
         
@@ -197,9 +177,7 @@ class Counting_Actigraphy:
             df_nightB = df.loc[(df[self.label_date]== date1) & (df[self.label_time] <=time_end)] 
             
             ## concatenate partA and partB
-            # df_night = pd.concat([df_nightA, df_nightB], ignore_index=True)
             df_night = pd.concat([df_nightA, df_nightB])
-            # df_night[self.night] = id_night
             
             ## looking for maximums in the first and second halfs of the night
             ## maximum of the first half
@@ -212,307 +190,40 @@ class Counting_Actigraphy:
             idx_ini = idx_ini + trim_delta
             idx_end = idx_end - trim_delta
             
-            self.list_range_roi.append([idx_ini,idx_end])
-            print(self.list_range_roi)
+            ## night duration
+            night_duration = (idx_end - idx_ini)*self.delta_samples
             
-            # df_half = df_night.loc[df_night[self.label_time]<time_middle]
-            # print(df_half)
-            # id_max = df_half.idxmax()
-            # print(f'id_max: {id_max}', df_night.index.values[0], df_night.index.values[-1])
-            
-            
-            
-            
-            
-            # df_all_nights = pd.concat([df_all_nights, df_night], ignore_index=True)
-            
-            
-            ## maximum value of Vector Magnitude in df_nightA and df_nightB
-            
-            # print(f'night {id_night}')
-            # print(f'max night A: {df_nightA[self.vec_mag].idxmax()}, {df_nightA.index.values[0]}, {df_nightA.index.values[-1]}')
-            # print(f'max night B: {df_nightB[self.vec_mag].idxmax()}, {df_nightB.index.values[0]}, {df_nightB.index.values[-1]}')
-            
-            
-            
-            
-            
-            # df_night = pd.concat([df_nightA, df_nightB], ignore_index=True)
-            # df_night[self.night] = id_night
-            
-            # df_all_nights = pd.concat([df_all_nights, df_night], ignore_index=True)
-            
-            # id_start=df_nightA.index.values[0]
-            # id_end=df_nightB.index.values[-1]
-            
-            # self.list_start_end_night_original.append([id_start,id_end])
+            self.list_range_roi.append([idx_ini,idx_end, night_duration])
             
             id_night+=1
         
         return 0
 
 
-
-
-    def vecMagCounting(self, min_value, win_size_minutes, min_samples_window):
+    def inclinometersDWT(self):
         
-        ## parameters definition: minimum vector magnitude intensity, sliding window size, and minimum number of samples in the window
-        
-        self.min_vma = min_value
-        self.window_min = win_size_minutes
-        self.min_samples = min_samples_window
-        
-        arr_vma = self.df1[self.vec_mag].to_numpy()
-        ## we set to one any activity greater than or equal to the minimum value of counts (self.min_vma)
-        arr_vma = (arr_vma >=self.min_vma).astype(int)
-        ## window size: from 2 hours (original data) to the decomposition scale of dwt_level (2**dwt_level)
-        
-        spm = 60 ## seconds per min
-        window_size = int(spm*self.window_min)
-        # print(  'window size (s): ', window_size)
-        ## window to average values (same weight)
-        win = signal.windows.boxcar(window_size)
-        
-        arr_vma_mod = np.rint(signal.convolve(arr_vma, win, mode='same'))
-        ## the sample is valid if the magnitude is greater than or equal to a min number of samples (self.min_samples)
-        self.df1[self.vma_act] = (arr_vma_mod>=self.min_samples).astype(int) 
-        
-        ## retrieve only data of nights; from 22h to 8h
-        df_nights = self.nightsDataFrame(self.df1)
-        
-        list_nights = df_nights[self.night].unique().tolist()
-
-        list_mov_night = []
-        for num_night in list_nights:
-            df = df_nights.loc[df_nights[self.night]==num_night]
-            # ## number of movements estimation divided by the window size
-            # num_mov = df[self.vma_act].sum() / np.sum(win)
-            # ## max. possible number of movements
-            # num_max = len(df)/np.sum(win)
-            # ## number of movements normalization 
-            # list_mov_night.append(num_mov/num_max)
-            ## mean activity every night
-            list_mov_night.append(df[self.vma_act].mean())
-        
-        print(f'mean mov: {np.around(list_mov_night,2)}')
-        
-        # fig, ax = plt.subplots(nrows=3, ncols=1, sharex=True)
-        # fig.canvas.mpl_connect('key_press_event', self.on_press)
-        
-        # ax[0].plot(arr_vma)
-        # ax[1].plot(arr_vma_mod)
-        # ax[2].plot(arr_vma_bin)
-        
-        return np.around(list_mov_night,3)
-        
-        
-    def nightsDataFrame(self, df):
-        
-        df_all_nights = pd.DataFrame()
-        dates_list = df[self.label_date].unique().tolist()
-        
-        id_night=1
-        for date0, date1 in zip(dates_list[:-1], dates_list[1:]):
-            ## from 22:00:00 to 23:59:59
-            df_nightA = df.loc[(df[self.label_date]==date0) & (df[self.label_time] >= self.time_ini)]
-            ## from 00:00:00 to 07:59:59
-            df_nightB = df.loc[(df[self.label_date]== date1) & (df[self.label_time] <=self.time_end)] 
+        ## calculate level of decomposition using discrete wavelet transform
+        ## subsampling until a sample represent a value between 15 min (900 s) and 20min (1200 s)
+        delta_value = self.delta_samples
+        ## estimate level for the discrete wavelet transform
+        nlevel = 0
+        th1 = 900 # seconds
+        th2 = 1200 # seconds
+        while delta_value < th1:
+            delta_value = delta_value * 2
+            nlevel+=1
+        else:
+            pass
             
-            df_night = pd.concat([df_nightA, df_nightB], ignore_index=True)
-            df_night[self.night] = id_night
-            
-            df_all_nights = pd.concat([df_all_nights, df_night], ignore_index=True)
-            
-            id_start=df_nightA.index.values[0]
-            id_end=df_nightB.index.values[-1]
-            
-            self.list_start_end_night_original.append([id_start,id_end])
-            
-            id_night+=1
-            
-        # fig, ax = plt.subplots(nrows=1, ncols=1)
-        # fig.canvas.mpl_connect('key_press_event', self.on_press)
-        # sns.boxplot(x='night', y=self.dwt_vma, data=self.df_nights_dwt_vma, ax=ax, color="skyblue")
-        
-        # self.nightStatisticsVM()
-        
-        return df_all_nights
-    
-        
-
-
-    # def binaryClosing(self, arr_in, dist):
-        # ## structuring element: odd number
-        # gap = int((2*dist)+1)
-        # struct1 = np.ones(gap).astype(int)
-        
-        # arr_out= ndimage.binary_closing(arr_in, structure=struct1).astype(int)
-        
-        # return arr_out
-
-    
-
-    # def vecMagCounting(self):
-        
-        # ## read inclinometers 
-        # arr_vma = self.df1[self.vec_mag].to_numpy()
-        # arr_vma_binary = (arr_vma > self.min_vma).astype(int)
-        
-        # arr_vma_mod = self.binaryClosing(arr_vma_binary, int(self.min_gap_act/2))
-        
-        
-        # fig, ax = plt.subplots(nrows=2, ncols=1, sharex=True)
-        # fig.canvas.mpl_connect('key_press_event', self.on_press)
-        
-        # ax[0].plot(arr_vma)
-        # ax[1].plot(arr_vma_mod)
-        
-        # return 0
-
-
-    # def vecMagDWT(self, nlevel):
-        
-        ## read inclinometers 
-        # arr_vma = self.df1[self.vec_mag].to_numpy()
-        # arr_vma = (arr_vma >=3).astype(int)
-        ## apply discrete wavelet transform (DWT)
-        # waveletname = 'Haar'
-        # coeff_vma = pywt.wavedec(arr_vma, waveletname, mode='symmetric', level=nlevel, axis=-1)
-        
-        ## resampling 'Date' and 'Time'
-        # arr_date = self.df1[self.label_date].to_numpy()
-        # arr_time = self.df1[self.label_time].to_numpy()
-       
-        # size_org = len(arr_date)
-        # size_sampled = len(coeff_vma[0])
-        # last_index = size_org-1
-
-        # indexes_datetime, delta_sampled = np.linspace(0, last_index, size_sampled, endpoint=True, retstep=True)
-        # print(f'delta_sampled dwt: {arr_date.shape}, {arr_time.shape}, {delta_sampled}')
-        
-        # idx_samples = np.rint(indexes_datetime).astype(int)
-        
-        # arr_new_date = arr_date[idx_samples]
-        # arr_new_time = arr_time[idx_samples] 
-        
-        # self.delta_samples_vma = 2**nlevel
-        # arr_new_date = arr_date[::self.delta_samples_vma]
-        # arr_new_time = arr_time[::self.delta_samples_vma]
-        
-        ## grouping the resultant data
-        # self.df_dwt_vma[self.label_date]=arr_new_date
-        # self.df_dwt_vma[self.label_time]=arr_new_time
-        # self.df_dwt_vma[self.dwt_vma]=coeff_vma[0]
-        
-        # print(self.df_dwt_vma)
-        
-        # fig, ax = plt.subplots(nrows=2, ncols=1)
-        # fig.canvas.mpl_connect('key_press_event', self.on_press)
-        
-        # ax[0].plot(arr_vma)
-        
-        # ax[1].plot(coeff_vma[0])
-        
-        
-        # ax[1].plot(filtered)
-        
-        # fig2, ax2 = plt.subplots(nrows=1, ncols=1)
-        # fig2.canvas.mpl_connect('key_press_event', self.on_press)
-        # ax2.boxplot(coeff_vma[0])
-        
-        # return 0
-    
-     
-    # def nightCountsVM(self, df):
-        
-        # dates_list = self.df_dwt_vma[self.label_date].unique().tolist()
-        
-        # id_night=1
-        # for date0, date1 in zip(dates_list[:-1], dates_list[1:]):
-            # ## from 22:00:00 to 23:59:59
-            # df_nightA = self.df_dwt_vma.loc[(self.df_dwt_vma[self.label_date]==date0) & (self.df_dwt_vma[self.label_time] >= self.time_ini)]
-            # ## from 00:00:00 to 07:59:59
-            # df_nightB = self.df_dwt_vma.loc[(self.df_dwt_vma[self.label_date]== date1) & (self.df_dwt_vma[self.label_time] <=self.time_end)] 
-            
-            # df_night = pd.concat([df_nightA, df_nightB], ignore_index=True)
-            # df_night['night'] = id_night
-            
-            # self.df_nights_dwt_vma = pd.concat([self.df_nights_dwt_vma, df_night], ignore_index=True)
-            
-            # id_night+=1
-            
-        # fig, ax = plt.subplots(nrows=1, ncols=1)
-        # fig.canvas.mpl_connect('key_press_event', self.on_press)
-        # sns.boxplot(x='night', y=self.dwt_vma, data=self.df_nights_dwt_vma, ax=ax, color="skyblue")
-        
-        # self.nightStatisticsVM()
-        
-        # return 0
-
-    
-    # def nightStatisticsVM(self):
-        
-        # list_nights = self.df_nights_dwt_vma['night'].unique().tolist()
-        
-        # df_vma_stats=pd.DataFrame()
-        # for night in list_nights:
-            # df_n = self.df_nights_dwt_vma.loc[self.df_nights_dwt_vma['night']==night]
-            # arr_dwt_vma = df_n[self.dwt_vma].to_numpy()
-            # print(type(arr_dwt_vma), arr_dwt_vma, 'sum:',np.sum(arr_dwt_vma))
-            # list_results = np.percentile(arr_dwt_vma, [25,50,75,100]).tolist()
-            # list_results.append(np.sum(arr_dwt_vma))
-            # print(list_results)
-            # df_s = pd.DataFrame([list_results], columns=['q1','q2','q3','q4', 'sum'])
-            # df_s['night']=night
-            
-            # df_vma_stats=pd.concat([df_vma_stats, df_s], ignore_index=True)
-        
-        # print(df_vma_stats)
-        
-        # return 0
-        
-        
-    
-    
-    # def nightCountsVMOriginal(self):
-        
-        # df_nights_vma_org = pd.DataFrame()
-        # dates_list = self.df1[self.label_date].unique().tolist()
-        
-        # id_night=1
-        # for date0, date1 in zip(dates_list[:-1], dates_list[1:]):
-            # ## from 22:00:00 to 23:59:59
-            # df_nightA = self.df1.loc[(self.df1[self.label_date]==date0) & (self.df1[self.label_time] >= self.time_ini)]
-            # ## from 00:00:00 to 07:59:59
-            # df_nightB = self.df1.loc[(self.df1[self.label_date]== date1) & (self.df1[self.label_time] <=self.time_end)] 
-            
-            # df_night = pd.concat([df_nightA, df_nightB], ignore_index=True)
-            # df_night['night'] = id_night
-            
-            # df_nights_vma_org = pd.concat([df_nights_vma_org, df_night], ignore_index=True)
-            
-            # id_night+=1
-            
-        # print(self.df_nights_vma)
-
-        # fig, ax = plt.subplots(nrows=1, ncols=1)
-        # fig.canvas.mpl_connect('key_press_event', self.on_press)
-        # sns.boxplot(x='night', y=self.vec_mag, data=df_nights_vma_org, ax=ax)
-        
-        # return 0
-    
-    
-    
-  
-    
-
-    def inclinometersDWT(self, nlevel):
-        
         ## read inclinometers 
         arr_off = self.df1[self.incl_off].to_numpy()
         arr_lyi = self.df1[self.incl_lyi].to_numpy()
         arr_sit = self.df1[self.incl_sit].to_numpy()
         arr_sta = self.df1[self.incl_sta].to_numpy()
+
+        ## very important avoid any nan value; it could be a missing data in the original recording
+        # print(f'mean {np.mean(arr_off)}, {np.mean(arr_lyi)}, {np.mean(arr_sit)}, {np.mean(arr_sta)}')
+        # print(f'nan ids: {np.argwhere(np.isnan(arr_off))}, {np.argwhere(np.isnan(arr_lyi))}, {np.argwhere(np.isnan(arr_sit))}, {np.argwhere(np.isnan(arr_sta))}') 
         
         ## apply discrete wavelet transform (DWT)
         waveletname = 'Haar'
@@ -523,9 +234,9 @@ class Counting_Actigraphy:
         
         ## amplitude normalization
         coeff_all = coeff_off[0] + coeff_lyi[0] + coeff_sit[0] + coeff_sta[0]
-        mean_coeff = coeff_all.mean()
-        std_coeff = coeff_all.std()
-        # print('mean, std: ', mean_coeff, std_coeff)
+
+        mean_coeff = np.mean(coeff_all)
+
         coeff_off[0] = coeff_off[0]/mean_coeff
         coeff_lyi[0] = coeff_lyi[0]/mean_coeff
         coeff_sit[0] = coeff_sit[0]/mean_coeff
@@ -547,7 +258,7 @@ class Counting_Actigraphy:
         size_org = len(arr_date)
         size_sampled = len(coeff_off[0])
         last_index = size_org-1
-
+        
         indexes_datetime, delta_sampled = np.linspace(0, last_index, size_sampled, endpoint=True, retstep=True)
         
         idx_samples = np.rint(indexes_datetime).astype(int)
@@ -571,21 +282,25 @@ class Counting_Actigraphy:
     
     
     def nightCounts(self):
-        ## from 22:00:00 until 07:59:59 (next day)
         
-        dates_list = self.df_inclinometers[self.label_date].unique().tolist()
-        
-        id_night=1
-        for date0, date1 in zip(dates_list[:-1], dates_list[1:]):
+        ## each night has a starting and ending points. The indexes of those points are in the 'list_range_roi'. We use the indexes to get date and time
+        id_night = 1
+        for indexes in self.list_range_roi:
             
-            ## from 22:00:00 to 23:59:59
-            df_nightA = self.df_inclinometers.loc[(self.df_inclinometers[self.label_date]==date0) & (self.df_inclinometers[self.label_time] >= self.time_ini)]
+            date_ini = self.df1._get_value(indexes[0],self.label_date)
+            date_end = self.df1._get_value(indexes[1],self.label_date)
+            
+            time_ini = self.df1._get_value(indexes[0],self.label_time)
+            time_end = self.df1._get_value(indexes[1],self.label_time)
+            
+            night_duration = indexes[2]
+        
+            df_nightA = self.df_inclinometers.loc[(self.df_inclinometers[self.label_date]==date_ini) & (self.df_inclinometers[self.label_time] >= time_ini)]
             ## from 00:00:00 to 07:59:59
-            df_nightB = self.df_inclinometers.loc[(self.df_inclinometers[self.label_date]== date1) & (self.df_inclinometers[self.label_time] <=self.time_end)] 
+            df_nightB = self.df_inclinometers.loc[(self.df_inclinometers[self.label_date]== date_end) & (self.df_inclinometers[self.label_time] <=time_end)] 
             
             df_night = pd.concat([df_nightA, df_nightB], ignore_index=True)
             
-            # print(f'indexes: {df_nightA.index.values[0]}:{df_nightB.index.values[-1]}')
             id_start=df_nightA.index.values[0]
             id_end=df_nightB.index.values[-1]
             
@@ -593,15 +308,15 @@ class Counting_Actigraphy:
             
             len_night = len(df_night)
             # normalized number of counts per inclinometer
-            counts_off=df_night[self.incl_off].sum()/len_night
-            counts_lyi=df_night[self.incl_lyi].sum()/len_night
-            counts_sit=df_night[self.incl_sit].sum()/len_night
-            counts_sta=df_night[self.incl_sta].sum()/len_night
+            counts_off=np.round(df_night[self.incl_off].sum()/len_night, 2)
+            counts_lyi=np.round(df_night[self.incl_lyi].sum()/len_night, 2)
+            counts_sit=np.round(df_night[self.incl_sit].sum()/len_night, 2)
+            counts_sta=np.round(df_night[self.incl_sta].sum()/len_night, 2)
             
             repos_labels, repos_data  = self.counting_repositioning(df_night)
             
-            counts_data = [id_night,id_start,id_end] + repos_data + [counts_off, counts_lyi, counts_sit, counts_sta]
-            counts_labels = ['night','id_start','id_end'] + repos_labels + ['counts_off','counts_lyi','counts_sit','counts_sta']
+            counts_data = [id_night,id_start,id_end] + repos_data + [counts_off, counts_lyi, counts_sit, counts_sta, night_duration]
+            counts_labels = ['night','id_start','id_end'] + repos_labels + ['counts_off','counts_lyi','counts_sit','counts_sta', 'night_duration (s)']
             
             df_counts_night = pd.DataFrame([counts_data], columns=counts_labels)
             self.df_all_nights = pd.concat([self.df_all_nights, df_counts_night], ignore_index=True)
@@ -673,12 +388,6 @@ class Counting_Actigraphy:
         for i in np.arange(5):
             ax[i].cla()
         
-        # x_ini=100000
-        # x_end=200000
-        # ax[0].set_xlim(x_ini,x_end)
-        
-        # ax[0].set_ylim(0,400)
-        
         ax[0].set_title(self.filename)
         ax[0].set_ylabel('v.m.')
         ax[1].set_ylabel('off')
@@ -690,23 +399,18 @@ class Counting_Actigraphy:
         
         dates_list = self.df1[self.label_date].unique().tolist()
         
-        # print(self.filename,' dates: ',dates_list)
-        
         for date in dates_list:
             df_date = self.df1.loc[self.df1[self.label_date]== date]
 
-            ## from 00:00:00 to 07:59:59
+            ## from midnight to the end of the night sleep
             df_segment = df_date.loc[df_date[self.label_time]<=self.time_end]
             self.plotSignals(fig, ax, df_segment, self.color_night,signals)
             
-            # print(f'date {date}')
-            # print(df_segment)
-
-            ## from 08:00:00 to 21:59:59
+            ## from the end of the previous night sleep to the beginning of the next night sleep
             df_segment = df_date.loc[(df_date[self.label_time] > self.time_end) & (df_date[self.label_time] < self.time_ini)]
             self.plotSignals(fig, ax, df_segment, self.color_day,signals)
             
-            ## from 22:00:00 to 23:59:59
+            ## from the beginning of the night sleep to midnight
             df_segment = df_date.loc[df_date[self.label_time] >= self.time_ini]
             self.plotSignals(fig, ax, df_segment, self.color_night,signals)
         
@@ -715,7 +419,6 @@ class Counting_Actigraphy:
 
     def plotSignals(self,fig,ax,df,cr,signals):
         
-        # x_values = df.index.tolist()
         x_values = df[self.time_sec]
         
         if signals==0:
@@ -804,37 +507,6 @@ class Counting_Actigraphy:
         return 0
     
     
-    def plotVectorMagnitude(self):
-        
-        arr_vma = self.df1[self.vec_mag].to_numpy()
-        arr_act = self.df1[self.vma_act].to_numpy()
-        
-        fig, ax = plt.subplots(nrows=2, ncols=1, sharex=True)
-        fig.canvas.mpl_connect('key_press_event', self.on_press)
-        
-        ax[0].plot(arr_vma)
-        ax[1].plot(arr_act)
-        
-        ## plot vertical lines
-        arr_indexes = np.array(self.list_start_end_night_original)
-        
-        indexes_ini = arr_indexes[:,0]
-        indexes_end = arr_indexes[:,1]
-        
-        ## vertical lines for 22h00
-        for idx in indexes_ini:
-            ax[0].axvline(x = idx, color = 'tab:purple')
-            ax[1].axvline(x = idx, color = 'tab:purple')
-        ## vertical lines for 8h00
-        for idx in indexes_end:
-            ax[0].axvline(x = idx, color = 'tab:olive')
-            ax[1].axvline(x = idx, color = 'tab:olive')
-        
-        ax[0].set_title(self.filename)
-        
-        return 0
-    
-        
     def getActigraphyData(self):
         return self.df1
         

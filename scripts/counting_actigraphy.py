@@ -109,9 +109,11 @@ def main(args):
         # print(df_activity_chest)
         # print(df_activity_thigh)
         
-        # df_activity_thigh.boxplot()
-        
-        
+        fig, ax = plt.subplots(nrows=1, ncols=1)
+        ax=df_activity_thigh.boxplot()
+        ax.set_ylabel('probability distribution')
+        ax.set_xlabel('window size (min)')
+        ax.set_title(f'Activity {prefix} based on Vector Magnitude values')
         
         
         ## adding vector magnitude activity to the dataframe of repositioning
@@ -133,7 +135,7 @@ def main(args):
   
         # ## plot vector magnitude and inclinometers; all days and nights (original data)
         # obj_chest.plotActigraphy()
-        # obj_thigh.plotActigraphy()
+        obj_thigh.plotActigraphy()
         
         # obj_chest.plotVectorMagnitude()
         # obj_thigh.plotVectorMagnitude()
