@@ -17,6 +17,49 @@ incl_sit ='Inclinometer Sitting'
 incl_lyi ='Inclinometer Lying'
 
 
+def plotBoxPlot(list_data, list_name_cols, prefix, title):
+    
+    # arr_activity_chest = np.array(list_activity_chest)
+    arr_activity_thigh = np.array(list_data)
+
+    # print('activity chest:')
+    # print(arr_activity_chest)
+    print('activity thigh:')
+    print(arr_activity_thigh)
+
+    # arr_activity_chest = np.transpose(arr_activity_chest)
+    arr_activity_thigh = np.transpose(arr_activity_thigh)
+
+    # list_nights_chest = np.arange(1,len(arr_activity_chest)+1)
+    list_nights_thigh = np.arange(1,len(arr_activity_thigh)+1)
+
+    # print(list_nights_chest, list_nights_thigh)
+
+    # df_activity_chest = pd.DataFrame(data = arr_activity_chest,
+                                     # index = list_nights_chest,
+                                     # columns=list_name_cols)
+                                     
+    df_activity_thigh = pd.DataFrame(data = arr_activity_thigh,
+                                     index = list_nights_thigh,
+                                     columns=list_name_cols)
+
+    # df_activity_chest.index.name = 'night'
+    df_activity_thigh.index.name = 'night'
+
+    # print(df_activity_chest)
+    # print(df_activity_thigh)
+    col_names = np.array(df_activity_thigh.columns)
+
+    fig, ax = plt.subplots(nrows=1, ncols=1)
+    ax=df_activity_thigh.boxplot(column=col_names[7:].tolist())
+    ax.set_ylim(-10, 100)
+    ax.set_ylabel('magnitude')
+    ax.set_xlabel('window size (min)')
+    ax.set_title(f'{title} {prefix}')
+    
+    return 0
+
+
 def main(args):
     
     path = "../data/projet_officiel/"
@@ -26,6 +69,9 @@ def main(args):
     files_list=[prefix+'_chest.csv', prefix+'_thigh.csv']
     files_list_out_rep=[prefix+'_chest_repositioning.csv', prefix+'_thigh_repositioning.csv']
     files_list_out_act=[prefix+'_chest_activity.csv', prefix+'_thigh_activity.csv']
+    
+    dict_df_rep_chest = {}
+    dict_df_rep_thigh = {}
     
     # print('files_list: ', files_list)
     
@@ -44,17 +90,38 @@ def main(args):
         
         #################
         ## repositioning start
-        dwt_level=10
-        obj_chest.inclinometersDWT(dwt_level)
-        obj_thigh.inclinometersDWT(dwt_level)
+        list_repos_chest=[]
+        list_repos_thigh=[]
+        list_names_repos=[]
         
-        obj_chest.nightCounts()
-        obj_thigh.nightCounts()
+        
+        dwt_level_max=11
+        for dwt_level in np.arange(dwt_level_max+1):
+            print(f'every sample represents {2**dwt_level} s')
+            obj_chest.inclinometersDWT(dwt_level)
+            obj_thigh.inclinometersDWT(dwt_level)
+            
+            obj_chest.nightCounts()
+            obj_thigh.nightCounts()
 
-        df_counts_chest=obj_chest.getNightCounts()
-        df_counts_thigh=obj_thigh.getNightCounts()
+            df_counts_chest=obj_chest.getNightCounts()
+            df_counts_thigh=obj_thigh.getNightCounts()
+            
+            dict_df_rep_chest[dwt_level] = df_counts_chest
+            dict_df_rep_thigh[dwt_level] = df_counts_thigh
+            
+            list_repos_chest.append(df_counts_chest['num_rep'].to_numpy().tolist())
+            list_repos_thigh.append(df_counts_thigh['num_rep'].to_numpy().tolist())
+            
+            list_names_repos.append('l_'+str(dwt_level))
+        
         ## repositioning end
         ################
+        # print(dict_df_rep_chest)
+        # print(dict_df_rep_thigh)
+        
+        plotBoxPlot(list_repos_thigh, list_names_repos, prefix, 'repos')
+        
         
         ################
         ## vector magnitude activity        
@@ -67,7 +134,7 @@ def main(args):
         list_name_cols = []
         # list_name_cols.append('night')
         print('activity estimation for')
-        for i in np.arange(9):
+        for i in np.arange(1):
             win_size=2**i ## min
             print(f'window size: {win_size}')
             list_activity_chest.append(obj_chest.vecMagCounting(min_value, win_size, min_samples_window))
@@ -79,63 +146,29 @@ def main(args):
         ## vector magnitude activity
         ################
         
-        arr_activity_chest = np.array(list_activity_chest)
-        arr_activity_thigh = np.array(list_activity_thigh)
-        
-        print('activity chest:')
-        print(arr_activity_chest)
-        print('activity thigh:')
-        print(arr_activity_thigh)
-        
-        arr_activity_chest = np.transpose(arr_activity_chest)
-        arr_activity_thigh = np.transpose(arr_activity_thigh)
-        
-        list_nights_chest = np.arange(1,len(arr_activity_chest)+1)
-        list_nights_thigh = np.arange(1,len(arr_activity_thigh)+1)
-        
-        print(list_nights_chest, list_nights_thigh)
-        
-        df_activity_chest = pd.DataFrame(data = arr_activity_chest,
-                                         index = list_nights_chest,
-                                         columns=list_name_cols)
-                                         
-        df_activity_thigh = pd.DataFrame(data = arr_activity_thigh,
-                                         index = list_nights_thigh,
-                                         columns=list_name_cols)
-        
-        df_activity_chest.index.name = 'night'
-        df_activity_thigh.index.name = 'night'
-        
-        # print(df_activity_chest)
-        # print(df_activity_thigh)
-        
-        fig, ax = plt.subplots(nrows=1, ncols=1)
-        ax=df_activity_thigh.boxplot()
-        ax.set_ylabel('probability distribution')
-        ax.set_xlabel('window size (min)')
-        ax.set_title(f'Activity {prefix} based on Vector Magnitude values')
+        # plotBoxPlot(list_activity_thigh, list_name_cols, prefix, 'activity')
         
         
         ## adding vector magnitude activity to the dataframe of repositioning
         # df_counts_chest['vma_act']=vma_act_chest
         # df_counts_thigh['vma_act']=vma_act_thigh
         
-        # ## write csv files 
-        df_counts_chest.to_csv(path_out+files_list_out_rep[0], index=False)
-        df_counts_thigh.to_csv(path_out+files_list_out_rep[1], index=False)
+        ## write csv files 
+        # df_counts_chest.to_csv(path_out+files_list_out_rep[0], index=False)
+        # df_counts_thigh.to_csv(path_out+files_list_out_rep[1], index=False)
         
-        df_activity_chest.to_csv(path_out+files_list_out_act[0], index=False)
-        df_activity_thigh.to_csv(path_out+files_list_out_act[1], index=False)
+        # df_activity_chest.to_csv(path_out+files_list_out_act[0], index=False)
+        # df_activity_thigh.to_csv(path_out+files_list_out_act[1], index=False)
         
         
         
-        # ## plot position changing
+        ## plot position changing
         # obj_chest.plotDWTInclinometers()
         # obj_thigh.plotDWTInclinometers()
   
         # ## plot vector magnitude and inclinometers; all days and nights (original data)
         # obj_chest.plotActigraphy()
-        obj_thigh.plotActigraphy()
+        # obj_thigh.plotActigraphy()
         
         # obj_chest.plotVectorMagnitude()
         # obj_thigh.plotVectorMagnitude()
