@@ -58,18 +58,13 @@ class Counting_Actigraphy:
         self.df1 = pd.DataFrame([])
         self.df_activity_indexes = pd.DataFrame([], columns=['idx_ini','idx_end','length'])
         self.df_all_nights = pd.DataFrame()
-        # self.df_counts = pd.DataFrame([])
+        
         self.df_inclinometers = pd.DataFrame([])
         self.df_dwt_vma = pd.DataFrame([])
         self.df_nights_dwt_vma = pd.DataFrame([])
 
-        self.delta_samples_incl=1
-        self.delta_samples_vma=1
         self.min_vma = 3 # counts
         self.min_samples = 2 # min number of samples inside the window (function: rollingWindow())
-        self.window_min = 10 ## window size in min
-        self.min_gap_act =15 # seconds
-        self.min_gap_rep =600 # seconds (1 min)
         self.compliance_win = 180 # min equal to 3h
         self.arr_fig = [[] for i in range(10)]
         self.arr_axs = [[] for i in range(10)]
@@ -77,7 +72,6 @@ class Counting_Actigraphy:
         self.list_start_end_night=[]
         self.list_start_end_night_original=[]
         self.arr_rep = np.array([])
-        # self.colors=np.array([])
 
 
     def openFile(self, path, filename):
