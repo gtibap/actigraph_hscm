@@ -53,6 +53,7 @@ class Counting_Actigraphy:
         
         self.label_time = ' Time'
         self.label_date = 'Date'
+        self.time_sec = 'time_sec'
 
         self.df1 = pd.DataFrame([])
         self.df_activity_indexes = pd.DataFrame([], columns=['idx_ini','idx_end','length'])
@@ -69,6 +70,7 @@ class Counting_Actigraphy:
         self.window_min = 10 ## window size in min
         self.min_gap_act =15 # seconds
         self.min_gap_rep =600 # seconds (1 min)
+        self.compliance_win = 180 # min equal to 3h
         self.arr_fig = [[] for i in range(10)]
         self.arr_axs = [[] for i in range(10)]
         
@@ -82,7 +84,75 @@ class Counting_Actigraphy:
         self.path = path
         self.filename = filename
         self.df1 = pd.read_csv(self.path+self.filename, header=self.header_location, decimal=',')
-        # print(self.df1.shape, self.df1.size, len(self.df1))
+
+        ## this is necesary for cases where datetime format is different or has repetitive values 
+        with open(self.path+self.filename) as f:
+            for i, line in enumerate(f):             
+                if i < 10:
+                    list_values = line.split()
+                    if i == 2:
+                        ## hh:mm:ss
+                        start_time = list_values[2][:8]
+                    if i == 3:
+                        ## date dd/mm/yyyy
+                        start_date = list_values[2][:10]
+                        if '/' in start_date:
+                            day, month, year = start_date.split('/')
+                        elif '-' in start_date:
+                            year, month, day  = start_date.split('-')
+                        else:
+                            print('Date format is not recognized!')
+                            return 0
+                        start_date = year+'-'+month+'-'+day
+                    elif i == 4:
+                        ## epoch period hh:mm:ss
+                        epoch_period = list_values[3][:8]
+                        ## epoch period in seconds
+                        list_period = epoch_period.split(':')
+                        delta_sec = int(list_period[0])*3600 + int(list_period[1])*60 + int(list_period[2])
+                    elif i == 5:
+                        ## hh:mm:ss
+                        download_time = list_values[2][:8]
+                    elif i == 6:
+                        ## date dd/mm/yyyy
+                        download_date = list_values[2][:10]
+                        if '/' in download_date:
+                            day, month, year = download_date.split('/')
+                        elif '-' in download_date:
+                            year, month, day  = download_date.split('-')
+                        else:
+                            print('Date format is not recognized!')
+                            return 0
+                        
+                        download_date = year+'-'+month+'-'+day
+                    else:
+                        pass
+                else:
+                    break
+            
+            start_recording = start_date +' '+ start_time
+            end_recording = download_date +' '+ '23:59:59'
+            
+            date_range_index = pd.date_range(start =start_recording, end =end_recording, freq = str(delta_sec)+'s')
+            
+            df_temp = date_range_index.to_frame(index=False, name='dateTime')
+            df_temp = df_temp.iloc[:len(self.df1)]
+
+            df_temp['date'] = df_temp['dateTime'].dt.date
+            df_temp['time'] = df_temp['dateTime'].dt.time
+            
+            self.df1[self.label_date]= df_temp['date'].astype(str)
+            self.df1[self.label_time]= df_temp['time'].astype(str)
+            
+            ## column time in seconds
+            nsamples=len(self.df1)
+            start=0
+            end=start+(delta_sec*nsamples)
+            time_sec = np.arange(start,end,delta_sec)
+            
+            self.df1[self.time_sec] = time_sec
+            self.delta_samples = delta_sec
+        
         return 0
 
 
@@ -117,23 +187,8 @@ class Counting_Actigraphy:
         list_mov_night = []
         for num_night in list_nights:
             df = df_nights.loc[df_nights[self.night]==num_night]
-            # ## number of movements estimation divided by the window size
-            # num_mov = df[self.vma_act].sum() / np.sum(win)
-            # ## max. possible number of movements
-            # num_max = len(df)/np.sum(win)
-            # ## number of movements normalization 
-            # list_mov_night.append(num_mov/num_max)
             ## mean activity every night
             list_mov_night.append(df[self.vma_act].mean())
-        
-        # print(f'mean mov: {np.around(list_mov_night,2)}')
-        
-        # fig, ax = plt.subplots(nrows=3, ncols=1, sharex=True)
-        # fig.canvas.mpl_connect('key_press_event', self.on_press)
-        
-        # ax[0].plot(arr_vma)
-        # ax[1].plot(arr_vma_mod)
-        # ax[2].plot(arr_vma_bin)
         
         return np.around(list_mov_night,3)
      
@@ -196,8 +251,6 @@ class Counting_Actigraphy:
         self.df_inclinometers[self.incl_sit]=arr_new_sit
         self.df_inclinometers[self.incl_sta]=arr_new_sta
         
-        # self.arr_rep, num_rep  = self.counting_repositioning(self.df_inclinometers)
-        
         return 0
         
         
@@ -225,81 +278,8 @@ class Counting_Actigraphy:
             
             id_night+=1
             
-        # fig, ax = plt.subplots(nrows=1, ncols=1)
-        # fig.canvas.mpl_connect('key_press_event', self.on_press)
-        # sns.boxplot(x='night', y=self.dwt_vma, data=self.df_nights_dwt_vma, ax=ax, color="skyblue")
-        
-        # self.nightStatisticsVM()
-        
         return df_all_nights
-
-
-    def inclinometersDWT(self, nlevel):
-        
-        ## read inclinometers 
-        arr_off = self.df1[self.incl_off].to_numpy()
-        arr_lyi = self.df1[self.incl_lyi].to_numpy()
-        arr_sit = self.df1[self.incl_sit].to_numpy()
-        arr_sta = self.df1[self.incl_sta].to_numpy()
-        
-        ## apply discrete wavelet transform (DWT)
-        waveletname = 'Haar'
-        coeff_off = pywt.wavedec(arr_off, waveletname, mode='symmetric', level=nlevel, axis=-1)
-        coeff_lyi = pywt.wavedec(arr_lyi, waveletname, mode='symmetric', level=nlevel, axis=-1)
-        coeff_sit = pywt.wavedec(arr_sit, waveletname, mode='symmetric', level=nlevel, axis=-1)
-        coeff_sta = pywt.wavedec(arr_sta, waveletname, mode='symmetric', level=nlevel, axis=-1)
-        
-        ## amplitude normalization
-        coeff_all = coeff_off[0] + coeff_lyi[0] + coeff_sit[0] + coeff_sta[0]
-        mean_coeff = coeff_all.mean()
-        std_coeff = coeff_all.std()
-        # print('mean, std: ', mean_coeff, std_coeff)
-        coeff_off[0] = coeff_off[0]/mean_coeff
-        coeff_lyi[0] = coeff_lyi[0]/mean_coeff
-        coeff_sit[0] = coeff_sit[0]/mean_coeff
-        coeff_sta[0] = coeff_sta[0]/mean_coeff
-        coeff_all = coeff_all/mean_coeff
-        
-        ## pile the inclinometers resultant coefficients (level 10) and select the inclinometer with the maximum value per each sample
-        coeff_stack = np.vstack((coeff_off[0],coeff_lyi[0],coeff_sit[0],coeff_sta[0]))
-        index_coeff = np.argmax(coeff_stack, axis=0)
-        arr_new_off = (index_coeff==0).astype(int)
-        arr_new_lyi = (index_coeff==1).astype(int)
-        arr_new_sit = (index_coeff==2).astype(int)
-        arr_new_sta = (index_coeff==3).astype(int)
-        
-        ## resampling 'Date' and 'Time' because DWT reduced the number of original samples
-        arr_date = self.df1[self.label_date].to_numpy()
-        arr_time = self.df1[self.label_time].to_numpy()
-        
-        size_org = len(arr_date)
-        size_sampled = len(coeff_off[0])
-        last_index = size_org-1
-
-        indexes_datetime, delta_sampled = np.linspace(0, last_index, size_sampled, endpoint=True, retstep=True)
-        
-        idx_samples = np.rint(indexes_datetime).astype(int)
-        
-        arr_new_date = arr_date[idx_samples]
-        arr_new_time = arr_time[idx_samples]
-        
-        ## grouping the resultant data
-        self.df_inclinometers = pd.DataFrame()
-        self.df_inclinometers[self.label_date]=arr_new_date
-        self.df_inclinometers[self.label_time]=arr_new_time
-        self.df_inclinometers[self.dwt_off]=coeff_off[0]
-        self.df_inclinometers[self.dwt_lyi]=coeff_lyi[0]
-        self.df_inclinometers[self.dwt_sit]=coeff_sit[0]
-        self.df_inclinometers[self.dwt_sta]=coeff_sta[0]
-        self.df_inclinometers[self.incl_off]=arr_new_off
-        self.df_inclinometers[self.incl_lyi]=arr_new_lyi
-        self.df_inclinometers[self.incl_sit]=arr_new_sit
-        self.df_inclinometers[self.incl_sta]=arr_new_sta
-        
-        # self.arr_rep, num_rep  = self.counting_repositioning(self.df_inclinometers)
-        
-        return 0
-    
+ 
     
     def nightCounts(self):
         ## from 22:00:00 until 07:59:59 (next day)
@@ -331,28 +311,41 @@ class Counting_Actigraphy:
             counts_sit=np.round(100*df_night[self.incl_sit].mean(),2)
             counts_sta=np.round(100*df_night[self.incl_sta].mean(),2)
             
-            repos_labels, repos_data  = self.counting_repositioning(df_night)
-            # arr_rep, num_rep  = self.counting_repositioning(df_night)
-            # print(f'size {len(self.arr_rep)}, {len(df_night)}')
+            ## counting number of repositioning 
+            arr_rep, repos_labels, repos_data  = self.counting_repositioning(df_night)
             
+            ## compliance factor estimation
+            compliance_factor = self.complianceEstimation(arr_rep)
+            
+            ## time period of each night in seconds subtracting first time and data from last time and date
             duration = self.nightDuration(df_night.iloc[0][self.label_date],
                                           df_night.iloc[-1][self.label_date],
                                           df_night.iloc[0][self.label_time],
                                           df_night.iloc[-1][self.label_time])
                                           
-            # print(f'duration {duration}')
-            
-            counts_data = [id_night,id_start,id_end] + repos_data + [counts_off, counts_lyi, counts_sit, counts_sta, duration]
-            counts_labels = ['night','id_ini','id_end'] + repos_labels + ['time_off(%)','time_lyi(%)','time_sit(%)','time_sta(%)','night_duration(s)']
-            # counts_data = [id_night,id_start,id_end, num_rep, counts_off, counts_lyi, counts_sit, counts_sta, duration ]
-            # counts_labels = ['night','id_ini','id_end','num_rep','time_off(%)','time_lyi(%)','time_sit(%)','time_sta(%)','night_duration(s)']
-            
+            counts_data = [id_night,id_start,id_end] + repos_data + [counts_off, counts_lyi, counts_sit, counts_sta, compliance_factor, duration]
+            counts_labels = ['night','id_ini','id_end'] + repos_labels + ['time_off(%)','time_lyi(%)','time_sit(%)','time_sta(%)','compliance(%)','night_duration(s)']
+           
             df_counts_night = pd.DataFrame([counts_data], columns=counts_labels)
             self.df_all_nights = pd.concat([self.df_all_nights, df_counts_night], ignore_index=True)
             
             id_night+=1
         
         return 0
+    
+    def complianceEstimation(self, arr_rep):
+        
+        spm = 60 ## seconds per min
+        window_size = int(spm*self.compliance_win)
+        ## window to average values (same weight)
+        win = signal.windows.boxcar(window_size)
+        
+        # results convolution aproximate to the closest integer to avoid inestabilities
+        coeff_rep = np.rint(signal.convolve(arr_rep, win, mode='same'))
+        
+        coeff_rep = (coeff_rep>=1).astype(int) 
+        
+        return np.round(100*coeff_rep.mean(),2) 
         
     
     def nightDuration(self, date_ini, date_end, time_ini, time_end):
@@ -363,6 +356,7 @@ class Counting_Actigraphy:
         time_ini = np.array(time_ini.split(':')).astype(int)
         time_end = np.array(time_end.split(':')).astype(int)
         
+        ## datetime (yy,mm,dd,hh,mm,ss,us)
         time_ini = datetime(date_ini[0],date_ini[1],date_ini[2],time_ini[0],time_ini[1],time_ini[2],0)
         time_end = datetime(date_end[0],date_end[1],date_end[2],time_end[0],time_end[1],time_end[2],0)
         
@@ -395,17 +389,17 @@ class Counting_Actigraphy:
         arr_sta_sit, sta_sit=self.counting_per_two_incl(arr_sta, arr_sit)
     
         ## array of repositionings (logical or |)
-        # arr_rep =(arr_off_lyi | arr_lyi_off | arr_sit_off | arr_sta_off |
-                  # arr_off_sit | arr_lyi_sit | arr_sit_lyi | arr_sta_lyi |
-                  # arr_off_sta | arr_lyi_sta | arr_sit_sta | arr_sta_sit)
+        arr_rep =(arr_off_lyi | arr_lyi_off | arr_sit_off | arr_sta_off |
+                  arr_off_sit | arr_lyi_sit | arr_sit_lyi | arr_sta_lyi |
+                  arr_off_sta | arr_lyi_sta | arr_sit_sta | arr_sta_sit)
     
         ## number of repositionings
-        # num_rep = np.sum(off_lyi + off_sit + off_sta + 
-                         # lyi_off + lyi_sit + lyi_sta +
-                         # sit_off + sit_lyi + sit_sta +
-                         # sta_off + sta_lyi + sta_sit)
+        num_rep = np.sum(off_lyi + off_sit + off_sta + 
+                         lyi_off + lyi_sit + lyi_sta +
+                         sit_off + sit_lyi + sit_sta +
+                         sta_off + sta_lyi + sta_sit)
     
-        return ['off_lyi', 'off_sit', 'off_sta', 'lyi_off', 'lyi_sit', 'lyi_sta', 'sit_off', 'sit_lyi', 'sit_sta', 'sta_off', 'sta_lyi', 'sta_sit'], [off_lyi, off_sit, off_sta, lyi_off, lyi_sit, lyi_sta, sit_off, sit_lyi, sit_sta, sta_off, sta_lyi, sta_sit]
+        return arr_rep, ['off_lyi', 'off_sit', 'off_sta', 'lyi_off', 'lyi_sit', 'lyi_sta', 'sit_off', 'sit_lyi', 'sit_sta', 'sta_off', 'sta_lyi', 'sta_sit', 'rep_total'], [off_lyi, off_sit, off_sta, lyi_off, lyi_sit, lyi_sta, sit_off, sit_lyi, sit_sta, sta_off, sta_lyi, sta_sit, num_rep]
         
 
     def counting_per_two_incl(self, arr0, arr1):
@@ -516,7 +510,7 @@ class Counting_Actigraphy:
         arr_incl[2] = self.df_inclinometers[self.incl_sit].to_numpy()
         arr_incl[3] = self.df_inclinometers[self.incl_sta].to_numpy()
         
-        fig, axarr = plt.subplots(nrows=6, ncols=1, sharex=True, sharey=True)
+        fig, axarr = plt.subplots(nrows=5, ncols=1, sharex=True, sharey=True)
         fig.canvas.mpl_connect('key_press_event', self.on_press)
         
         axarr[0].plot(arr_dwt[0], color='tab:blue')
@@ -531,7 +525,7 @@ class Counting_Actigraphy:
 
         # print(f'plot {len(arr_incl[0])}, {len(self.arr_rep)}')
         
-        axarr[5].plot(self.arr_rep, color='tab:blue')
+        # axarr[5].plot(self.arr_rep, color='tab:blue')
         
         self.plotVerticalLines(axarr, self.list_start_end_night)
         
@@ -541,8 +535,8 @@ class Counting_Actigraphy:
         axarr[2].set_ylabel('sit')
         axarr[3].set_ylabel('sta')
         axarr[4].set_ylabel('rep.')
-        axarr[5].set_ylabel('rep.2')
-        axarr[5].set_xlabel('samples')
+        # axarr[5].set_ylabel('rep.2')
+        axarr[4].set_xlabel('samples')
         
         return 0
     
