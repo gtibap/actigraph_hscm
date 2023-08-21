@@ -38,6 +38,8 @@ class Counting_Actigraphy:
         self.dwt_sit = 'dwt_sit'
         self.dwt_sta = 'dwt_sta'
         
+        self.vma_mov = 'vma_mov'
+        
         self.vma_counts='vma_counts'
         self.off_counts='off_counts'
         self.lyi_counts='lyi_counts'
@@ -173,18 +175,23 @@ class Counting_Actigraphy:
         ## the sample is valid if the magnitude is greater than or equal to a min number of samples (self.min_samples)
         self.df1[self.vma_act] = (arr_vma_mod>=self.min_samples).astype(int) 
         
+        ## number of movements counting
+        self.df1[self.vma_mov] = self.counting_mov(self.df1[self.vma_act].to_numpy())
+        
         ## retrieve only data of nights; from 22h to 8h
         df_nights = self.nightsDataFrame(self.df1)
         
         list_nights = df_nights[self.night].unique().tolist()
 
         list_mov_night = []
+        list_counts_mov_night = []
         for num_night in list_nights:
             df = df_nights.loc[df_nights[self.night]==num_night]
             ## mean activity every night
             list_mov_night.append(df[self.vma_act].mean())
+            list_counts_mov_night.append(np.round(df[self.vma_mov].sum()/2))
         
-        return np.around(list_mov_night,3)
+        return np.around(list_mov_night,3), list_counts_mov_night
      
      
     def inclinometers_sliding_window(self, win_size_minutes):
@@ -399,6 +406,11 @@ class Counting_Actigraphy:
     def counting_per_two_incl(self, arr0, arr1):
         arr = (arr0[:-1] == arr1[1:]) & (arr0[:-1]==1)
         return arr, np.sum(arr)
+        
+    def counting_mov(self, arr0):
+        arr = (arr0[:-1] != arr0[1:])
+        ## appending a value (0) to make the output same lenght as the input
+        return np.append(0, arr)
     
     
     def on_press(self, event):

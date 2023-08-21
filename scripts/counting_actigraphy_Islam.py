@@ -86,6 +86,7 @@ def main(args):
     files_list=[prefix+'_chest.csv', prefix+'_thigh.csv']
     files_list_out_rep=[prefix+'_chest_repositioning.csv', prefix+'_thigh_repositioning.csv']
     files_list_out_act=[prefix+'_chest_activity.csv', prefix+'_thigh_activity.csv']
+    files_list_out_mov=[prefix+'_chest_numberMov.csv', prefix+'_thigh_numberMov.csv']
     
     dict_df_rep_chest = {}
     dict_df_rep_thigh = {}
@@ -126,35 +127,50 @@ def main(args):
         df_counts_thigh=obj_thigh.getNightCounts()
         
         ## write csv files 
-        df_counts_chest.to_csv(path_out+files_list_out_rep[0], index=False)
-        df_counts_thigh.to_csv(path_out+files_list_out_rep[1], index=False)
+        # df_counts_chest.to_csv(path_out+files_list_out_rep[0], index=False)
+        # df_counts_thigh.to_csv(path_out+files_list_out_rep[1], index=False)
         ## repositioning estimation
         ############################
         
         #############################
         ## vector magnitude activity        
         min_value=3 ## counts
-        min_samples_window = 2 ## at least 2 samples to consider it as a valid activity
+        min_samples_window = 1 ## at least 2 samples to consider it as a valid activity
         ## get values using several window sizes; provides info activity frequency during each night
         ## windows' size base of 2 (from 1min [2**0] to 128min [2**7]): 1,2,4,8,16,32,64,128
         list_activity_chest = []
         list_activity_thigh = []
+        list_mov_conts_chest = []
+        list_mov_conts_thigh = []
         list_name_cols = []
 
         print('activity estimation for')
         for i in np.arange(0,9):
             win_size=2**i ## min
             print(f'window size: {win_size}')
-            list_activity_chest.append(obj_chest.vecMagCounting(min_value, win_size, min_samples_window))
-            list_activity_thigh.append(obj_thigh.vecMagCounting(min_value, win_size, min_samples_window))
+            list_mov_grade_chest, list_mov_counts_chest = obj_chest.vecMagCounting(min_value, win_size, min_samples_window)
+            list_mov_grade_thigh, list_mov_counts_thigh = obj_thigh.vecMagCounting(min_value, win_size, min_samples_window)
+            
+            list_activity_chest.append(list_mov_grade_chest)
+            list_activity_thigh.append(list_mov_grade_thigh)
+            
+            list_mov_conts_chest.append(list_mov_counts_chest)
+            list_mov_conts_thigh.append(list_mov_counts_thigh)
             
             list_name_cols.append(str(win_size)+'(min)')
             
         df_activity_chest = activityDataFrame(list_activity_chest, list_name_cols)
         df_activity_thigh = activityDataFrame(list_activity_thigh, list_name_cols)
         
+        df_mov_counts_chest = activityDataFrame(list_mov_conts_chest, list_name_cols)
+        df_mov_counts_thigh = activityDataFrame(list_mov_conts_thigh, list_name_cols)
+        
+        ## saving data
         df_activity_chest.to_csv(path_out+files_list_out_act[0])
         df_activity_thigh.to_csv(path_out+files_list_out_act[1])
+        
+        df_mov_counts_chest.to_csv(path_out+files_list_out_mov[0])
+        df_mov_counts_thigh.to_csv(path_out+files_list_out_mov[1])
         ## vector magnitude activity
         #############################
 
