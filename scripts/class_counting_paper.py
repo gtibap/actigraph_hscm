@@ -3,6 +3,7 @@ from scipy import ndimage
 from scipy import signal
 import numpy as np
 import pandas as pd
+import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import seaborn as sns
 import os
@@ -23,11 +24,14 @@ class Counting_Actigraphy:
         self.incl_sit ='Inclinometer Sitting'
         self.incl_lyi ='Inclinometer Lying'
         self.vma_mod = 'vma_mod'
+        self.vma_act = 'vma_act'
+        self.vma_win = 'vma_win'
+        
         self.off_mod = 'off_mod'
         self.lyi_mod = 'lyi_mod'
         self.sit_mod = 'sit_mod'
         self.sta_mod = 'sta_mod'
-        self.vma_act = 'vma_act'
+        
         self.off_act = 'off_act'
         self.lyi_act = 'lyi_act'
         self.sit_act = 'sit_act'
@@ -38,8 +42,6 @@ class Counting_Actigraphy:
         self.dwt_sit = 'dwt_sit'
         self.dwt_sta = 'dwt_sta'
         
-        self.vma_mov = 'vma_mov'
-        
         self.vma_counts='vma_counts'
         self.off_counts='off_counts'
         self.lyi_counts='lyi_counts'
@@ -48,7 +50,7 @@ class Counting_Actigraphy:
         self.night = 'night'
         
         self.time_ini='22:00:00'
-        self.time_end='07:59:59'
+        self.time_end='08:00:00'
         
         self.color_day = 'tab:green'
         self.color_night = 'tab:purple'
@@ -73,6 +75,7 @@ class Counting_Actigraphy:
         
         self.list_start_end_night=[]
         self.list_start_end_night_original=[]
+        self.list_arr_compl = []
         self.arr_rep = np.array([])
 
 
@@ -173,10 +176,8 @@ class Counting_Actigraphy:
         
         arr_vma_mod = np.rint(signal.convolve(arr_vma, win, mode='same'))
         ## the sample is valid if the magnitude is greater than or equal to a min number of samples (self.min_samples)
+        self.df1[self.vma_win] = arr_vma_mod
         self.df1[self.vma_act] = (arr_vma_mod>=self.min_samples).astype(int) 
-        
-        ## number of movements counting
-        self.df1[self.vma_mov] = self.counting_mov(self.df1[self.vma_act].to_numpy())
         
         ## retrieve only data of nights; from 22h to 8h
         df_nights = self.nightsDataFrame(self.df1)
@@ -184,20 +185,12 @@ class Counting_Actigraphy:
         list_nights = df_nights[self.night].unique().tolist()
 
         list_mov_night = []
-        list_counts_mov_night = []
         for num_night in list_nights:
             df = df_nights.loc[df_nights[self.night]==num_night]
             ## mean activity every night
             list_mov_night.append(df[self.vma_act].mean())
-            
-            ## counting number of movements per night
-            if df.iloc[0][self.vma_act]==0:
-                counts_mov_night = df[self.vma_mov].sum()
-            else:
-                counts_mov_night = df[self.vma_mov].sum() + 1
-            list_counts_mov_night.append(counts_mov_night)
         
-        return np.around(list_mov_night,3), list_counts_mov_night
+        return np.around(list_mov_night,3)
      
      
     def inclinometers_sliding_window(self, win_size_minutes):
@@ -212,26 +205,27 @@ class Counting_Actigraphy:
         
         spm = 60 ## seconds per min
         window_size = int(spm*win_size_minutes)
+        # print(f'window size: {window_size}')
         ## window to average values (same weight)
         win = signal.windows.boxcar(window_size)
         
         # results convolution aproximate to the closest integer to avoid inestabilities
-        coeff_off = np.rint(signal.convolve(arr_off, win, mode='same'))
-        coeff_lyi = np.rint(signal.convolve(arr_lyi, win, mode='same'))
-        coeff_sit = np.rint(signal.convolve(arr_sit, win, mode='same'))
-        coeff_sta = np.rint(signal.convolve(arr_sta, win, mode='same'))
+        coeff_off = np.rint(signal.convolve(arr_off, win, mode='same'))/window_size
+        coeff_lyi = np.rint(signal.convolve(arr_lyi, win, mode='same'))/window_size
+        coeff_sit = np.rint(signal.convolve(arr_sit, win, mode='same'))/window_size
+        coeff_sta = np.rint(signal.convolve(arr_sta, win, mode='same'))/window_size
         
         ## amplitude normalization
-        coeff_all = coeff_off + coeff_lyi + coeff_sit + coeff_sta
-        mean_coeff = coeff_all.mean()
-        std_coeff = coeff_all.std()
+        # coeff_all = coeff_off + coeff_lyi + coeff_sit + coeff_sta
+        # mean_coeff = coeff_all.mean()
+        # std_coeff = coeff_all.std()
         # print('mean, std: ', mean_coeff, std_coeff)
         
-        coeff_off = coeff_off/mean_coeff
-        coeff_lyi = coeff_lyi/mean_coeff
-        coeff_sit = coeff_sit/mean_coeff
-        coeff_sta = coeff_sta/mean_coeff
-        coeff_all = coeff_all/mean_coeff
+        # coeff_off = coeff_off/mean_coeff
+        # coeff_lyi = coeff_lyi/mean_coeff
+        # coeff_sit = coeff_sit/mean_coeff
+        # coeff_sta = coeff_sta/mean_coeff
+        # coeff_all = coeff_all/mean_coeff
         
         ## pile the inclinometers resultant coefficients (level 10) and select the inclinometer with the maximum value per each sample
         coeff_stack = np.vstack((coeff_off,coeff_lyi,coeff_sit,coeff_sta))
@@ -291,6 +285,7 @@ class Counting_Actigraphy:
     def nightCounts(self):
         ## from 22:00:00 until 07:59:59 (next day)
         self.list_start_end_night = []
+        self.list_arr_compl = []
         self.df_all_nights = pd.DataFrame()
         dates_list = self.df_inclinometers[self.label_date].unique().tolist()
         
@@ -320,9 +315,11 @@ class Counting_Actigraphy:
             
             ## counting number of repositioning 
             arr_rep, repos_labels, repos_data  = self.counting_repositioning(df_night)
+            # print(f'repositioning {repos_labels[-1]}: {repos_data[-1]}')
             
             ## compliance factor estimation
-            compliance_factor = self.complianceEstimation(arr_rep)
+            arr_compl, compliance_factor = self.complianceEstimation(arr_rep)
+            self.list_arr_compl.append(arr_compl.tolist())
             
             ## time period of each night in seconds subtracting first time and data from last time and date
             duration = self.nightDuration(df_night.iloc[0][self.label_date],
@@ -350,9 +347,9 @@ class Counting_Actigraphy:
         # results convolution aproximate to the closest integer to avoid inestabilities
         coeff_rep = np.rint(signal.convolve(arr_rep, win, mode='same'))
         
-        coeff_rep = (coeff_rep>=1).astype(int) 
+        coeff_rep_act = (coeff_rep>=1).astype(int) 
         
-        return np.round(100*coeff_rep.mean(),2) 
+        return  coeff_rep, np.round(100*coeff_rep_act.mean(),2) 
         
     
     def nightDuration(self, date_ini, date_end, time_ini, time_end):
@@ -412,11 +409,6 @@ class Counting_Actigraphy:
     def counting_per_two_incl(self, arr0, arr1):
         arr = (arr0[:-1] == arr1[1:]) & (arr0[:-1]==1)
         return arr, np.sum(arr)
-        
-    def counting_mov(self, arr0):
-        arr = ((arr0[:-1] != arr0[1:]) & (arr0[:-1]==0))
-        ## appending a value (0) to make the output same lenght as the input
-        return np.append(0, arr)
     
     
     def on_press(self, event):
@@ -429,38 +421,100 @@ class Counting_Actigraphy:
             pass
          
      
+    def plotActigraphyNormal(self):
+        
+        fig, ax = plt.subplots(nrows=4, ncols=1, sharex=True, sharey=True)
+        fig.canvas.mpl_connect('key_press_event', self.on_press)
+        
+        arr_incl_off = self.df1[self.incl_off].to_numpy()
+        arr_incl_lyi = self.df1[self.incl_lyi].to_numpy()
+        arr_incl_sit = self.df1[self.incl_sit].to_numpy()
+        arr_incl_sta = self.df1[self.incl_sta].to_numpy()
+        
+        x_ini= 60000
+        x_end=160000
+        ax[0].set_xlim(x_ini,x_end)
+        
+        y_ini= -0.1
+        y_end=  1.2
+        ax[0].set_ylim(y_ini,y_end)
+        
+        self.plotVerticalLines(ax, self.list_start_end_night)
+        
+        ax[0].plot(arr_incl_off, color='tab:blue')
+        ax[1].plot(arr_incl_lyi, color='tab:orange')
+        ax[2].plot(arr_incl_sit, color='tab:green')
+        ax[3].plot(arr_incl_sta, color='tab:red')
+        
+        # ax[0].set_title(self.filename)
+        ax[0].set_ylabel('off')
+        ax[1].set_ylabel('lyi')
+        ax[2].set_ylabel('sit')
+        ax[3].set_ylabel('sta')
+        ax[3].set_xlabel('time (s)')
+        
+        return 0
+
+     
     def plotActigraphy(self):
         self.arr_fig[0], self.arr_axs[0] = plt.subplots(nrows=5, ncols=1, sharex=True)
         self.plotWithColors(self.arr_fig[0], self.arr_axs[0],signals=0)
+        
+        self.arr_axs[0][0].set_title(self.filename)
+        self.arr_axs[0][0].set_ylabel('v.m.')
+        self.arr_axs[0][1].set_ylabel('off')
+        self.arr_axs[0][2].set_ylabel('lyi')
+        self.arr_axs[0][3].set_ylabel('sit')
+        self.arr_axs[0][4].set_ylabel('sta')
+        self.arr_axs[0][4].set_xlabel('time (s)')
+        
+        # x_ini=100000
+        # x_end=200000
+        # x_ini= 60000
+        # x_end=160000
+        # ax[0].set_xlim(x_ini,x_end)
+        # ax[0].set_ylim(0,400)
+        
         return 0
         
     def plotActigraphyMod(self):
         self.arr_fig[1], self.arr_axs[1] = plt.subplots(nrows=5, ncols=1, sharex=True)
         self.plotWithColors(self.arr_fig[1], self.arr_axs[1],signals=1)
+        
+        self.arr_axs[1][0].set_title(self.filename)
+        self.arr_axs[1][0].set_ylabel('v.m.')
+        self.arr_axs[1][1].set_ylabel('off')
+        self.arr_axs[1][2].set_ylabel('lyi')
+        self.arr_axs[1][3].set_ylabel('sit')
+        self.arr_axs[1][4].set_ylabel('sta')
+        self.arr_axs[1][4].set_xlabel('time (s)')
+        
+        # x_ini=100000
+        # x_end=200000
+        x_ini= 60000
+        x_end=160000
+        ax[0].set_xlim(x_ini,x_end)
+        # ax[0].set_ylim(0,400)
+        
         return 0
     
+    def plotVM(self):
+        
+        fig_vm, ax_vm = plt.subplots(nrows=2, ncols=1)
+        # print(f'ax_vm: {ax_vm.shape}, {type(ax_vm)}')
+        self.plotWithColors(fig_vm, ax_vm, signals=0)
+        
+        ax_vm[0].set_xlabel('time (s)')
+        ax_vm[0].set_ylabel('counts')
+        
+        return 0
 
     def plotWithColors(self,fig,ax,signals):
         
         fig.canvas.mpl_connect('key_press_event', self.on_press)
         
-        for i in np.arange(5):
+        for i in np.arange(len(ax)):
             ax[i].cla()
-        
-        # x_ini=100000
-        # x_end=200000
-        # ax[0].set_xlim(x_ini,x_end)
-        
-        # ax[0].set_ylim(0,400)
-        
-        ax[0].set_title(self.filename)
-        ax[0].set_ylabel('v.m.')
-        ax[1].set_ylabel('off')
-        ax[2].set_ylabel('lyi')
-        ax[3].set_ylabel('sit')
-        ax[4].set_ylabel('sta')
-
-        ax[4].set_xlabel('time (s)')
         
         dates_list = self.df1[self.label_date].unique().tolist()
         
@@ -487,22 +541,25 @@ class Counting_Actigraphy:
         
         x_values = df.index.tolist()
         
-        if signals==0:
+        if len(ax)==2:
             ax[0].plot(x_values, df[self.vec_mag].to_numpy(), color=cr)
-            
-            ax[1].plot(x_values, df[self.incl_off].to_numpy(), color=cr)
-            ax[2].plot(x_values, df[self.incl_lyi].to_numpy(), color=cr)
-            ax[3].plot(x_values, df[self.incl_sit].to_numpy(), color=cr)
-            ax[4].plot(x_values, df[self.incl_sta].to_numpy(), color=cr)
-        elif signals==1:
-            ax[0].plot(x_values, df[self.vma_mod].to_numpy(), color=cr)
-            
-            ax[1].plot(x_values, df[self.off_mod].to_numpy(), color=cr)
-            ax[2].plot(x_values, df[self.lyi_mod].to_numpy(), color=cr)
-            ax[3].plot(x_values, df[self.sit_mod].to_numpy(), color=cr)
-            ax[4].plot(x_values, df[self.sta_mod].to_numpy(), color=cr)
         else:
-            pass
+            if signals==0:
+                ax[0].plot(x_values, df[self.vec_mag].to_numpy(), color=cr)
+                
+                ax[1].plot(x_values, df[self.incl_off].to_numpy(), color=cr)
+                ax[2].plot(x_values, df[self.incl_lyi].to_numpy(), color=cr)
+                ax[3].plot(x_values, df[self.incl_sit].to_numpy(), color=cr)
+                ax[4].plot(x_values, df[self.incl_sta].to_numpy(), color=cr)
+            elif signals==1:
+                ax[0].plot(x_values, df[self.vma_mod].to_numpy(), color=cr)
+                
+                ax[1].plot(x_values, df[self.off_mod].to_numpy(), color=cr)
+                ax[2].plot(x_values, df[self.lyi_mod].to_numpy(), color=cr)
+                ax[3].plot(x_values, df[self.sit_mod].to_numpy(), color=cr)
+                ax[4].plot(x_values, df[self.sta_mod].to_numpy(), color=cr)
+            else:
+                pass
         
         return 0
      
@@ -522,58 +579,139 @@ class Counting_Actigraphy:
         arr_incl[2] = self.df_inclinometers[self.incl_sit].to_numpy()
         arr_incl[3] = self.df_inclinometers[self.incl_sta].to_numpy()
         
-        fig, axarr = plt.subplots(nrows=5, ncols=1, sharex=True, sharey=True)
+        fig, axarr = plt.subplots(nrows=4, ncols=1, sharex=True, sharey=True)
         fig.canvas.mpl_connect('key_press_event', self.on_press)
+        
+        self.plotVerticalLines(axarr, self.list_start_end_night)
         
         axarr[0].plot(arr_dwt[0], color='tab:blue')
         axarr[1].plot(arr_dwt[1], color='tab:orange')
         axarr[2].plot(arr_dwt[2], color='tab:green')
         axarr[3].plot(arr_dwt[3], color='tab:red')
         
-        axarr[4].plot(arr_incl[0], color='tab:blue')
-        axarr[4].plot(arr_incl[1], color='tab:orange')
-        axarr[4].plot(arr_incl[2], color='tab:green')
-        axarr[4].plot(arr_incl[3], color='tab:red')
+        # axarr[0].plot(arr_incl[0], color='tab:blue')
+        # axarr[1].plot(arr_incl[1], color='tab:orange')
+        # axarr[2].plot(arr_incl[2], color='tab:green')
+        # axarr[3].plot(arr_incl[3], color='tab:red')
 
         # print(f'plot {len(arr_incl[0])}, {len(self.arr_rep)}')
         
         # axarr[5].plot(self.arr_rep, color='tab:blue')
         
-        self.plotVerticalLines(axarr, self.list_start_end_night)
+        x_ini= 60000
+        x_end=160000
+        axarr[0].set_xlim(x_ini,x_end)
         
-        axarr[0].set_title(self.filename, loc='left')
+        y_ini= -0.1
+        y_end=  1.2
+        axarr[0].set_ylim(y_ini,y_end)
+        
+        # axarr[0].set_title(self.filename, loc='left')
         axarr[0].set_ylabel('off')
         axarr[1].set_ylabel('lyi')
         axarr[2].set_ylabel('sit')
         axarr[3].set_ylabel('sta')
-        axarr[4].set_ylabel('rep.')
+        # axarr[4].set_ylabel('rep.')
         # axarr[5].set_ylabel('rep.2')
-        axarr[4].set_xlabel('samples')
+        axarr[3].set_xlabel('time (s)')
+        
+        return 0
+        
+    def plotPosChanging(self):
+        
+        arr_incl = np.empty((4, 0)).tolist()
+        
+        arr_incl[0] = self.df_inclinometers[self.incl_off].to_numpy()
+        arr_incl[1] = self.df_inclinometers[self.incl_lyi].to_numpy()
+        arr_incl[2] = self.df_inclinometers[self.incl_sit].to_numpy()
+        arr_incl[3] = self.df_inclinometers[self.incl_sta].to_numpy()
+        
+        # fig, axarr = plt.subplots(nrows=4, ncols=1, sharex=True, sharey=True)
+        cm = 1/2.54  # centimeters in inches figsize=(15*cm, 5*cm)
+        fig, axarr = plt.subplots()
+        fig.canvas.mpl_connect('key_press_event', self.on_press)
+        # fig.tight_layout()
+        
+        self.plotVerticalLines(axarr, self.list_start_end_night)
+        
+        axarr.plot(arr_incl[0], color='tab:blue')
+        axarr.plot(arr_incl[1], color='tab:orange')
+        axarr.plot(arr_incl[2], color='tab:green')
+        axarr.plot(arr_incl[3], color='tab:red')
+        
+        x = np.arange(len(arr_incl[0]))
+        axarr.fill_between(x, 0, arr_incl[0], facecolor='tab:blue', alpha=0.5, interpolate=True)
+        axarr.fill_between(x, 0, arr_incl[1], facecolor='tab:orange', alpha=0.5, interpolate=True)
+        axarr.fill_between(x, 0, arr_incl[2], facecolor='tab:green', alpha=0.5, interpolate=True)
+        axarr.fill_between(x, 0, arr_incl[3], facecolor='tab:red', alpha=0.5, interpolate=True)
+
+        # print(f'plot {len(arr_incl[0])}, {len(self.arr_rep)}')
+        
+        # axarr[5].plot(self.arr_rep, color='tab:blue')
+        
+        x_ini= 60000
+        x_end=160000
+        axarr.set_xlim(x_ini,x_end)
+        
+        y_ini= -0.1
+        y_end=  1.1
+        axarr.set_ylim(y_ini,y_end)
+        
+        # axarr[0].set_title(self.filename, loc='left')
+        # axarr[0].set_ylabel('off')
+        # axarr[1].set_ylabel('lyi')
+        # axarr[2].set_ylabel('sit')
+        # axarr[3].set_ylabel('sta')
+        # axarr[4].set_ylabel('rep.')
+        # axarr[5].set_ylabel('rep.2')
+        axarr.set_xlabel('time (s)')
+        
+        # c = mpatches.Circle((0.5, 0.5), 0.25, facecolor="green",
+                    # edgecolor="red", linewidth=3)
+        # ax.add_patch(c)
+        # ax.legend([c], ["An ellipse, not a rectangle"],
+          # handler_map={mpatches.Circle: HandlerEllipse()})
+        
+        off_patch = mpatches.Patch(facecolor='tab:blue', edgecolor="tab:blue", label='Incl.Off', alpha=0.5)
+        lyi_patch = mpatches.Patch(facecolor='tab:orange', edgecolor="tab:orange", label='Incl.Lyi', alpha=0.5)
+        sit_patch = mpatches.Patch(facecolor='tab:green', edgecolor="tab:green", label='Incl.Sit', alpha=0.5)
+        sta_patch = mpatches.Patch(facecolor='tab:red', edgecolor="tab:red", label='Incl.Sta', alpha=0.5)
+        # red_patch = mpatches.Patch(color='red', label='The red data')
+        # axarr.legend(handles=[red_patch], bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
+        # fig.legend(handles=[red_patch], loc='outside upper right')
+        fig.legend(handles=[off_patch,lyi_patch,sit_patch,sta_patch], loc='outside right')
+        
+        plt.tick_params(left = False, right = False, labelleft = False, labelbottom = True, bottom = True)
         
         return 0
     
     def plotVerticalLines(self, axarr, list_start_end_night):
         
         arr_indexes = np.array(list_start_end_night)
-        
         indexes_ini = arr_indexes[:,0]
         indexes_end = arr_indexes[:,1]
         
-        ## vertical lines for 22h00
-        for idx in indexes_ini:
-            axarr[0].axvline(x = idx, color = 'tab:purple')
-            axarr[1].axvline(x = idx, color = 'tab:purple')
-            axarr[2].axvline(x = idx, color = 'tab:purple')
-            axarr[3].axvline(x = idx, color = 'tab:purple')
-            axarr[4].axvline(x = idx, color = 'tab:purple')
-        
-        ## vertical lines for 8h00
-        for idx in indexes_end:
-            axarr[0].axvline(x = idx, color = 'tab:olive')
-            axarr[1].axvline(x = idx, color = 'tab:olive')
-            axarr[2].axvline(x = idx, color = 'tab:olive')
-            axarr[3].axvline(x = idx, color = 'tab:olive')
-            axarr[4].axvline(x = idx, color = 'tab:olive')
+        # print(f'type(axarr): {type(axarr)}')
+        if type(axarr).__module__ == np.__name__:
+            num_subplots = len(axarr)
+            print(f'num_subplots: {num_subplots}')
+            ## vertical lines for 22h00
+            for idx in indexes_ini:
+                for i in np.arange(num_subplots):
+                    axarr[i].axvline(x = idx, color = 'tab:purple', linewidth=2)
+            
+            ## vertical lines for 8h00
+            for idx in indexes_end:
+                for i in np.arange(num_subplots):
+                    axarr[i].axvline(x = idx, color = 'tab:olive', linewidth=2)
+        else:
+            ## vertical lines for 22h00
+            for idx in indexes_ini:
+                axarr.axvline(x = idx, color = 'tab:purple', linewidth=2)
+            
+            ## vertical lines for 8h00
+            for idx in indexes_end:
+                axarr.axvline(x = idx, color = 'tab:olive', linewidth=2)
             
         return 0
     
@@ -581,30 +719,116 @@ class Counting_Actigraphy:
     def plotVectorMagnitude(self):
         
         arr_vma = self.df1[self.vec_mag].to_numpy()
+        arr_win = self.df1[self.vma_win].to_numpy()
         arr_act = self.df1[self.vma_act].to_numpy()
         
-        fig, ax = plt.subplots(nrows=2, ncols=1, sharex=True)
+        
+        fig, ax = plt.subplots(nrows=3, ncols=1, sharex=True)
+        fig.canvas.mpl_connect('key_press_event', self.on_press)
+
+        ## plot vertical lines
+        self.plotVerticalLines(ax, self.list_start_end_night)        
+        ## plot signals vector magnitude
+        ax[0].plot(arr_vma)
+        ax[1].plot(arr_win)
+        ax[2].plot(arr_act)
+        
+        
+        # arr_indexes = np.array(self.list_start_end_night_original)
+        
+        # indexes_ini = arr_indexes[:,0]
+        # indexes_end = arr_indexes[:,1]
+        
+        # ## vertical lines for 22h00
+        # for idx in indexes_ini:
+            # ax[0].axvline(x = idx, color = 'tab:purple')
+            # ax[1].axvline(x = idx, color = 'tab:purple')
+        # ## vertical lines for 8h00
+        # for idx in indexes_end:
+            # ax[0].axvline(x = idx, color = 'tab:olive')
+            # ax[1].axvline(x = idx, color = 'tab:olive')
+        
+        # ax[0].set_title(self.filename)
+        
+        x_ini= 60000
+        x_end=160000
+        ax[0].set_xlim(x_ini,x_end)
+        
+        y_ini= -0.1
+        y_end=  1.2
+        ax[2].set_ylim(y_ini,y_end)
+        
+        ax[0].set_ylabel('v.m.')
+        ax[1].set_ylabel('s.w.')
+        ax[2].set_ylabel('act.')
+        ax[2].set_xlabel('time (s)')
+        
+        return 0
+    
+    def plotComplianceRep(self):
+        
+        arr_compl = np.array(self.list_arr_compl) 
+        # print(f'arr_compl shape: {arr_compl.shape}')
+        
+        mean_arr_compl = np.mean(arr_compl, axis=0) 
+        median_arr_compl = np.median(arr_compl, axis=0) 
+        
+        # print(f'mean_arr_compl {mean_arr_compl.shape}, {median_arr_compl.shape}')
+        self.plotImshow(arr_compl, np.reshape(median_arr_compl, (1, -1)))
+        # self.plotImshowRow(np.reshape(mean_arr_compl, (1, -1)), 'mean')
+        # self.plotImshowRow(np.reshape(median_arr_compl, (1, -1)), 'median')
+            
+        return 0
+        
+    def plotImshow(self, arr_compl, arr_compl_2):
+        
+        size_x, size_y = arr_compl.shape
+        print(f'size_x, size_y: {size_x},{size_y}')
+        
+        # fig, ax = plt.subplots(nrows=2, ncols=1, sharex=True)
+        fig = plt.figure()
+        fig.canvas.mpl_connect('key_press_event', self.on_press)
+        fig.suptitle(self.filename)
+        
+        # im = ax[0].imshow(arr_compl,interpolation='none', vmin=0, vmax=5, aspect='auto') 
+        ax1 = plt.subplot2grid(shape=(10, 15), loc=(0, 0), rowspan= 8, colspan=14) 
+        ax2 = plt.subplot2grid(shape=(10, 15), loc=(8, 0), rowspan= 2, colspan=14) 
+        ax3 = plt.subplot2grid(shape=(10, 15), loc=(0, 14), rowspan=10, colspan=1)
+        
+        im1 = ax1.imshow(arr_compl,interpolation='none', vmin=0, vmax=3, aspect='auto')
+        im2 = ax2.imshow(arr_compl_2,interpolation='none', vmin=0, vmax=3, aspect='auto')
+        # ax1.figure.colorbar(im1,ax=ax3)
+        cbar = fig.colorbar(im1, cax=ax3, ticks=[0,1,2,3], label='repositioning compliance')
+        cbar.ax.set_yticklabels(['0','1','2','>=3'])
+        
+        arr_xticks = np.arange(0,size_y+1,3600)
+
+        ax1.set_xticks(arr_xticks)
+        ax2.set_xticks(arr_xticks)
+        ax2.set_xticklabels(['22','23','00','01','02','03','04','05','06','07','08']) # fontsize=12
+        
+        ax1.tick_params(left = True, labelleft = True,
+                        bottom = True, labelbottom = False)
+        ax2.tick_params(left = False, labelleft = False)
+        
+        ax1.set_ylabel('night')
+        ax2.set_ylabel('median')
+        ax2.set_xlabel('hour')
+        
+        return 0
+        
+    def plotImshowRow(self, arr_compl, text):
+        
+        size_x, size_y = arr_compl.shape
+        
+        fig, ax = plt.subplots()
         fig.canvas.mpl_connect('key_press_event', self.on_press)
         
-        ax[0].plot(arr_vma)
-        ax[1].plot(arr_act)
+        im = ax.imshow(arr_compl,interpolation='none', vmin=0, vmax=5) # extent=[0,36,0,8]
+        ax.set_aspect((size_y/10)/size_x)
+        # cbar = ax.figure.colorbar(im, ax=ax)
         
-        ## plot vertical lines
-        arr_indexes = np.array(self.list_start_end_night_original)
-        
-        indexes_ini = arr_indexes[:,0]
-        indexes_end = arr_indexes[:,1]
-        
-        ## vertical lines for 22h00
-        for idx in indexes_ini:
-            ax[0].axvline(x = idx, color = 'tab:purple')
-            ax[1].axvline(x = idx, color = 'tab:purple')
-        ## vertical lines for 8h00
-        for idx in indexes_end:
-            ax[0].axvline(x = idx, color = 'tab:olive')
-            ax[1].axvline(x = idx, color = 'tab:olive')
-        
-        ax[0].set_title(self.filename)
+        ax.set_title(f'{self.filename}, {text}' )
         
         return 0
     
