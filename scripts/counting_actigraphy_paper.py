@@ -124,28 +124,31 @@ def main(args):
         list_name_cols = []
         
         for i in np.arange(0,1):
+            print(f'iteration {i}')
             # win_size_minutes=2**i ## min
             win_size_minutes=15 ## min
             # win_size_minutes=15*i ## min
             print(f'window size: {win_size_minutes}')
             # win_size_minutes = 15 # minutes
             obj_chest.inclinometers_sliding_window(win_size_minutes)
-            obj_thigh.inclinometers_sliding_window(win_size_minutes)
+            obj_chest.inclinometers_wavelet_transform(win_size_minutes)
             
-            obj_chest.nightCounts()
-            obj_thigh.nightCounts()
+            # obj_thigh.inclinometers_sliding_window(win_size_minutes)
+            
+            obj_chest.nightCounts('sw')
+            # obj_thigh.nightCounts()
 
-            df_counts_chest=obj_chest.getNightCounts()
-            df_counts_thigh=obj_thigh.getNightCounts()
+            # df_counts_chest=obj_chest.getNightCounts()
+            # df_counts_thigh=obj_thigh.getNightCounts()
             
             ## total number of repositioning for all nights for every window size
-            list_repo_chest.append(df_counts_chest['rep_total'].tolist()) 
-            list_repo_thigh.append(df_counts_thigh['rep_total'].tolist()) 
+            # list_repo_chest.append(df_counts_chest['rep_total'].tolist()) 
+            # list_repo_thigh.append(df_counts_thigh['rep_total'].tolist()) 
             
-            list_compl_chest.append(df_counts_chest['compliance(%)'].tolist()) 
-            list_compl_thigh.append(df_counts_thigh['compliance(%)'].tolist()) 
+            # list_compl_chest.append(df_counts_chest['compliance(%)'].tolist()) 
+            # list_compl_thigh.append(df_counts_thigh['compliance(%)'].tolist()) 
             
-            list_name_cols.append(str(win_size_minutes))
+            # list_name_cols.append(str(win_size_minutes))
         
         # print(f'list_repo_chest:\n{list_repo_chest}')
         # plotBoxPlot(list_repo_chest, list_name_cols, prefix, 'repositioning')
@@ -154,7 +157,7 @@ def main(args):
             # obj_chest.plotComplianceRep()
             # obj_thigh.plotComplianceRep()
         
-        obj_chest.plotPosChanging()
+        # obj_chest.plotPosChanging()
         # obj_thigh.plotPosChanging()
         
         ## write csv files 
@@ -199,14 +202,17 @@ def main(args):
         # plotBoxPlot(list_activity_thigh, list_name_cols, prefix, 'activity')
         
         ## plot position changing
-        obj_chest.plotDWTInclinometers()
+        # obj_chest.plotDWTInclinometers()
         # obj_thigh.plotDWTInclinometers()
   
         # ## plot vector magnitude and inclinometers; all days and nights (original data)
         # obj_chest.plotActigraphy()
         # obj_thigh.plotActigraphy()
         
-        # obj_chest.plotActigraphyNormal()
+        obj_chest.plotActigraphyNormal()
+        obj_chest.plot_Inclinometers('sw')
+        obj_chest.plot_Inclinometers('wt')
+        # obj_chest.plotDWTInclinometers()
         
         # obj_chest.plotVectorMagnitude()
         # obj_thigh.plotVectorMagnitude()
