@@ -122,33 +122,56 @@ def main(args):
         list_compl_chest = []
         list_compl_thigh = []
         list_name_cols = []
-        
-        for i in np.arange(0,1):
-            print(f'iteration {i}')
-            # win_size_minutes=2**i ## min
-            win_size_minutes=15 ## min
-            # win_size_minutes=15*i ## min
-            print(f'window size: {win_size_minutes}')
-            # win_size_minutes = 15 # minutes
-            obj_chest.inclinometers_sliding_window(win_size_minutes)
-            obj_chest.inclinometers_wavelet_transform(win_size_minutes)
-            
-            # obj_thigh.inclinometers_sliding_window(win_size_minutes)
-            
-            obj_chest.nightCounts('sw')
-            # obj_thigh.nightCounts()
 
-            # df_counts_chest=obj_chest.getNightCounts()
-            # df_counts_thigh=obj_thigh.getNightCounts()
-            
-            ## total number of repositioning for all nights for every window size
-            # list_repo_chest.append(df_counts_chest['rep_total'].tolist()) 
-            # list_repo_thigh.append(df_counts_thigh['rep_total'].tolist()) 
-            
-            # list_compl_chest.append(df_counts_chest['compliance(%)'].tolist()) 
-            # list_compl_thigh.append(df_counts_thigh['compliance(%)'].tolist()) 
-            
-            # list_name_cols.append(str(win_size_minutes))
+        obj_chest.inclinometers_original()
+        obj_chest.nightCounts('original')
+        obj_chest.plotActigraphyNormal()
+        obj_chest.plotPosChanging('original')
+        
+        # for i in np.arange(0,1):
+        # print(f'iteration {i}')
+        # win_size_minutes=2**i ## min
+        win_size_minutes=15 ## min
+        # win_size_minutes=15*i ## min
+        print(f'window size: {win_size_minutes}')
+        # win_size_minutes = 15 # minutes
+        obj_chest.inclinometers_sliding_window(win_size_minutes)
+        obj_chest.nightCounts('sw')
+        obj_chest.plot_Inclinometers('sw')
+        obj_chest.plotPosChanging('sw')
+        
+        obj_chest.inclinometers_wavelet_transform(win_size_minutes)
+        obj_chest.nightCounts('wt')
+        obj_chest.plot_Inclinometers('wt')
+        obj_chest.plotPosChanging('wt')
+        
+        obj_chest.inclinometer_mat_morpho(win_size_minutes)
+        obj_chest.nightCounts('mm')
+        obj_chest.plot_Inclinometers('mm')
+        obj_chest.plotPosChanging('mm')
+        
+        obj_chest.inclinometers_low_pass_filter(win_size_minutes)
+        obj_chest.nightCounts('lpf')
+        obj_chest.plot_Inclinometers('lpf')
+        obj_chest.plotPosChanging('lpf')
+        
+        # obj_thigh.inclinometers_sliding_window(win_size_minutes)
+        
+        
+
+        # obj_thigh.nightCounts()
+
+        # df_counts_chest=obj_chest.getNightCounts()
+        # df_counts_thigh=obj_thigh.getNightCounts()
+        
+        ## total number of repositioning for all nights for every window size
+        # list_repo_chest.append(df_counts_chest['rep_total'].tolist()) 
+        # list_repo_thigh.append(df_counts_thigh['rep_total'].tolist()) 
+        
+        # list_compl_chest.append(df_counts_chest['compliance(%)'].tolist()) 
+        # list_compl_thigh.append(df_counts_thigh['compliance(%)'].tolist()) 
+        
+        # list_name_cols.append(str(win_size_minutes))
         
         # print(f'list_repo_chest:\n{list_repo_chest}')
         # plotBoxPlot(list_repo_chest, list_name_cols, prefix, 'repositioning')
@@ -209,9 +232,8 @@ def main(args):
         # obj_chest.plotActigraphy()
         # obj_thigh.plotActigraphy()
         
-        obj_chest.plotActigraphyNormal()
-        obj_chest.plot_Inclinometers('sw')
-        obj_chest.plot_Inclinometers('wt')
+        
+        
         # obj_chest.plotDWTInclinometers()
         
         # obj_chest.plotVectorMagnitude()

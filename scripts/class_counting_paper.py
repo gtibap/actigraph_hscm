@@ -70,6 +70,8 @@ class Counting_Actigraphy:
         self.time_sec = 'time_sec'
         
         self.dwt_level = 9
+        self.x_ini= 120000
+        self.x_end= 161500
 
         self.df1 = pd.DataFrame([])
         self.df_activity_indexes = pd.DataFrame([], columns=['idx_ini','idx_end','length'])
@@ -78,7 +80,7 @@ class Counting_Actigraphy:
         self.df_inclinometers = pd.DataFrame([])
         self.df_sw_inclinometers = pd.DataFrame([])
         self.df_wt_inclinometers = pd.DataFrame([])
-        self.df_mo_inclinometers = pd.DataFrame([])
+        self.df_mm_inclinometers = pd.DataFrame([])
         self.df_lpf_inclinometers = pd.DataFrame([])
         
         self.df_dwt_vma = pd.DataFrame([])
@@ -208,7 +210,28 @@ class Counting_Actigraphy:
             list_mov_night.append(df[self.vma_act].mean())
         
         return np.around(list_mov_night,3)
-     
+    
+    
+    def inclinometers_original(self):
+        
+        arr_date = self.df1[self.label_date].to_numpy()
+        arr_time = self.df1[self.label_time].to_numpy()
+         ## read inclinometers 
+        arr_off = self.df1[self.incl_off].to_numpy()
+        arr_lyi = self.df1[self.incl_lyi].to_numpy()
+        arr_sit = self.df1[self.incl_sit].to_numpy()
+        arr_sta = self.df1[self.incl_sta].to_numpy()
+        
+        self.df_inclinometers = pd.DataFrame()
+        self.df_inclinometers[self.label_date]=arr_date
+        self.df_inclinometers[self.label_time]=arr_time
+        self.df_inclinometers[self.incl_off]=arr_off
+        self.df_inclinometers[self.incl_lyi]=arr_lyi
+        self.df_inclinometers[self.incl_sit]=arr_sit
+        self.df_inclinometers[self.incl_sta]=arr_sta
+        
+        return 0
+         
      
     def inclinometers_sliding_window(self, win_size_minutes):
         
@@ -231,18 +254,6 @@ class Counting_Actigraphy:
         coeff_lyi = np.rint(signal.convolve(arr_lyi, win, mode='same'))/window_size
         coeff_sit = np.rint(signal.convolve(arr_sit, win, mode='same'))/window_size
         coeff_sta = np.rint(signal.convolve(arr_sta, win, mode='same'))/window_size
-        
-        ## amplitude normalization
-        # coeff_all = coeff_off + coeff_lyi + coeff_sit + coeff_sta
-        # mean_coeff = coeff_all.mean()
-        # std_coeff = coeff_all.std()
-        # print('mean, std: ', mean_coeff, std_coeff)
-        
-        # coeff_off = coeff_off/mean_coeff
-        # coeff_lyi = coeff_lyi/mean_coeff
-        # coeff_sit = coeff_sit/mean_coeff
-        # coeff_sta = coeff_sta/mean_coeff
-        # coeff_all = coeff_all/mean_coeff
         
         ## pile the inclinometers resultant coefficients (level 10) and select the inclinometer with the maximum value per each sample
         coeff_stack = np.vstack((coeff_off,coeff_lyi,coeff_sit,coeff_sta))
@@ -289,9 +300,23 @@ class Counting_Actigraphy:
         window_size = int(spm*win_size_minutes)
         # print(f'window size: {window_size}')
         
+        arr_date = self.df1[self.label_date].to_numpy()
+        arr_time = self.df1[self.label_time].to_numpy()
+        
+        dwt_level=0
+        
+        ## subsampling according to wavelet decomposition level
+        while (2**(dwt_level+1)) < window_size:
+            dwt_level+=1
+            arr_date=arr_date[::2]
+            arr_time=arr_time[::2]
+            
+        print(f'dwt_level: {dwt_level}, arr_date {len(arr_date)}, arr_time {len(arr_time)}')
+        
+        self.dwt_level = dwt_level
         
         waveletname = 'Haar'
-        dwt_level = self.dwt_level
+        
         coeff_off = pywt.wavedec(arr_off, waveletname, mode='symmetric', level=dwt_level, axis=-1)
         coeff_lyi = pywt.wavedec(arr_lyi, waveletname, mode='symmetric', level=dwt_level, axis=-1)
         coeff_sit = pywt.wavedec(arr_sit, waveletname, mode='symmetric', level=dwt_level, axis=-1)
@@ -302,7 +327,130 @@ class Counting_Actigraphy:
         
         ## pile the inclinometers resultant coefficients (level 10) and select the inclinometer with the maximum value per each sample
         coeff_stack = np.vstack((coeff_off[0],coeff_lyi[0],coeff_sit[0],coeff_sta[0]))
+        print(f'coeff_stack: {coeff_stack.shape}')
         
+        sum_coeff = np.sum(coeff_stack, axis=0)
+        
+        print(f'sum_coeff {sum_coeff.shape}')
+        median_value = np.median(sum_coeff)
+        print(f'median_value: {median_value}')
+        
+        index_coeff = np.argmax(coeff_stack, axis=0)
+        arr_new_off = (index_coeff==0).astype(int)
+        arr_new_lyi = (index_coeff==1).astype(int)
+        arr_new_sit = (index_coeff==2).astype(int)
+        arr_new_sta = (index_coeff==3).astype(int)
+        
+        ## grouping the resultant data
+        self.df_wt_inclinometers = pd.DataFrame()
+        self.df_wt_inclinometers[self.label_date]=arr_date
+        self.df_wt_inclinometers[self.label_time]=arr_time
+        self.df_wt_inclinometers[self.off_filtered]=coeff_off[0]/median_value
+        self.df_wt_inclinometers[self.lyi_filtered]=coeff_lyi[0]/median_value
+        self.df_wt_inclinometers[self.sit_filtered]=coeff_sit[0]/median_value
+        self.df_wt_inclinometers[self.sta_filtered]=coeff_sta[0]/median_value
+        self.df_wt_inclinometers[self.sum_filtered]=sum_coeff/median_value
+        self.df_wt_inclinometers[self.incl_off]=arr_new_off
+        self.df_wt_inclinometers[self.incl_lyi]=arr_new_lyi
+        self.df_wt_inclinometers[self.incl_sit]=arr_new_sit
+        self.df_wt_inclinometers[self.incl_sta]=arr_new_sta
+        
+        return 0        
+    
+    
+    def inclinometer_mat_morpho(self, win_size_minutes):
+        
+        spm = 60 ## seconds per min
+        window_size = int(spm*win_size_minutes/2)
+        
+        # self.min_gap_rep = win_size_minutes
+        
+        arr_date = self.df1[self.label_date].to_numpy()
+        arr_time = self.df1[self.label_time].to_numpy()
+         
+        arr_off = self.df1[self.incl_off].to_numpy()
+        arr_lyi = self.df1[self.incl_lyi].to_numpy()
+        arr_sit = self.df1[self.incl_sit].to_numpy()
+        arr_sta = self.df1[self.incl_sta].to_numpy()
+        
+        arr_off_mod = self.closingOpening(arr_off,window_size)
+        arr_lyi_mod = self.closingOpening(arr_lyi,window_size)
+        arr_sit_mod = self.closingOpening(arr_sit,window_size)
+        arr_sta_mod = self.closingOpening(arr_sta,window_size)
+        
+        coeff_stack = np.vstack((arr_off_mod, 
+                                 arr_lyi_mod, 
+                                 arr_sit_mod, 
+                                 arr_sta_mod))
+                                 
+        print(f'coeff_stack: {coeff_stack.shape}')
+        
+        sum_coeff = np.sum(coeff_stack, axis=0)
+        
+        print(f'sum_coeff {sum_coeff.shape}')
+        max_value = np.max(sum_coeff)
+        print(f'max_value: {max_value}')
+        
+        index_coeff = np.argmax(coeff_stack, axis=0)
+        arr_new_off = (index_coeff==0).astype(int)
+        arr_new_lyi = (index_coeff==1).astype(int)
+        arr_new_sit = (index_coeff==2).astype(int)
+        arr_new_sta = (index_coeff==3).astype(int)
+        
+        ## grouping the resultant data
+        self.df_mm_inclinometers = pd.DataFrame()
+        self.df_mm_inclinometers[self.label_date]=arr_date
+        self.df_mm_inclinometers[self.label_time]=arr_time
+        self.df_mm_inclinometers[self.off_filtered]=arr_off_mod
+        self.df_mm_inclinometers[self.lyi_filtered]=arr_lyi_mod
+        self.df_mm_inclinometers[self.sit_filtered]=arr_sit_mod
+        self.df_mm_inclinometers[self.sta_filtered]=arr_sta_mod
+        self.df_mm_inclinometers[self.sum_filtered]=sum_coeff/max_value
+        self.df_mm_inclinometers[self.incl_off]=arr_new_off
+        self.df_mm_inclinometers[self.incl_lyi]=arr_new_lyi
+        self.df_mm_inclinometers[self.incl_sit]=arr_new_sit
+        self.df_mm_inclinometers[self.incl_sta]=arr_new_sta
+        
+        return 0
+    
+    
+    def closingOpening(self, arr_inc, dist):
+        ## structuring element: odd number
+        gap = int((2*dist)+1)
+        struct1 = np.ones(gap).astype(int)
+        
+        arr_clo= ndimage.binary_closing(arr_inc, structure=struct1).astype(int)
+        arr_ope= ndimage.binary_opening(arr_clo, structure=struct1).astype(int)
+        return arr_ope
+    
+    
+    def inclinometers_low_pass_filter(self, win_size_minutes):
+        
+        arr_date = self.df1[self.label_date].to_numpy()
+        arr_time = self.df1[self.label_time].to_numpy()
+        
+        ## read inclinometers 
+        arr_off = self.df1[self.incl_off].to_numpy()
+        arr_lyi = self.df1[self.incl_lyi].to_numpy()
+        arr_sit = self.df1[self.incl_sit].to_numpy()
+        arr_sta = self.df1[self.incl_sta].to_numpy()
+        
+        spm = 60 ## seconds per min
+        window_size = int(spm*win_size_minutes)
+        period = 2*window_size
+        freq = 1/period
+        print(f'lpf cut freq: {freq}')
+        
+        arr_off_mod = self.filterLowPass(arr_off, freq)
+        arr_lyi_mod = self.filterLowPass(arr_lyi, freq)
+        arr_sit_mod = self.filterLowPass(arr_sit, freq)
+        arr_sta_mod = self.filterLowPass(arr_sta, freq)
+        
+        coeff_stack = np.vstack((arr_off_mod, 
+                                 arr_lyi_mod, 
+                                 arr_sit_mod, 
+                                 arr_sta_mod))
+                                 
         sum_coeff = np.sum(coeff_stack, axis=0)
         
         index_coeff = np.argmax(coeff_stack, axis=0)
@@ -311,26 +459,29 @@ class Counting_Actigraphy:
         arr_new_sit = (index_coeff==2).astype(int)
         arr_new_sta = (index_coeff==3).astype(int)
         
-        
-        arr_date = self.df1[self.label_date].to_numpy()
-        arr_time = self.df1[self.label_time].to_numpy()
-        
         ## grouping the resultant data
-        self.df_wt_inclinometers = pd.DataFrame()
-        self.df_wt_inclinometers[self.label_date]=arr_date
-        self.df_wt_inclinometers[self.label_time]=arr_time
-        self.df_wt_inclinometers[self.off]=coeff_off
-        self.df_wt_inclinometers[self.lyi]=coeff_lyi
-        self.df_wt_inclinometers[self.sit]=coeff_sit
-        self.df_wt_inclinometers[self.sta]=coeff_sta
-        self.df_wt_inclinometers[self.sum]=sum_coeff
-        self.df_wt_inclinometers[self.incl_off]=arr_new_off
-        self.df_wt_inclinometers[self.incl_lyi]=arr_new_lyi
-        self.df_wt_inclinometers[self.incl_sit]=arr_new_sit
-        self.df_wt_inclinometers[self.incl_sta]=arr_new_sta
+        self.df_lpf_inclinometers = pd.DataFrame()
+        self.df_lpf_inclinometers[self.label_date]=arr_date
+        self.df_lpf_inclinometers[self.label_time]=arr_time
+        self.df_lpf_inclinometers[self.off_filtered]=arr_off_mod
+        self.df_lpf_inclinometers[self.lyi_filtered]=arr_lyi_mod
+        self.df_lpf_inclinometers[self.sit_filtered]=arr_sit_mod
+        self.df_lpf_inclinometers[self.sta_filtered]=arr_sta_mod
+        self.df_lpf_inclinometers[self.sum_filtered]=sum_coeff
+        self.df_lpf_inclinometers[self.incl_off]=arr_new_off
+        self.df_lpf_inclinometers[self.incl_lyi]=arr_new_lyi
+        self.df_lpf_inclinometers[self.incl_sit]=arr_new_sit
+        self.df_lpf_inclinometers[self.incl_sta]=arr_new_sta
         
-        return 0        
-        
+        return 0
+    
+    
+    def filterLowPass(self, arr, fc):
+        self.sampling_rate = 1 ## 1 Hz, 1 sample per second
+        sos = signal.butter(2, fc, btype='lowpass', fs=self.sampling_rate, output='sos')
+        filtered = signal.sosfiltfilt(sos, arr)
+        return filtered
+    
         
     def nightsDataFrame(self, df):
         
@@ -365,10 +516,13 @@ class Counting_Actigraphy:
             self.df_inclinometers = self.df_sw_inclinometers
         elif sel=='wt':
             self.df_inclinometers = self.df_wt_inclinometers
-        elif sel=='mo':
-            self.df_inclinometers = self.df_mo_inclinometers
-        else:
+        elif sel=='mm':
+            self.df_inclinometers = self.df_mm_inclinometers
+        elif sel=='lpf':
             self.df_inclinometers = self.df_lpf_inclinometers
+        else:
+            ## original data; no changes
+            pass
 
         
         ## from 22:00:00 until 07:59:59 (next day)
@@ -513,6 +667,10 @@ class Counting_Actigraphy:
     def update_ticks_x(self, x, pos):
         x = np.round(float(x)/3600, 1)
         return x
+        
+    def update_ticks_x_wt(self, x, pos):
+        x = np.round(((2**self.dwt_level)*float(x))/3600, 1)
+        return x
     
     
     def plotActigraphyNormal(self):
@@ -526,13 +684,9 @@ class Counting_Actigraphy:
         arr_incl_sit = self.df1[self.incl_sit].to_numpy()
         arr_incl_sta = self.df1[self.incl_sta].to_numpy()
         
-        
-        
-        # x_ini= 70000
-        # x_end=160000
-        
-        x_ini= 120000
-        x_end= 161500
+        x_ini = self.x_ini
+        x_end = self.x_end
+
         ax[0].set_xlim(x_ini,x_end)
         ax[-1].xaxis.set_major_formatter(mticker.FuncFormatter(self.update_ticks_x))
         
@@ -671,19 +825,53 @@ class Counting_Actigraphy:
     
     def plot_Inclinometers(self, sel):
         
+        fig, axarr = plt.subplots(nrows=4, ncols=1, sharex=True, sharey=True)
+        fig.canvas.mpl_connect('key_press_event', self.on_press)
+        
+        # x_ini= 120000
+        # x_end= 161500
+        x_ini = self.x_ini
+        x_end = self.x_end
+        
         if sel=='sw':
             self.df_inclinometers = self.df_sw_inclinometers
-            indices_vertical_lines = self.list_start_end_night
+            x_ini=x_ini
+            x_end=x_end
+            axarr[0].set_xlim(x_ini,x_end)
+            axarr[-1].xaxis.set_major_formatter(mticker.FuncFormatter(self.update_ticks_x))
+            title='Sliding Windows'
+            
         elif sel=='wt':
+            scale_wt = 2**self.dwt_level
             self.df_inclinometers = self.df_wt_inclinometers
-            indices_vertical_lines = np.array(self.list_start_end_night)/(2**self.dwt_level)
-        elif sel=='mo':
-            self.df_inclinometers = self.df_mo_inclinometers
-            indices_vertical_lines = self.list_start_end_night
+            x_ini=x_ini/scale_wt
+            x_end=x_end/scale_wt
+            axarr[0].set_xlim(x_ini,x_end)
+            axarr[-1].xaxis.set_major_formatter(mticker.FuncFormatter(self.update_ticks_x_wt))
+            # print(f'x_ini {x_ini}, x_end {x_end}')
+            title='Discrete Wavelet Transform'
+
+            # indices_vertical_lines = np.array(self.list_start_end_night)/(2**self.dwt_level)
+            # indices_vertical_lines = np.array(self.list_start_end_night)
+        elif sel=='mm':
+            self.df_inclinometers = self.df_mm_inclinometers
+            x_ini=x_ini
+            x_end=x_end
+            axarr[0].set_xlim(x_ini,x_end)
+            axarr[-1].xaxis.set_major_formatter(mticker.FuncFormatter(self.update_ticks_x))
+            title='Mathematical Morphology'
+            
+            # indices_vertical_lines = self.list_start_end_night
         else:
             self.df_inclinometers = self.df_lpf_inclinometers
-            indices_vertical_lines = self.list_start_end_night
+            x_ini=x_ini
+            x_end=x_end
+            axarr[0].set_xlim(x_ini,x_end)
+            axarr[-1].xaxis.set_major_formatter(mticker.FuncFormatter(self.update_ticks_x))
+            title='Low Pass Filter'
 
+            # indices_vertical_lines = self.list_start_end_night
+            
         arr_dwt  = np.empty((5, 0)).tolist()
         arr_incl = np.empty((4, 0)).tolist()
         
@@ -698,16 +886,20 @@ class Counting_Actigraphy:
         arr_incl[2] =self.df_inclinometers[self.incl_sit].to_numpy()
         arr_incl[3] =self.df_inclinometers[self.incl_sta].to_numpy()
         
-        fig, axarr = plt.subplots(nrows=5, ncols=1, sharex=True, sharey=True)
-        fig.canvas.mpl_connect('key_press_event', self.on_press)
-        
+        indices_vertical_lines = self.list_start_end_night        
         self.plotVerticalLines(axarr, indices_vertical_lines)
         
         axarr[0].plot(arr_dwt[0], color='tab:blue')
         axarr[1].plot(arr_dwt[1], color='tab:orange')
         axarr[2].plot(arr_dwt[2], color='tab:green')
         axarr[3].plot(arr_dwt[3], color='tab:red')
-        axarr[4].plot(arr_dwt[4], color='tab:brown')
+        # axarr[4].plot(arr_dwt[4], color='tab:brown')
+        
+        ## range x and y axes
+        
+        y_ini= -0.1
+        y_end=  1.2
+        axarr[0].set_ylim(y_ini,y_end)
         
         # axarr[0].plot(arr_incl[0], color='tab:blue')
         # axarr[1].plot(arr_incl[1], color='tab:orange')
@@ -722,24 +914,25 @@ class Counting_Actigraphy:
         # x_end=160000
         # axarr[0].set_xlim(x_ini,x_end)
         
-        x_ini= 120000
-        x_end= 161500
-        axarr[0].set_xlim(x_ini,x_end)
-        axarr[-1].xaxis.set_major_formatter(mticker.FuncFormatter(self.update_ticks_x))
-        
-        y_ini= -0.1
-        y_end=  1.2
-        axarr[0].set_ylim(y_ini,y_end)
+        font = {'fontname':'DejaVu Sans'}
+        # ax[0].set_title(self.filename)
+        axarr[0].set_ylabel('off', **font)
+        axarr[1].set_ylabel('lyi', **font)
+        axarr[2].set_ylabel('sit', **font)
+        axarr[3].set_ylabel('sta', **font)
+        axarr[3].set_xlabel('time (h)', **font)
         
         # axarr[0].set_title(self.filename, loc='left')
-        axarr[0].set_ylabel('off')
-        axarr[1].set_ylabel('lyi')
-        axarr[2].set_ylabel('sit')
-        axarr[3].set_ylabel('sta')
-        axarr[4].set_ylabel('sum')
+        # axarr[0].set_ylabel('off')
+        # axarr[1].set_ylabel('lyi')
+        # axarr[2].set_ylabel('sit')
+        # axarr[3].set_ylabel('sta')
+        # axarr[4].set_ylabel('sum')
         # axarr[4].set_ylabel('rep.')
         # axarr[5].set_ylabel('rep.2')
         axarr[-1].set_xlabel('time (h)')
+        
+        fig.suptitle(title)
         
         return 0
         
@@ -804,7 +997,49 @@ class Counting_Actigraphy:
         
         return 0
         
-    def plotPosChanging(self):
+    def plotPosChanging(self, sel):
+        
+        fig, axarr = plt.subplots()
+        fig.canvas.mpl_connect('key_press_event', self.on_press)
+        
+        x_ini = self.x_ini
+        x_end = self.x_end
+        
+        if sel=='original':
+            axarr.set_xlim(x_ini,x_end)
+            axarr.xaxis.set_major_formatter(mticker.FuncFormatter(self.update_ticks_x))
+            title='Original'
+        
+        elif sel=='sw':
+            self.df_inclinometers = self.df_sw_inclinometers
+            axarr.set_xlim(x_ini,x_end)
+            axarr.xaxis.set_major_formatter(mticker.FuncFormatter(self.update_ticks_x))
+            title='Sliding Windows'
+            
+        elif sel=='wt':
+            scale_wt = 2**self.dwt_level
+            self.df_inclinometers = self.df_wt_inclinometers
+            x_ini=x_ini/scale_wt
+            x_end=x_end/scale_wt
+            axarr.set_xlim(x_ini,x_end)
+            axarr.xaxis.set_major_formatter(mticker.FuncFormatter(self.update_ticks_x_wt))
+            # print(f'x_ini {x_ini}, x_end {x_end}')
+            title='Discrete Wavelet Transform'
+
+            # indices_vertical_lines = np.array(self.list_start_end_night)/(2**self.dwt_level)
+            # indices_vertical_lines = np.array(self.list_start_end_night)
+        elif sel=='mm':
+            self.df_inclinometers = self.df_mm_inclinometers
+            axarr.set_xlim(x_ini,x_end)
+            axarr.xaxis.set_major_formatter(mticker.FuncFormatter(self.update_ticks_x))
+            title='Mathematical Morphology'
+            
+            # indices_vertical_lines = self.list_start_end_night
+        else:
+            self.df_inclinometers = self.df_lpf_inclinometers
+            axarr.set_xlim(x_ini,x_end)
+            axarr.xaxis.set_major_formatter(mticker.FuncFormatter(self.update_ticks_x))
+            title='Low Pass Filter'
         
         arr_incl = np.empty((4, 0)).tolist()
         
@@ -813,10 +1048,9 @@ class Counting_Actigraphy:
         arr_incl[2] = self.df_inclinometers[self.incl_sit].to_numpy()
         arr_incl[3] = self.df_inclinometers[self.incl_sta].to_numpy()
         
-        # fig, axarr = plt.subplots(nrows=4, ncols=1, sharex=True, sharey=True)
-        cm = 1/2.54  # centimeters in inches figsize=(15*cm, 5*cm)
-        fig, axarr = plt.subplots()
-        fig.canvas.mpl_connect('key_press_event', self.on_press)
+       # fig, axarr = plt.subplots(nrows=4, ncols=1, sharex=True, sharey=True)
+        # cm = 1/2.54  # centimeters in inches figsize=(15*cm, 5*cm)
+        
         # fig.tight_layout()
         
         self.plotVerticalLines(axarr, self.list_start_end_night)
@@ -836,15 +1070,15 @@ class Counting_Actigraphy:
         
         # axarr[5].plot(self.arr_rep, color='tab:blue')
         
-        x_ini= 60000
-        x_end=160000
-        axarr.set_xlim(x_ini,x_end)
+        # x_ini= 60000
+        # x_end=160000
+        # axarr.set_xlim(x_ini,x_end)
         
         y_ini= -0.1
         y_end=  1.1
         axarr.set_ylim(y_ini,y_end)
         
-        # axarr[0].set_title(self.filename, loc='left')
+        axarr.set_title(title)
         # axarr[0].set_ylabel('off')
         # axarr[1].set_ylabel('lyi')
         # axarr[2].set_ylabel('sit')
@@ -859,10 +1093,10 @@ class Counting_Actigraphy:
         # ax.legend([c], ["An ellipse, not a rectangle"],
           # handler_map={mpatches.Circle: HandlerEllipse()})
         
-        off_patch = mpatches.Patch(facecolor='tab:blue', edgecolor="tab:blue", label='Incl.Off', alpha=0.5)
-        lyi_patch = mpatches.Patch(facecolor='tab:orange', edgecolor="tab:orange", label='Incl.Lyi', alpha=0.5)
-        sit_patch = mpatches.Patch(facecolor='tab:green', edgecolor="tab:green", label='Incl.Sit', alpha=0.5)
-        sta_patch = mpatches.Patch(facecolor='tab:red', edgecolor="tab:red", label='Incl.Sta', alpha=0.5)
+        off_patch = mpatches.Patch(facecolor='tab:blue', edgecolor="tab:blue", label='off', alpha=0.5)
+        lyi_patch = mpatches.Patch(facecolor='tab:orange', edgecolor="tab:orange", label='lyi', alpha=0.5)
+        sit_patch = mpatches.Patch(facecolor='tab:green', edgecolor="tab:green", label='sit', alpha=0.5)
+        sta_patch = mpatches.Patch(facecolor='tab:red', edgecolor="tab:red", label='sta', alpha=0.5)
         # red_patch = mpatches.Patch(color='red', label='The red data')
         # axarr.legend(handles=[red_patch], bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
         # fig.legend(handles=[red_patch], loc='outside upper right')
