@@ -88,7 +88,8 @@ class Counting_Actigraphy:
 
         self.min_vma = 3 # counts
         self.min_samples = 2 # min number of samples inside the window (function: rollingWindow())
-        self.compliance_win = 180 # min equal to 3h
+        self.compliance_win = 120  # 180 min equal to 3h
+        self.label_hours = '2h'
         self.arr_fig = [[] for i in range(10)]
         self.arr_axs = [[] for i in range(10)]
         
@@ -441,10 +442,11 @@ class Counting_Actigraphy:
         freq = 1/period
         print(f'lpf cut freq: {freq}')
         
-        arr_off_mod = self.filterLowPass(arr_off, freq)
-        arr_lyi_mod = self.filterLowPass(arr_lyi, freq)
-        arr_sit_mod = self.filterLowPass(arr_sit, freq)
-        arr_sta_mod = self.filterLowPass(arr_sta, freq)
+        order=2
+        arr_off_mod = self.filterLowPass(arr_off, freq, order)
+        arr_lyi_mod = self.filterLowPass(arr_lyi, freq, order)
+        arr_sit_mod = self.filterLowPass(arr_sit, freq, order)
+        arr_sta_mod = self.filterLowPass(arr_sta, freq, order)
         
         coeff_stack = np.vstack((arr_off_mod, 
                                  arr_lyi_mod, 
@@ -476,9 +478,9 @@ class Counting_Actigraphy:
         return 0
     
     
-    def filterLowPass(self, arr, fc):
+    def filterLowPass(self, arr, fc, order):
         self.sampling_rate = 1 ## 1 Hz, 1 sample per second
-        sos = signal.butter(2, fc, btype='lowpass', fs=self.sampling_rate, output='sos')
+        sos = signal.butter(order, fc, btype='lowpass', fs=self.sampling_rate, output='sos')
         filtered = signal.sosfiltfilt(sos, arr)
         return filtered
     
@@ -546,6 +548,7 @@ class Counting_Actigraphy:
             id_start=df_nightA.index.values[0]
             id_end=df_nightB.index.values[-1]
             
+            ## we use this info to plot vertical lines to indicate begining and end of each night
             self.list_start_end_night.append([id_start,id_end])
             
             len_night = len(df_night)
@@ -580,6 +583,7 @@ class Counting_Actigraphy:
         
         return 0
     
+    
     def complianceEstimation(self, arr_rep):
         
         spm = 60 ## seconds per min
@@ -588,7 +592,7 @@ class Counting_Actigraphy:
         win = signal.windows.boxcar(window_size)
         
         # results convolution aproximate to the closest integer to avoid inestabilities
-        coeff_rep = np.rint(signal.convolve(arr_rep, win, mode='same'))
+        coeff_rep = np.rint(signal.convolve(arr_rep, win, mode='full',))
         
         coeff_rep_act = (coeff_rep>=1).astype(int) 
         
@@ -654,6 +658,46 @@ class Counting_Actigraphy:
         return arr, np.sum(arr)
     
     
+    def compliance_full(self, sel, win_size_minutes, filename):
+        
+        if sel=='sw':
+            self.df_inclinometers = self.df_sw_inclinometers
+        elif sel=='wt':
+            self.df_inclinometers = self.df_wt_inclinometers
+        elif sel=='mm':
+            self.df_inclinometers = self.df_mm_inclinometers
+        elif sel=='lpf':
+            self.df_inclinometers = self.df_lpf_inclinometers
+        else:
+            ## original data; no changes
+            pass
+        
+        ## counting number of repositioning 
+        arr_rep, repos_labels, repos_data  = self.counting_repositioning(self.df_inclinometers)
+        # print(f'repositioning {repos_labels[-1]}: {repos_data[-1]}')
+        
+        ## compliance factor estimation
+        arr_compl, compliance_factor = self.complianceEstimation(arr_rep)
+        
+        ## smoothing appling a low pass filter
+        # win_size_minutes=15
+        # spm = 60 ## seconds per min
+        # window_size = int(spm*win_size_minutes)
+        # period = 2*window_size
+        # freq = 1/period
+        # order = 1
+        # print(f'lpf cut freq: {freq}')
+        # arr_compl = self.filterLowPass(arr_compl, freq, order)
+        
+        self.plot_compliance(arr_compl, filename)
+        
+        
+        
+        return 0
+        
+    
+    
+    
     def on_press(self, event):
         # print('press', event.key)
         sys.stdout.flush()
@@ -673,9 +717,9 @@ class Counting_Actigraphy:
         return x
     
     
-    def plotActigraphyNormal(self):
+    def plotActigraphyNormal(self, filename):
         
-        fig, ax = plt.subplots(nrows=4, ncols=1, sharex=True, sharey=True)
+        fig, ax = plt.subplots(nrows=4, ncols=1, sharex=True, sharey=True, figsize=(10, 2))
         fig.canvas.mpl_connect('key_press_event', self.on_press)
         fig.canvas.draw()
         
@@ -701,16 +745,16 @@ class Counting_Actigraphy:
         ax[2].plot(arr_incl_sit, color='tab:green')
         ax[3].plot(arr_incl_sta, color='tab:red')
 
-        font = {'fontname':'DejaVu Sans'}
+        # font = {'fontname':'Arial'}
         # ax[0].set_title(self.filename)
-        ax[0].set_ylabel('off', **font)
-        ax[1].set_ylabel('lyi', **font)
-        ax[2].set_ylabel('sit', **font)
-        ax[3].set_ylabel('sta', **font)
-        ax[3].set_xlabel('time (h)', **font)
+        ax[0].set_ylabel('off')
+        ax[1].set_ylabel('lyi')
+        ax[2].set_ylabel('sit')
+        ax[3].set_ylabel('sta')
+        ax[3].set_xlabel('time (h)')
         
-        fig.suptitle('Actigraph: inclinometers activity per second', **font)
-        
+        # fig.suptitle('Actigraph: inclinometers activity per second')
+        fig.savefig(filename, bbox_inches='tight')
         
         return 0
 
@@ -821,11 +865,52 @@ class Counting_Actigraphy:
                 pass
         
         return 0
-     
     
-    def plot_Inclinometers(self, sel):
+    
+    def plot_compliance(self, arr, filename):
         
-        fig, axarr = plt.subplots(nrows=4, ncols=1, sharex=True, sharey=True)
+        fig, axarr = plt.subplots(nrows=1, ncols=1, sharex=True, sharey=True, figsize=(10, 2))
+        fig.canvas.mpl_connect('key_press_event', self.on_press)
+        
+        # x_ini= 120000
+        # x_end= 161500
+        x_ini = self.x_ini
+        x_end = self.x_end
+        
+        axarr.set_xlim(x_ini,x_end)
+        axarr.xaxis.set_major_formatter(mticker.FuncFormatter(self.update_ticks_x))
+        title='Low Pass Filter'
+        
+        indices_vertical_lines = self.list_start_end_night        
+        self.plotVerticalLines(axarr, indices_vertical_lines)
+        
+        axarr.axhline(y = 1, color = 'tab:gray', linewidth=2, linestyle = 'dashed', alpha=0.5)
+        axarr.plot(arr, color='tab:blue')
+        
+        
+    
+        y_ini= -0.5
+        y_end=  6.5
+        
+        y_t = [0, 1, 2, 3, 4, 5, 6]
+        
+        axarr.set_ylim(y_ini,y_end)
+        plt.yticks(y_t, y_t)
+        
+        font = {'fontname':'DejaVu Sans'}
+        axarr.set_xlabel('time [h]', **font)
+        axarr.set_ylabel(f'compliance [p.c./{self.label_hours}]', **font)
+        
+        fig.savefig(filename, bbox_inches='tight')
+        
+
+        
+        return 0
+         
+    
+    def plot_Inclinometers(self, sel, filename):
+        
+        fig, axarr = plt.subplots(nrows=4, ncols=1, sharex=True, sharey=True, figsize=(10, 2))
         fig.canvas.mpl_connect('key_press_event', self.on_press)
         
         # x_ini= 120000
@@ -932,7 +1017,8 @@ class Counting_Actigraphy:
         # axarr[5].set_ylabel('rep.2')
         axarr[-1].set_xlabel('time (h)')
         
-        fig.suptitle(title)
+        # fig.suptitle(title)
+        fig.savefig(filename, bbox_inches='tight')
         
         return 0
         
@@ -997,9 +1083,9 @@ class Counting_Actigraphy:
         
         return 0
         
-    def plotPosChanging(self, sel):
+    def plotPosChanging(self, sel, filename):
         
-        fig, axarr = plt.subplots()
+        fig, axarr = plt.subplots(figsize=(15, 2))
         fig.canvas.mpl_connect('key_press_event', self.on_press)
         
         x_ini = self.x_ini
@@ -1078,7 +1164,7 @@ class Counting_Actigraphy:
         y_end=  1.1
         axarr.set_ylim(y_ini,y_end)
         
-        axarr.set_title(title)
+        # axarr.set_title(title)
         # axarr[0].set_ylabel('off')
         # axarr[1].set_ylabel('lyi')
         # axarr[2].set_ylabel('sit')
@@ -1100,9 +1186,12 @@ class Counting_Actigraphy:
         # red_patch = mpatches.Patch(color='red', label='The red data')
         # axarr.legend(handles=[red_patch], bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
         # fig.legend(handles=[red_patch], loc='outside upper right')
-        fig.legend(handles=[off_patch,lyi_patch,sit_patch,sta_patch], loc='outside right')
+        # fig.legend(handles=[off_patch,lyi_patch,sit_patch,sta_patch], loc='outside right')
+        fig.legend(handles=[off_patch,lyi_patch,sit_patch,sta_patch], loc='upper center', bbox_to_anchor=(0.5, 1.05), ncol=4, fancybox=True, shadow=True)
         
         plt.tick_params(left = False, right = False, labelleft = False, labelbottom = True, bottom = True)
+        
+        fig.savefig(filename, bbox_inches='tight')
         
         return 0
     
@@ -1195,7 +1284,10 @@ class Counting_Actigraphy:
         median_arr_compl = np.median(arr_compl, axis=0) 
         
         # print(f'mean_arr_compl {mean_arr_compl.shape}, {median_arr_compl.shape}')
-        self.plotImshow(arr_compl, np.reshape(median_arr_compl, (1, -1)))
+        # self.plotImshow(arr_compl, np.reshape(median_arr_compl, (1, -1)))
+        self.plotImshow_simple_2(arr_compl, np.reshape(median_arr_compl, (1, -1)))
+        self.plotImshow_simple_2(arr_compl, np.reshape(mean_arr_compl, (1, -1)))
+        
         # self.plotImshowRow(np.reshape(mean_arr_compl, (1, -1)), 'mean')
         # self.plotImshowRow(np.reshape(median_arr_compl, (1, -1)), 'median')
             
@@ -1237,6 +1329,54 @@ class Counting_Actigraphy:
         ax2.set_xlabel('hour')
         
         return 0
+        
+    def plotImshow_simple(self, arr_compl, arr_compl_2):
+        
+        size_x, size_y = arr_compl.shape
+        print(f'size_x, size_y: {size_x},{size_y}')
+        
+        # fig, ax = plt.subplots(nrows=2, ncols=1, sharex=True)
+        fig = plt.figure()
+        fig.canvas.mpl_connect('key_press_event', self.on_press)
+        fig.suptitle(self.filename)
+        
+        # im = ax[0].imshow(arr_compl,interpolation='none', vmin=0, vmax=5, aspect='auto') 
+        # ax1 = plt.subplot2grid(shape=(10, 15), loc=(0, 0), rowspan= 8, colspan=14) 
+        ax2 = plt.subplot2grid(shape=(10, 15), loc=(0, 0), rowspan= 10, colspan=14) 
+        ax3 = plt.subplot2grid(shape=(10, 15), loc=(0, 14), rowspan=10, colspan=1)
+        
+        # im1 = ax1.imshow(arr_compl,interpolation='none', vmin=0, vmax=3, aspect='auto')
+        im2 = ax2.imshow(arr_compl_2,interpolation='none', vmin=0, vmax=3, aspect='auto')
+        # ax1.figure.colorbar(im1,ax=ax3)
+        cbar = fig.colorbar(im2, cax=ax3, ticks=[0,1,2,3], label='repositioning compliance')
+        cbar.ax.set_yticklabels(['0','1','2','>=3'])
+        
+        arr_xticks = np.arange(0,size_y+1,3600)
+
+        # ax1.set_xticks(arr_xticks)
+        ax2.set_xticks(arr_xticks)
+        ax2.set_xticklabels(['22','23','00','01','02','03','04','05','06','07','08']) # fontsize=12
+        
+        # ax1.tick_params(left = True, labelleft = True,
+                        # bottom = True, labelbottom = False)
+        ax2.tick_params(left = False, labelleft = False)
+        
+        # ax1.set_ylabel('night')
+        ax2.set_ylabel('median')
+        ax2.set_xlabel('hour')
+        
+        return 0
+    
+    def plotImshow_simple_2(self, arr_compl, arr_compl_2):
+        
+        fig, ax = plt.subplots(nrows=1, ncols=1, sharex=True)
+        fig.canvas.mpl_connect('key_press_event', self.on_press)
+        
+        ax.plot(arr_compl_2[0])
+        # print(f'arr_compl_2:\n{arr_compl_2}, {arr_compl_2.shape}')
+        
+        
+        
         
     def plotImshowRow(self, arr_compl, text):
         

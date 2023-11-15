@@ -82,6 +82,7 @@ def main(args):
     
     path = "../data/projet_officiel/"
     path_out = "../data/projet_officiel_counting_2/"
+    path_fig = "../data/projet_officiel/figures/"
     # prefix = 'A010'
     prefix = args[1]
     files_list=[prefix+'_chest.csv', prefix+'_thigh.csv']
@@ -91,7 +92,8 @@ def main(args):
     dict_df_rep_chest = {}
     dict_df_rep_thigh = {}
     
-    plt.rcParams.update({'font.size': 18})
+    ## adjust font size matplotlib figures
+    plt.rcParams.update({'font.size': 12})
     
     # print('files_list: ', files_list)
     
@@ -123,37 +125,48 @@ def main(args):
         list_compl_thigh = []
         list_name_cols = []
 
+        ## original data ##
         obj_chest.inclinometers_original()
         obj_chest.nightCounts('original')
-        obj_chest.plotActigraphyNormal()
-        obj_chest.plotPosChanging('original')
+        plt.rcParams.update({'font.size': 12})
+        obj_chest.plotActigraphyNormal(path_fig+prefix+'chest.png')
+        plt.rcParams.update({'font.size': 12})
+        # obj_chest.plotPosChanging('original')
+        # obj_chest.plotComplianceRep()
         
         # for i in np.arange(0,1):
         # print(f'iteration {i}')
         # win_size_minutes=2**i ## min
-        win_size_minutes=15 ## min
-        # win_size_minutes=15*i ## min
+        win_size_minutes=8.0 ## min
         print(f'window size: {win_size_minutes}')
-        # win_size_minutes = 15 # minutes
-        obj_chest.inclinometers_sliding_window(win_size_minutes)
-        obj_chest.nightCounts('sw')
-        obj_chest.plot_Inclinometers('sw')
-        obj_chest.plotPosChanging('sw')
+        ## sliding windows ##
+        # obj_chest.inclinometers_sliding_window(win_size_minutes)
+        # obj_chest.nightCounts('sw')
+        # obj_chest.plot_Inclinometers('sw')
+        # obj_chest.plotPosChanging('sw')
         
-        obj_chest.inclinometers_wavelet_transform(win_size_minutes)
-        obj_chest.nightCounts('wt')
-        obj_chest.plot_Inclinometers('wt')
-        obj_chest.plotPosChanging('wt')
+        ## wavelet transform ##
+        # obj_chest.inclinometers_wavelet_transform(win_size_minutes)
+        # obj_chest.nightCounts('wt')
+        # obj_chest.plot_Inclinometers('wt')
+        # obj_chest.plotPosChanging('wt')
         
-        obj_chest.inclinometer_mat_morpho(win_size_minutes)
-        obj_chest.nightCounts('mm')
-        obj_chest.plot_Inclinometers('mm')
-        obj_chest.plotPosChanging('mm')
+        ## mathematical morphology ##
+        # obj_chest.inclinometer_mat_morpho(win_size_minutes)
+        # obj_chest.nightCounts('mm')
+        # obj_chest.plot_Inclinometers('mm')
+        # obj_chest.plotPosChanging('mm')
         
+        ## low pass filter ##
         obj_chest.inclinometers_low_pass_filter(win_size_minutes)
         obj_chest.nightCounts('lpf')
-        obj_chest.plot_Inclinometers('lpf')
-        obj_chest.plotPosChanging('lpf')
+        plt.rcParams.update({'font.size': 12})
+        obj_chest.plot_Inclinometers('lpf', path_fig+prefix+'lpf_chest.png')
+        plt.rcParams.update({'font.size': 18})
+        obj_chest.plotPosChanging('lpf', path_fig+prefix+'pos_chest.png')
+        plt.rcParams.update({'font.size': 12})
+        obj_chest.compliance_full('lpf', win_size_minutes, path_fig+prefix+'com_chest.png')
+        # obj_chest.plotComplianceRep()
         
         # obj_thigh.inclinometers_sliding_window(win_size_minutes)
         
