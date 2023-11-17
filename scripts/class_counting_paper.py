@@ -658,7 +658,7 @@ class Counting_Actigraphy:
         return arr, np.sum(arr)
     
     
-    def compliance_full(self, sel, win_size_minutes, filename):
+    def compliance_full(self, sel, win_size_minutes, filename, save_flag):
         
         if sel=='sw':
             self.df_inclinometers = self.df_sw_inclinometers
@@ -689,7 +689,7 @@ class Counting_Actigraphy:
         # print(f'lpf cut freq: {freq}')
         # arr_compl = self.filterLowPass(arr_compl, freq, order)
         
-        self.plot_compliance(arr_compl, filename)
+        self.plot_compliance(arr_compl, filename, save_flag)
         
         
         
@@ -717,12 +717,13 @@ class Counting_Actigraphy:
         return x
     
     
-    def plotActigraphyNormal(self, filename):
+    def plotActigraphyNormal(self, filename, save_flag):
         
-        fig, ax = plt.subplots(nrows=4, ncols=1, sharex=True, sharey=True, figsize=(10, 2))
+        fig, ax = plt.subplots(nrows=5, ncols=1, sharex=True, figsize=(12, 4), gridspec_kw={'height_ratios': [2, 1, 1, 1, 1]})
         fig.canvas.mpl_connect('key_press_event', self.on_press)
         fig.canvas.draw()
         
+        arr_vec_mag  = self.df1[self.vec_mag].to_numpy()
         arr_incl_off = self.df1[self.incl_off].to_numpy()
         arr_incl_lyi = self.df1[self.incl_lyi].to_numpy()
         arr_incl_sit = self.df1[self.incl_sit].to_numpy()
@@ -734,27 +735,39 @@ class Counting_Actigraphy:
         ax[0].set_xlim(x_ini,x_end)
         ax[-1].xaxis.set_major_formatter(mticker.FuncFormatter(self.update_ticks_x))
         
-        y_ini= -0.1
-        y_end=  1.2
+        y_ini= -10
+        y_end=  150
         ax[0].set_ylim(y_ini,y_end)
+        y_ini= -0.2
+        y_end=  1.2
+        ax[1].set_ylim(y_ini,y_end)
+        ax[2].set_ylim(y_ini,y_end)
+        ax[3].set_ylim(y_ini,y_end)
+        ax[4].set_ylim(y_ini,y_end)
         
-        self.plotVerticalLines(ax, self.list_start_end_night)
+        # self.plotVerticalLines(ax, self.list_start_end_night)
         
-        ax[0].plot(arr_incl_off, color='tab:blue')
-        ax[1].plot(arr_incl_lyi, color='tab:orange')
-        ax[2].plot(arr_incl_sit, color='tab:green')
-        ax[3].plot(arr_incl_sta, color='tab:red')
+        ax[0].plot(arr_vec_mag, color='tab:purple', label='VM')
+        ax[0].legend()
+        ax[1].plot(arr_incl_off, color='tab:blue')
+        ax[2].plot(arr_incl_lyi, color='tab:orange')
+        ax[3].plot(arr_incl_sit, color='tab:green')
+        ax[4].plot(arr_incl_sta, color='tab:red')
 
         # font = {'fontname':'Arial'}
         # ax[0].set_title(self.filename)
-        ax[0].set_ylabel('off')
-        ax[1].set_ylabel('lyi')
-        ax[2].set_ylabel('sit')
-        ax[3].set_ylabel('sta')
-        ax[3].set_xlabel('time (h)')
+        # ax[0].set_ylabel('v.m.')
+        ax[1].set_ylabel('off')
+        ax[2].set_ylabel('lyi')
+        ax[3].set_ylabel('sit')
+        ax[4].set_ylabel('sta')
+        ax[-1].set_xlabel('time (h)')
         
         # fig.suptitle('Actigraph: inclinometers activity per second')
-        fig.savefig(filename, bbox_inches='tight')
+        if save_flag:
+            fig.savefig(filename, bbox_inches='tight')
+        else:
+            pass
         
         return 0
 
@@ -867,7 +880,7 @@ class Counting_Actigraphy:
         return 0
     
     
-    def plot_compliance(self, arr, filename):
+    def plot_compliance(self, arr, filename, save_flag):
         
         fig, axarr = plt.subplots(nrows=1, ncols=1, sharex=True, sharey=True, figsize=(10, 2))
         fig.canvas.mpl_connect('key_press_event', self.on_press)
@@ -882,7 +895,7 @@ class Counting_Actigraphy:
         title='Low Pass Filter'
         
         indices_vertical_lines = self.list_start_end_night        
-        self.plotVerticalLines(axarr, indices_vertical_lines)
+        # self.plotVerticalLines(axarr, indices_vertical_lines)
         
         axarr.axhline(y = 1, color = 'tab:gray', linewidth=2, linestyle = 'dashed', alpha=0.5)
         axarr.plot(arr, color='tab:blue')
@@ -892,7 +905,7 @@ class Counting_Actigraphy:
         y_ini= -0.5
         y_end=  6.5
         
-        y_t = [0, 1, 2, 3, 4, 5, 6]
+        y_t = [1, 3, 5]
         
         axarr.set_ylim(y_ini,y_end)
         plt.yticks(y_t, y_t)
@@ -901,14 +914,16 @@ class Counting_Actigraphy:
         axarr.set_xlabel('time [h]', **font)
         axarr.set_ylabel(f'compliance [p.c./{self.label_hours}]', **font)
         
-        fig.savefig(filename, bbox_inches='tight')
+        if save_flag:
+            fig.savefig(filename, bbox_inches='tight')
+        else:
+            pass
         
-
         
         return 0
          
     
-    def plot_Inclinometers(self, sel, filename):
+    def plot_Inclinometers(self, sel, filename, save_flag):
         
         fig, axarr = plt.subplots(nrows=4, ncols=1, sharex=True, sharey=True, figsize=(10, 2))
         fig.canvas.mpl_connect('key_press_event', self.on_press)
@@ -972,7 +987,7 @@ class Counting_Actigraphy:
         arr_incl[3] =self.df_inclinometers[self.incl_sta].to_numpy()
         
         indices_vertical_lines = self.list_start_end_night        
-        self.plotVerticalLines(axarr, indices_vertical_lines)
+        # self.plotVerticalLines(axarr, indices_vertical_lines)
         
         axarr[0].plot(arr_dwt[0], color='tab:blue')
         axarr[1].plot(arr_dwt[1], color='tab:orange')
@@ -1018,7 +1033,10 @@ class Counting_Actigraphy:
         axarr[-1].set_xlabel('time (h)')
         
         # fig.suptitle(title)
-        fig.savefig(filename, bbox_inches='tight')
+        if save_flag:
+            fig.savefig(filename, bbox_inches='tight')
+        else:
+            pass
         
         return 0
         
@@ -1083,7 +1101,7 @@ class Counting_Actigraphy:
         
         return 0
         
-    def plotPosChanging(self, sel, filename):
+    def plotPosChanging(self, sel, filename, save_flag):
         
         fig, axarr = plt.subplots(figsize=(15, 2))
         fig.canvas.mpl_connect('key_press_event', self.on_press)
@@ -1139,7 +1157,7 @@ class Counting_Actigraphy:
         
         # fig.tight_layout()
         
-        self.plotVerticalLines(axarr, self.list_start_end_night)
+        # self.plotVerticalLines(axarr, self.list_start_end_night)
         
         axarr.plot(arr_incl[0], color='tab:blue')
         axarr.plot(arr_incl[1], color='tab:orange')
@@ -1191,9 +1209,13 @@ class Counting_Actigraphy:
         
         plt.tick_params(left = False, right = False, labelleft = False, labelbottom = True, bottom = True)
         
-        fig.savefig(filename, bbox_inches='tight')
+        if save_flag:
+            fig.savefig(filename, bbox_inches='tight')
+        else:
+            pass
         
         return 0
+    
     
     def plotVerticalLines(self, axarr, list_start_end_night):
         
@@ -1225,6 +1247,93 @@ class Counting_Actigraphy:
             
         return 0
     
+    
+    def plotVM_2(self, filename, save_flag):
+       
+##        fig_vm, ax_vm = plt.subplots(nrows=2, ncols=1,figsize=(10, 2))
+        fig, ax = plt.subplots(nrows=4, ncols=1, sharex=True, figsize=(10, 3), gridspec_kw={'height_ratios': [2, 1, 1, 1]})
+        # the next two lines are to convert ax to an one-dimensional array; making iteration of ax generic in case more subplots were required
+        
+        ax = np.array(ax)
+        ax = ax.reshape(-1)
+        
+        # print(f'ax_vm: {ax_vm.shape}, {type(ax_vm)}')
+##        self.plotWithColors(fig_vm, ax_vm, signals=0)
+
+        fig.canvas.mpl_connect('key_press_event', self.on_press)
+        fig.canvas.draw()
+       
+        arr_vec_mag = self.df1[self.vec_mag].to_numpy()
+        arr_sw_01min = self.vm_slidingWin(1)
+        arr_sw_16min = self.vm_slidingWin(16)
+        arr_sw_64min = self.vm_slidingWin(64)
+       
+        x_ini = self.x_ini
+        x_end = self.x_end
+
+        ax[0].set_xlim(x_ini,x_end)
+        ax[-1].xaxis.set_major_formatter(mticker.FuncFormatter(self.update_ticks_x))
+       
+        y_ini= -10
+        y_end=  150
+        ax[0].set_ylim(y_ini,y_end)
+        y_ini= -0.2
+        y_end=  1.2
+        ax[1].set_ylim(y_ini,y_end)
+        ax[2].set_ylim(y_ini,y_end)
+        ax[3].set_ylim(y_ini,y_end)
+        
+       
+        # self.plotVerticalLines(ax, self.list_start_end_night)
+##        indices_vertical_lines = self.list_start_end_night        
+##        self.plotVerticalLines(ax, indices_vertical_lines)
+       
+        sub_1 = ax[0].plot(arr_vec_mag, color='tab:purple', label='VM (counts)')
+        # ax[0].legend()
+        sub_2 = ax[1].plot(arr_sw_01min, color='tab:orange', label='SW (1 min)')
+        # ax[1].legend()
+        sub_3 = ax[2].plot(arr_sw_16min, color='tab:green', label='SW (16 min)')
+        # ax[2].legend()
+        ax[3].plot(arr_sw_64min, color='tab:red', label='SW (64 min)')
+       
+        ax[-1].set_xlabel('time (s)')
+        # ax[0].set_ylabel('counts')
+        
+        fig.legend(loc='upper center', bbox_to_anchor=(0.5, 1.02), ncol=4, fancybox=True, shadow=True)
+        
+        
+        if save_flag:
+            fig.savefig(filename, bbox_inches='tight')
+        else:
+            pass
+       
+        return 0
+       
+        
+    def vm_slidingWin(self, win_size_minutes):
+        
+        self.min_vma = 3
+        self.window_min = win_size_minutes
+        self.min_samples = 1
+        
+        arr_vma = self.df1[self.vec_mag].to_numpy()
+        ## we set to one any activity greater than or equal to the minimum value of counts (self.min_vma)
+        arr_vma = (arr_vma >=self.min_vma).astype(int)
+        ## window size: from 2 hours (original data) to the decomposition scale of dwt_level (2**dwt_level)
+        
+        spm = 60 ## seconds per min
+        window_size = int(spm*self.window_min)
+        # print(  'window size (s): ', window_size)
+        ## window to average values (same weight)
+        win = signal.windows.boxcar(window_size)
+        
+        arr_vma_mod = np.rint(signal.convolve(arr_vma, win, mode='full'))
+        ## the sample is valid if the magnitude is greater than or equal to a min number of samples (self.min_samples)
+
+        arr_vm_sw = (arr_vma_mod>=self.min_samples).astype(int) 
+
+        return arr_vm_sw
+        
     
     def plotVectorMagnitude(self):
         
@@ -1260,8 +1369,11 @@ class Counting_Actigraphy:
         
         # ax[0].set_title(self.filename)
         
-        x_ini= 60000
-        x_end=160000
+        # x_ini= 60000
+        # x_end=160000
+        x_ini = self.x_ini
+        x_end = self.x_end
+        
         ax[0].set_xlim(x_ini,x_end)
         
         y_ini= -0.1

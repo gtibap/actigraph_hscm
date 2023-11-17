@@ -124,20 +124,24 @@ def main(args):
         list_compl_chest = []
         list_compl_thigh = []
         list_name_cols = []
-
+        
+        ############################
         ## original data ##
         obj_chest.inclinometers_original()
         obj_chest.nightCounts('original')
         plt.rcParams.update({'font.size': 12})
-        obj_chest.plotActigraphyNormal(path_fig+prefix+'chest.png')
+        save_flag=True
+        obj_chest.plotActigraphyNormal(path_fig+prefix+'chest.png', save_flag)
         plt.rcParams.update({'font.size': 12})
+        ## original data ##
+        ############################
         # obj_chest.plotPosChanging('original')
         # obj_chest.plotComplianceRep()
         
         # for i in np.arange(0,1):
         # print(f'iteration {i}')
         # win_size_minutes=2**i ## min
-        win_size_minutes=8.0 ## min
+        win_size_minutes=4.0 ## min
         print(f'window size: {win_size_minutes}')
         ## sliding windows ##
         # obj_chest.inclinometers_sliding_window(win_size_minutes)
@@ -157,15 +161,21 @@ def main(args):
         # obj_chest.plot_Inclinometers('mm')
         # obj_chest.plotPosChanging('mm')
         
+        #######################
         ## low pass filter ##
         obj_chest.inclinometers_low_pass_filter(win_size_minutes)
         obj_chest.nightCounts('lpf')
         plt.rcParams.update({'font.size': 12})
-        obj_chest.plot_Inclinometers('lpf', path_fig+prefix+'lpf_chest.png')
+        save_flag=True
+        obj_chest.plot_Inclinometers('lpf', path_fig+prefix+'lpf_chest.png', save_flag)
         plt.rcParams.update({'font.size': 18})
-        obj_chest.plotPosChanging('lpf', path_fig+prefix+'pos_chest.png')
+        save_flag=True
+        obj_chest.plotPosChanging('lpf', path_fig+prefix+'pos_chest.png', save_flag)
         plt.rcParams.update({'font.size': 12})
-        obj_chest.compliance_full('lpf', win_size_minutes, path_fig+prefix+'com_chest.png')
+        save_flag=True
+        obj_chest.compliance_full('lpf', win_size_minutes, path_fig+prefix+'com_chest.png', save_flag)
+        ## low pass filter ##
+        ##########################
         # obj_chest.plotComplianceRep()
         
         # obj_thigh.inclinometers_sliding_window(win_size_minutes)
@@ -202,17 +212,27 @@ def main(args):
         ## repositioning estimation
         ############################
         
-        '''
+        
         #############################
         ## vector magnitude activity        
         min_value=3 ## counts
         min_samples_window = 1 ## at least 2 samples to consider it as a valid activity
+        win_size=1 ## min
         ## get values using several window sizes; provides info activity frequency during each night
         ## windows' size base of 2 (from 1min [2**0] to 128min [2**7]): 1,2,4,8,16,32,64,128
+        
+        
         list_activity_chest = []
         list_activity_thigh = []
         list_name_cols = []
 
+        save_flag=True
+        obj_chest.plotVM_2(path_fig+prefix+'vm_chest.png', save_flag)
+        
+        # obj_chest.vecMagCounting(min_value, win_size, min_samples_window)
+        # obj_chest.plotVectorMagnitude()
+
+        '''
         print('activity estimation for')
         for i in np.arange(0,9):
             win_size=2**i ## min
