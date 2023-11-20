@@ -1189,7 +1189,7 @@ class Counting_Actigraphy:
         # axarr[3].set_ylabel('sta')
         # axarr[4].set_ylabel('rep.')
         # axarr[5].set_ylabel('rep.2')
-        axarr.set_xlabel('time (s)')
+        axarr.set_xlabel('time (h)')
         
         # c = mpatches.Circle((0.5, 0.5), 0.25, facecolor="green",
                     # edgecolor="red", linewidth=3)
@@ -1296,7 +1296,7 @@ class Counting_Actigraphy:
         # ax[2].legend()
         ax[3].plot(arr_sw_64min, color='tab:red', label='SW (64 min)')
        
-        ax[-1].set_xlabel('time (s)')
+        ax[-1].set_xlabel('time (h)')
         # ax[0].set_ylabel('counts')
         
         fig.legend(loc='upper center', bbox_to_anchor=(0.5, 1.02), ncol=4, fancybox=True, shadow=True)

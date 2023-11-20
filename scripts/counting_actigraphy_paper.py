@@ -101,7 +101,7 @@ def main(args):
     
     try:
         obj_chest.openFile(path, files_list[0])
-        obj_thigh.openFile(path, files_list[1])
+        # obj_thigh.openFile(path, files_list[1])
         flag_read=True
     except ValueError:
         print(f'Problem reading the file {self.filename}.')
@@ -125,24 +125,29 @@ def main(args):
         list_compl_thigh = []
         list_name_cols = []
         
-        ############################
-        ## original data ##
-        obj_chest.inclinometers_original()
-        obj_chest.nightCounts('original')
-        plt.rcParams.update({'font.size': 12})
-        save_flag=True
-        obj_chest.plotActigraphyNormal(path_fig+prefix+'chest.png', save_flag)
-        plt.rcParams.update({'font.size': 12})
-        ## original data ##
-        ############################
+        # #################################
+        # ## original data inclinometers ##
+        # obj_chest.inclinometers_original()
+        # obj_chest.nightCounts('original')
+        # plt.rcParams.update({'font.size': 12})
+        # save_flag=False
+        # obj_chest.plotActigraphyNormal(path_fig+prefix+'chest.png', save_flag)
+        # plt.rcParams.update({'font.size': 12})
+        # ## original data inclinometers ##
+        # #################################
+        
         # obj_chest.plotPosChanging('original')
         # obj_chest.plotComplianceRep()
         
         # for i in np.arange(0,1):
         # print(f'iteration {i}')
         # win_size_minutes=2**i ## min
+        
+        ##################################
         win_size_minutes=4.0 ## min
         print(f'window size: {win_size_minutes}')
+        ##################################
+        
         ## sliding windows ##
         # obj_chest.inclinometers_sliding_window(win_size_minutes)
         # obj_chest.nightCounts('sw')
@@ -161,21 +166,22 @@ def main(args):
         # obj_chest.plot_Inclinometers('mm')
         # obj_chest.plotPosChanging('mm')
         
-        #######################
-        ## low pass filter ##
-        obj_chest.inclinometers_low_pass_filter(win_size_minutes)
-        obj_chest.nightCounts('lpf')
-        plt.rcParams.update({'font.size': 12})
-        save_flag=True
-        obj_chest.plot_Inclinometers('lpf', path_fig+prefix+'lpf_chest.png', save_flag)
-        plt.rcParams.update({'font.size': 18})
-        save_flag=True
-        obj_chest.plotPosChanging('lpf', path_fig+prefix+'pos_chest.png', save_flag)
-        plt.rcParams.update({'font.size': 12})
-        save_flag=True
-        obj_chest.compliance_full('lpf', win_size_minutes, path_fig+prefix+'com_chest.png', save_flag)
-        ## low pass filter ##
-        ##########################
+        # #######################
+        # ## low pass filter ##
+        # obj_chest.inclinometers_low_pass_filter(win_size_minutes)
+        # obj_chest.nightCounts('lpf')
+        # plt.rcParams.update({'font.size': 12})
+        # save_flag=False
+        # obj_chest.plot_Inclinometers('lpf', path_fig+prefix+'lpf_chest.png', save_flag)
+        # plt.rcParams.update({'font.size': 18})
+        # save_flag=False
+        # obj_chest.plotPosChanging('lpf', path_fig+prefix+'pos_chest.png', save_flag)
+        # plt.rcParams.update({'font.size': 12})
+        # save_flag=False
+        # obj_chest.compliance_full('lpf', win_size_minutes, path_fig+prefix+'com_chest.png', save_flag)
+        # ## low pass filter ##
+        # ##########################
+        
         # obj_chest.plotComplianceRep()
         
         # obj_thigh.inclinometers_sliding_window(win_size_minutes)
@@ -226,13 +232,13 @@ def main(args):
         list_activity_thigh = []
         list_name_cols = []
 
-        save_flag=True
-        obj_chest.plotVM_2(path_fig+prefix+'vm_chest.png', save_flag)
+        # save_flag=False
+        # obj_chest.plotVM_2(path_fig+prefix+'vm_chest.png', save_flag)
         
         # obj_chest.vecMagCounting(min_value, win_size, min_samples_window)
         # obj_chest.plotVectorMagnitude()
 
-        '''
+        
         print('activity estimation for')
         for i in np.arange(0,9):
             win_size=2**i ## min
@@ -240,20 +246,36 @@ def main(args):
             # win_size=15*i ## min
             print(f'window size: {win_size}')
             list_activity_chest.append(obj_chest.vecMagCounting(min_value, win_size, min_samples_window))
-            list_activity_thigh.append(obj_thigh.vecMagCounting(min_value, win_size, min_samples_window))
+            # list_activity_thigh.append(obj_thigh.vecMagCounting(min_value, win_size, min_samples_window))
             
             # list_name_cols.append(str(win_size)+'(min)')
             list_name_cols.append(str(win_size))
             
         df_activity_chest = activityDataFrame(list_activity_chest, list_name_cols)
-        df_activity_thigh = activityDataFrame(list_activity_thigh, list_name_cols)
+        # df_activity_thigh = activityDataFrame(list_activity_thigh, list_name_cols)
         
         # df_activity_chest.to_csv(path_out+files_list_out_act[0])
         # df_activity_thigh.to_csv(path_out+files_list_out_act[1])
-        ## vector magnitude activity
-        #############################
-        '''
+        
+        print(f'df_activity_chest:\n{df_activity_chest}\n{df_activity_chest.T}')
+        
+        # df_activity_chest_T = df_activity_chest.T
+        fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(6, 6))
+        df_activity_chest.T.plot(ax=ax)
+        
+        y_ini = -0.02
+        y_end =  1.02
 
+        ax.set_ylim(y_ini,y_end)
+        
+        plt.tight_layout()
+        fig.savefig(f'{path_fig}act_{prefix}.png')
+        
+        
+        
+        ## vector magnitude activity
+        ############################
+        
         # plotBoxPlot(list_activity_chest, list_name_cols, prefix, 'activity')
         # plotBoxPlot(list_activity_thigh, list_name_cols, prefix, 'activity')
         
