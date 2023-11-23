@@ -1251,7 +1251,7 @@ class Counting_Actigraphy:
     def plotVM_2(self, filename, save_flag):
        
 ##        fig_vm, ax_vm = plt.subplots(nrows=2, ncols=1,figsize=(10, 2))
-        fig, ax = plt.subplots(nrows=4, ncols=1, sharex=True, figsize=(10, 3), gridspec_kw={'height_ratios': [2, 1, 1, 1]})
+        fig, ax = plt.subplots(nrows=5, ncols=1, sharex=True, figsize=(10, 3), gridspec_kw={'height_ratios': [2, 1, 1, 1, 1]})
         # the next two lines are to convert ax to an one-dimensional array; making iteration of ax generic in case more subplots were required
         
         ax = np.array(ax)
@@ -1264,9 +1264,10 @@ class Counting_Actigraphy:
         fig.canvas.draw()
        
         arr_vec_mag = self.df1[self.vec_mag].to_numpy()
-        arr_sw_01min = self.vm_slidingWin(1)
-        arr_sw_16min = self.vm_slidingWin(16)
-        arr_sw_64min = self.vm_slidingWin(64)
+        arr_sw_001min = self.vm_slidingWin(1)
+        arr_sw_015min = self.vm_slidingWin(15)
+        arr_sw_060min = self.vm_slidingWin(60)
+        arr_sw_180min = self.vm_slidingWin(180)
        
         x_ini = self.x_ini
         x_end = self.x_end
@@ -1282,24 +1283,23 @@ class Counting_Actigraphy:
         ax[1].set_ylim(y_ini,y_end)
         ax[2].set_ylim(y_ini,y_end)
         ax[3].set_ylim(y_ini,y_end)
+        ax[4].set_ylim(y_ini,y_end)
         
        
         # self.plotVerticalLines(ax, self.list_start_end_night)
 ##        indices_vertical_lines = self.list_start_end_night        
 ##        self.plotVerticalLines(ax, indices_vertical_lines)
        
-        sub_1 = ax[0].plot(arr_vec_mag, color='tab:purple', label='VM (counts)')
-        # ax[0].legend()
-        sub_2 = ax[1].plot(arr_sw_01min, color='tab:orange', label='SW (1 min)')
-        # ax[1].legend()
-        sub_3 = ax[2].plot(arr_sw_16min, color='tab:green', label='SW (16 min)')
-        # ax[2].legend()
-        ax[3].plot(arr_sw_64min, color='tab:red', label='SW (64 min)')
+        ax[0].plot(arr_vec_mag, color='tab:purple', label='VM (counts)')
+        ax[1].plot(arr_sw_001min, color='tab:brown', label='SW_1min')
+        ax[2].plot(arr_sw_015min, color='tab:pink', label='SW_15min')
+        ax[3].plot(arr_sw_060min, color='tab:gray', label='SW_60min')
+        ax[4].plot(arr_sw_180min, color='tab:olive', label='SW_180min')
        
         ax[-1].set_xlabel('time (h)')
-        # ax[0].set_ylabel('counts')
         
-        fig.legend(loc='upper center', bbox_to_anchor=(0.5, 1.02), ncol=4, fancybox=True, shadow=True)
+        
+        fig.legend(loc='upper center', bbox_to_anchor=(0.5, 1.02), ncol=5, fancybox=True, shadow=True)
         
         
         if save_flag:

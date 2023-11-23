@@ -135,6 +135,16 @@ def main(args):
         # plt.rcParams.update({'font.size': 12})
         # ## original data inclinometers ##
         # #################################
+        # #################################
+        # ## original data inclinometers ##
+        # obj_thigh.inclinometers_original()
+        # obj_thigh.nightCounts('original')
+        # plt.rcParams.update({'font.size': 12})
+        # save_flag=False
+        # obj_thigh.plotActigraphyNormal(path_fig+prefix+'thigh.png', save_flag)
+        # plt.rcParams.update({'font.size': 12})
+        # ## original data inclinometers ##
+        # #################################
         
         # obj_chest.plotPosChanging('original')
         # obj_chest.plotComplianceRep()
@@ -144,7 +154,7 @@ def main(args):
         # win_size_minutes=2**i ## min
         
         ##################################
-        win_size_minutes=4.0 ## min
+        win_size_minutes=0.5 ## min
         print(f'window size: {win_size_minutes}')
         ##################################
         
@@ -232,46 +242,50 @@ def main(args):
         list_activity_thigh = []
         list_name_cols = []
 
-        # save_flag=False
-        # obj_chest.plotVM_2(path_fig+prefix+'vm_chest.png', save_flag)
+        save_flag=True
+        obj_chest.plotVM_2(path_fig+prefix+'vm_chest.png', save_flag)
         
         # obj_chest.vecMagCounting(min_value, win_size, min_samples_window)
         # obj_chest.plotVectorMagnitude()
+        
+        flag_activity=False
 
+        if flag_activity:
         
-        print('activity estimation for')
-        for i in np.arange(0,9):
-            win_size=2**i ## min
-            # win_size=30 ## min
-            # win_size=15*i ## min
-            print(f'window size: {win_size}')
-            list_activity_chest.append(obj_chest.vecMagCounting(min_value, win_size, min_samples_window))
-            # list_activity_thigh.append(obj_thigh.vecMagCounting(min_value, win_size, min_samples_window))
+            list_win_size = [1, 5, 15, 30, 60, 120, 180]
+            print('activity estimation for')
+            # for i in np.arange(0,9):
+            for i in list_win_size:
+                # win_size=2**i ## min
+                win_size=i ## min
+                # win_size=30 ## min
+                # win_size=15*i ## min
+                print(f'window size: {win_size}')
+                list_activity_chest.append(obj_chest.vecMagCounting(min_value, win_size, min_samples_window))
+                # list_activity_thigh.append(obj_thigh.vecMagCounting(min_value, win_size, min_samples_window))
+                
+                # list_name_cols.append(str(win_size)+'(min)')
+                list_name_cols.append(str(win_size))
+                
+            df_activity_chest = activityDataFrame(list_activity_chest, list_name_cols)
+            # df_activity_thigh = activityDataFrame(list_activity_thigh, list_name_cols)
             
-            # list_name_cols.append(str(win_size)+'(min)')
-            list_name_cols.append(str(win_size))
+            # df_activity_chest.to_csv(path_out+files_list_out_act[0])
+            # df_activity_thigh.to_csv(path_out+files_list_out_act[1])
             
-        df_activity_chest = activityDataFrame(list_activity_chest, list_name_cols)
-        # df_activity_thigh = activityDataFrame(list_activity_thigh, list_name_cols)
-        
-        # df_activity_chest.to_csv(path_out+files_list_out_act[0])
-        # df_activity_thigh.to_csv(path_out+files_list_out_act[1])
-        
-        print(f'df_activity_chest:\n{df_activity_chest}\n{df_activity_chest.T}')
-        
-        # df_activity_chest_T = df_activity_chest.T
-        fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(6, 6))
-        df_activity_chest.T.plot(ax=ax)
-        
-        y_ini = -0.02
-        y_end =  1.02
+            print(f'df_activity_chest:\n{df_activity_chest}\n{df_activity_chest.T}')
+            
+            # df_activity_chest_T = df_activity_chest.T
+            fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(6, 6))
+            df_activity_chest.T.plot(ax=ax)
+            
+            y_ini = -0.02
+            y_end =  1.02
 
-        ax.set_ylim(y_ini,y_end)
-        
-        plt.tight_layout()
-        fig.savefig(f'{path_fig}act_{prefix}.png')
-        
-        
+            ax.set_ylim(y_ini,y_end)
+            
+            plt.tight_layout()
+            fig.savefig(f'{path_fig}act_{prefix}.png')
         
         ## vector magnitude activity
         ############################
