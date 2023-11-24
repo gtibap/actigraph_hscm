@@ -243,7 +243,7 @@ def main(args):
         list_name_cols = []
 
         save_flag=True
-        obj_chest.plotVM_2(path_fig+prefix+'vm_chest.png', save_flag)
+        obj_chest.plotVM_2(path_fig+prefix+'vm_chest.png', save_flag, prefix)
         
         # obj_chest.vecMagCounting(min_value, win_size, min_samples_window)
         # obj_chest.plotVectorMagnitude()

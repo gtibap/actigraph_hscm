@@ -1248,26 +1248,47 @@ class Counting_Actigraphy:
         return 0
     
     
-    def plotVM_2(self, filename, save_flag):
+    def plotVM_2(self, filename, save_flag, title):
        
 ##        fig_vm, ax_vm = plt.subplots(nrows=2, ncols=1,figsize=(10, 2))
-        fig, ax = plt.subplots(nrows=5, ncols=1, sharex=True, figsize=(10, 3), gridspec_kw={'height_ratios': [2, 1, 1, 1, 1]})
+        fig, ax = plt.subplots(nrows=4, ncols=1, sharex=True, figsize=(10, 3), gridspec_kw={'height_ratios': [2, 1, 1, 1,]})
+        
+        fig2, ax2 = plt.subplots(nrows=1, ncols=1, figsize=(3, 3) )
         # the next two lines are to convert ax to an one-dimensional array; making iteration of ax generic in case more subplots were required
         
         ax = np.array(ax)
         ax = ax.reshape(-1)
+        
+        ax2 = np.array(ax2)
+        ax2 = ax2.reshape(-1)
         
         # print(f'ax_vm: {ax_vm.shape}, {type(ax_vm)}')
 ##        self.plotWithColors(fig_vm, ax_vm, signals=0)
 
         fig.canvas.mpl_connect('key_press_event', self.on_press)
         fig.canvas.draw()
+        
+        fig2.canvas.mpl_connect('key_press_event', self.on_press)
+        fig2.canvas.draw()
        
         arr_vec_mag = self.df1[self.vec_mag].to_numpy()
         arr_sw_001min = self.vm_slidingWin(1)
         arr_sw_015min = self.vm_slidingWin(15)
+        arr_sw_030min = self.vm_slidingWin(30)
         arr_sw_060min = self.vm_slidingWin(60)
-        arr_sw_180min = self.vm_slidingWin(180)
+        arr_sw_120min = self.vm_slidingWin(120)
+        
+        # ws = 15 # min 
+        # arr_act_1min = self.vm_sWin_groups(arr_sw_001min, ws)
+        
+        ws = 120 # min 
+        arr_act_001min  = self.vm_sWin_groups(arr_sw_001min, ws)
+        arr_act_015min  = self.vm_sWin_groups(arr_sw_015min, ws)
+        arr_act_030min  = self.vm_sWin_groups(arr_sw_030min, ws)
+        arr_act_060min  = self.vm_sWin_groups(arr_sw_060min, ws)
+        arr_act_120min = self.vm_sWin_groups(arr_sw_120min, ws)
+       
+       
        
         x_ini = self.x_ini
         x_end = self.x_end
@@ -1283,7 +1304,7 @@ class Counting_Actigraphy:
         ax[1].set_ylim(y_ini,y_end)
         ax[2].set_ylim(y_ini,y_end)
         ax[3].set_ylim(y_ini,y_end)
-        ax[4].set_ylim(y_ini,y_end)
+        # ax[4].set_ylim(y_ini,y_end)
         
        
         # self.plotVerticalLines(ax, self.list_start_end_night)
@@ -1293,13 +1314,32 @@ class Counting_Actigraphy:
         ax[0].plot(arr_vec_mag, color='tab:purple', label='VM (counts)')
         ax[1].plot(arr_sw_001min, color='tab:brown', label='SW_1min')
         ax[2].plot(arr_sw_015min, color='tab:pink', label='SW_15min')
-        ax[3].plot(arr_sw_060min, color='tab:gray', label='SW_60min')
-        ax[4].plot(arr_sw_180min, color='tab:olive', label='SW_180min')
+        ax[3].plot(arr_sw_030min, color='tab:gray', label='SW_30min')
+        # ax[4].plot(arr_sw_060min, color='tab:olive', label='SW_60min')
+        # ax[5].plot(arr_sw_120min, color='tab:cyan', label='SW_120min')
+        
+        # ax[1].plot(arr_act_001min, color='tab:brown')
+        # ax[2].plot(arr_act_015min, color='tab:pink')
+        # ax[3].plot(arr_act_030min, color='tab:gray')
+        # ax[4].plot(arr_act_060min, color='tab:olive')
+        # ax[5].plot(arr_act_120min, color='tab:cyan')
        
         ax[-1].set_xlabel('time (h)')
         
+        # data = [arr_act_001min[x_ini:x_end], arr_act_015min[x_ini:x_end], arr_act_030min[x_ini:x_end], arr_act_060min[x_ini:x_end], arr_act_120min[x_ini:x_end]]
+        data = [arr_act_001min[x_ini:x_end], arr_act_015min[x_ini:x_end], arr_act_030min[x_ini:x_end]]
         
-        fig.legend(loc='upper center', bbox_to_anchor=(0.5, 1.02), ncol=5, fancybox=True, shadow=True)
+        ax2[0].boxplot(data)
+        
+        y_ini= -0.02
+        y_end=  1.02
+        ax2[0].set_ylim(y_ini,y_end)
+        
+        
+        
+        fig.legend(loc='upper center', bbox_to_anchor=(0.5, 1.02), ncol=4, fancybox=True, shadow=True)
+        # fig.suptitle(title)
+        fig2.suptitle(title)
         
         
         if save_flag:
@@ -1333,6 +1373,31 @@ class Counting_Actigraphy:
         arr_vm_sw = (arr_vma_mod>=self.min_samples).astype(int) 
 
         return arr_vm_sw
+        
+        
+    def vm_sWin_groups(self, arr_act, win_size_minutes):
+        
+        # self.min_vma = 3
+        # self.window_min = win_size_minutes
+        # self.min_samples = 1
+        
+        # arr_vma = self.df1[self.vec_mag].to_numpy()
+        ## we set to one any activity greater than or equal to the minimum value of counts (self.min_vma)
+        # arr_vma = (arr_vma >=self.min_vma).astype(int)
+        ## window size: from 2 hours (original data) to the decomposition scale of dwt_level (2**dwt_level)
+        
+        spm = 60 ## seconds per min
+        window_size = int(spm*win_size_minutes)
+        # print(  'window size (s): ', window_size)
+        ## window to average values (same weight)
+        win = signal.windows.boxcar(window_size)
+        
+        arr_act_mod = np.rint(signal.convolve(arr_act, win, mode='full')) / window_size
+        ## the sample is valid if the magnitude is greater than or equal to a min number of samples (self.min_samples)
+
+        # arr_vm_sw = (arr_vma_mod>=self.min_samples).astype(int) 
+
+        return arr_act_mod
         
     
     def plotVectorMagnitude(self):
