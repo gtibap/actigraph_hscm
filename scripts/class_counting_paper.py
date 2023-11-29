@@ -717,7 +717,7 @@ class Counting_Actigraphy:
         return x
     
     
-    def plotActigraphyNormal(self, filename, save_flag):
+    def plotActigraphyNormal(self, filename, save_flag, title):
         
         fig, ax = plt.subplots(nrows=5, ncols=1, sharex=True, figsize=(12, 4), gridspec_kw={'height_ratios': [2, 1, 1, 1, 1]})
         fig.canvas.mpl_connect('key_press_event', self.on_press)
@@ -747,7 +747,7 @@ class Counting_Actigraphy:
         
         # self.plotVerticalLines(ax, self.list_start_end_night)
         
-        ax[0].plot(arr_vec_mag, color='tab:purple', label='VM')
+        ax[0].plot(arr_vec_mag, color='tab:purple', label='VM (counts)')
         ax[0].legend()
         ax[1].plot(arr_incl_off, color='tab:blue')
         ax[2].plot(arr_incl_lyi, color='tab:orange')
@@ -763,7 +763,8 @@ class Counting_Actigraphy:
         ax[4].set_ylabel('sta')
         ax[-1].set_xlabel('time (h)')
         
-        # fig.suptitle('Actigraph: inclinometers activity per second')
+        fig.suptitle(title)
+        
         if save_flag:
             fig.savefig(filename, bbox_inches='tight')
         else:
@@ -1253,14 +1254,23 @@ class Counting_Actigraphy:
 ##        fig_vm, ax_vm = plt.subplots(nrows=2, ncols=1,figsize=(10, 2))
         fig, ax = plt.subplots(nrows=4, ncols=1, sharex=True, figsize=(10, 3), gridspec_kw={'height_ratios': [2, 1, 1, 1,]})
         
-        fig2, ax2 = plt.subplots(nrows=1, ncols=1, figsize=(3, 3) )
+        # fig2, ax2 = plt.subplots(nrows=3, ncols=2, figsize=(10, 3))
+        fig2 = plt.figure(figsize=(10, 3))
+        gs = fig2.add_gridspec(4,2)
+        ax0 = fig2.add_subplot(gs[0, 0])
+        ax1 = fig2.add_subplot(gs[1, 0])
+        ax2 = fig2.add_subplot(gs[2, 0])
+        ax3 = fig2.add_subplot(gs[3, 0])
+        ax4 = fig2.add_subplot(gs[:, 1])
+
+        
         # the next two lines are to convert ax to an one-dimensional array; making iteration of ax generic in case more subplots were required
         
         ax = np.array(ax)
         ax = ax.reshape(-1)
         
-        ax2 = np.array(ax2)
-        ax2 = ax2.reshape(-1)
+        # ax2 = np.array(ax2)
+        # ax2 = ax2.reshape(-1)
         
         # print(f'ax_vm: {ax_vm.shape}, {type(ax_vm)}')
 ##        self.plotWithColors(fig_vm, ax_vm, signals=0)
@@ -1275,8 +1285,8 @@ class Counting_Actigraphy:
         arr_sw_001min = self.vm_slidingWin(1)
         arr_sw_015min = self.vm_slidingWin(15)
         arr_sw_030min = self.vm_slidingWin(30)
-        arr_sw_060min = self.vm_slidingWin(60)
-        arr_sw_120min = self.vm_slidingWin(120)
+        # arr_sw_060min = self.vm_slidingWin(60)
+        # arr_sw_120min = self.vm_slidingWin(120)
         
         # ws = 15 # min 
         # arr_act_1min = self.vm_sWin_groups(arr_sw_001min, ws)
@@ -1285,8 +1295,8 @@ class Counting_Actigraphy:
         arr_act_001min  = self.vm_sWin_groups(arr_sw_001min, ws)
         arr_act_015min  = self.vm_sWin_groups(arr_sw_015min, ws)
         arr_act_030min  = self.vm_sWin_groups(arr_sw_030min, ws)
-        arr_act_060min  = self.vm_sWin_groups(arr_sw_060min, ws)
-        arr_act_120min = self.vm_sWin_groups(arr_sw_120min, ws)
+        # arr_act_060min  = self.vm_sWin_groups(arr_sw_060min, ws)
+        # arr_act_120min = self.vm_sWin_groups(arr_sw_120min, ws)
        
        
        
@@ -1311,39 +1321,92 @@ class Counting_Actigraphy:
 ##        indices_vertical_lines = self.list_start_end_night        
 ##        self.plotVerticalLines(ax, indices_vertical_lines)
        
-        ax[0].plot(arr_vec_mag, color='tab:purple', label='VM (counts)')
-        ax[1].plot(arr_sw_001min, color='tab:brown', label='SW_1min')
-        ax[2].plot(arr_sw_015min, color='tab:pink', label='SW_15min')
-        ax[3].plot(arr_sw_030min, color='tab:gray', label='SW_30min')
+        ax[0].plot(arr_vec_mag,   color='tab:purple', label='VM (counts)')
+        ax[1].plot(arr_sw_001min, color='tab:brown',  label='SW_1min'    )
+        ax[2].plot(arr_sw_015min, color='tab:pink',   label='SW_15min'   )
+        ax[3].plot(arr_sw_030min, color='tab:gray',   label='SW_30min'   )
+        
+        # ax[0].legend()
+        # ax[1].legend()
+        # ax[2].legend()
+        # ax[3].legend()
+        
+        for sa in ax:
+            leg = sa.legend(handlelength=0, handletextpad=0, fancybox=True)
+            for item in leg.legendHandles:
+                item.set_visible(False)
+                
+        ax[-1].set_xlabel('time (h)')
+        
+        # arg_arr_sw_001min = np.where(arr_sw_001min == 0)[0]
+        # arg_arr_sw_015min = np.where(arr_sw_015min == 0)[0]
+        # arg_arr_sw_030min = np.where(arr_sw_030min == 0)[0]
+        
+        # ax[1].scatter(arg_arr_sw_001min, arr_sw_001min[arg_arr_sw_001min], color='tab:brown', marker='o', markevery=0.5, label='SW_1min')
+        # ax[2].scatter(arg_arr_sw_015min, arr_sw_015min[arg_arr_sw_015min], color='tab:pink',  marker='^', markevery=0.5, label='SW_15min')
+        # ax[3].scatter(arg_arr_sw_030min, arr_sw_030min[arg_arr_sw_030min], color='tab:gray',  marker='s', markevery=0.5, label='SW_30min')
+        
         # ax[4].plot(arr_sw_060min, color='tab:olive', label='SW_60min')
         # ax[5].plot(arr_sw_120min, color='tab:cyan', label='SW_120min')
         
         # ax[1].plot(arr_act_001min, color='tab:brown')
         # ax[2].plot(arr_act_015min, color='tab:pink')
         # ax[3].plot(arr_act_030min, color='tab:gray')
+        
+        ax0.plot(arr_vec_mag,    color='tab:purple', label='VM (counts)')
+        ax1.plot(arr_act_001min, color='tab:brown',  marker='o', markevery=0.3, label='SW_1min')
+        ax2.plot(arr_act_015min, color='tab:pink',   marker='^', markevery=0.3, label='SW_15min')
+        ax3.plot(arr_act_030min, color='tab:gray',   marker='s', markevery=0.3, label='SW_30min')
         # ax[4].plot(arr_act_060min, color='tab:olive')
         # ax[5].plot(arr_act_120min, color='tab:cyan')
        
-        ax[-1].set_xlabel('time (h)')
+        # ax0.legend()
+        # ax1.legend()
+        # ax2.legend()
+        # ax3.legend()
+       
+        ax0.set_xlim(x_ini,x_end)
+        ax1.set_xlim(x_ini,x_end)
+        ax2.set_xlim(x_ini,x_end)
+        ax3.set_xlim(x_ini,x_end)
+        
+        ax0.set_xticklabels([])
+        ax1.set_xticklabels([])
+        ax2.set_xticklabels([])
+        ax3.xaxis.set_major_formatter(mticker.FuncFormatter(self.update_ticks_x))
+        
+        y_ini= -10
+        y_end=  150
+        ax0.set_ylim(y_ini,y_end)
+        y_ini= -0.2
+        y_end=  1.2
+        ax1.set_ylim(y_ini,y_end)
+        ax2.set_ylim(y_ini,y_end)
+        ax3.set_ylim(y_ini,y_end)
+       
+        ax3.set_xlabel('time (h)')
         
         # data = [arr_act_001min[x_ini:x_end], arr_act_015min[x_ini:x_end], arr_act_030min[x_ini:x_end], arr_act_060min[x_ini:x_end], arr_act_120min[x_ini:x_end]]
         data = [arr_act_001min[x_ini:x_end], arr_act_015min[x_ini:x_end], arr_act_030min[x_ini:x_end]]
         
-        ax2[0].boxplot(data)
+        ax4.boxplot(data, labels=['SW_1min', 'SW_15min', 'SW_30min'])
+        # ax4.set_xticklabels(['SW_1min', 'SW_15min', 'SW_30min'])
         
         y_ini= -0.02
         y_end=  1.02
-        ax2[0].set_ylim(y_ini,y_end)
+        ax4.set_ylim(y_ini,y_end)
         
         
         
-        fig.legend(loc='upper center', bbox_to_anchor=(0.5, 1.02), ncol=4, fancybox=True, shadow=True)
+        # fig.legend(loc='upper center', bbox_to_anchor=(0.5, 1.02), ncol=4, fancybox=True, shadow=True)
+        fig2.legend(loc='upper center', bbox_to_anchor=(0.5, 1.04), ncol=4, fancybox=True, shadow=True)
         # fig.suptitle(title)
-        fig2.suptitle(title)
+        # fig2.suptitle(title)
         
         
         if save_flag:
-            fig.savefig(filename, bbox_inches='tight')
+            fig.savefig(filename+'.png', bbox_inches='tight')
+            fig2.savefig(filename+'_boxplot.png', bbox_inches='tight')
         else:
             pass
        
@@ -1352,7 +1415,7 @@ class Counting_Actigraphy:
         
     def vm_slidingWin(self, win_size_minutes):
         
-        self.min_vma = 3
+        self.min_vma = 1
         self.window_min = win_size_minutes
         self.min_samples = 1
         

@@ -101,7 +101,7 @@ def main(args):
     
     try:
         obj_chest.openFile(path, files_list[0])
-        # obj_thigh.openFile(path, files_list[1])
+        obj_thigh.openFile(path, files_list[1])
         flag_read=True
     except ValueError:
         print(f'Problem reading the file {self.filename}.')
@@ -125,26 +125,26 @@ def main(args):
         list_compl_thigh = []
         list_name_cols = []
         
-        # #################################
-        # ## original data inclinometers ##
-        # obj_chest.inclinometers_original()
-        # obj_chest.nightCounts('original')
-        # plt.rcParams.update({'font.size': 12})
-        # save_flag=False
-        # obj_chest.plotActigraphyNormal(path_fig+prefix+'chest.png', save_flag)
-        # plt.rcParams.update({'font.size': 12})
-        # ## original data inclinometers ##
-        # #################################
-        # #################################
-        # ## original data inclinometers ##
-        # obj_thigh.inclinometers_original()
-        # obj_thigh.nightCounts('original')
-        # plt.rcParams.update({'font.size': 12})
-        # save_flag=False
-        # obj_thigh.plotActigraphyNormal(path_fig+prefix+'thigh.png', save_flag)
-        # plt.rcParams.update({'font.size': 12})
-        # ## original data inclinometers ##
-        # #################################
+        #################################
+        ## original data inclinometers ##
+        obj_chest.inclinometers_original()
+        obj_chest.nightCounts('original')
+        plt.rcParams.update({'font.size': 12})
+        save_flag=True
+        obj_chest.plotActigraphyNormal(path_fig+prefix+'chest.png', save_flag, prefix+' chest')
+        plt.rcParams.update({'font.size': 12})
+        ## original data inclinometers ##
+        #################################
+        #################################
+        ## original data inclinometers ##
+        obj_thigh.inclinometers_original()
+        obj_thigh.nightCounts('original')
+        plt.rcParams.update({'font.size': 12})
+        save_flag=True
+        obj_thigh.plotActigraphyNormal(path_fig+prefix+'thigh.png', save_flag, prefix+' thigh')
+        plt.rcParams.update({'font.size': 12})
+        ## original data inclinometers ##
+        #################################
         
         # obj_chest.plotPosChanging('original')
         # obj_chest.plotComplianceRep()
@@ -243,7 +243,8 @@ def main(args):
         list_name_cols = []
 
         save_flag=True
-        obj_chest.plotVM_2(path_fig+prefix+'vm_chest.png', save_flag, prefix)
+        obj_chest.plotVM_2(path_fig+prefix+'_sw_chest', save_flag, prefix+'_sw_chest')
+        # obj_thigh.plotVM_2(path_fig+prefix+'_thigh', save_flag, prefix+'_thigh')
         
         # obj_chest.vecMagCounting(min_value, win_size, min_samples_window)
         # obj_chest.plotVectorMagnitude()
@@ -262,22 +263,24 @@ def main(args):
                 # win_size=15*i ## min
                 print(f'window size: {win_size}')
                 list_activity_chest.append(obj_chest.vecMagCounting(min_value, win_size, min_samples_window))
-                # list_activity_thigh.append(obj_thigh.vecMagCounting(min_value, win_size, min_samples_window))
+                list_activity_thigh.append(obj_thigh.vecMagCounting(min_value, win_size, min_samples_window))
                 
                 # list_name_cols.append(str(win_size)+'(min)')
                 list_name_cols.append(str(win_size))
                 
             df_activity_chest = activityDataFrame(list_activity_chest, list_name_cols)
-            # df_activity_thigh = activityDataFrame(list_activity_thigh, list_name_cols)
+            df_activity_thigh = activityDataFrame(list_activity_thigh, list_name_cols)
             
             # df_activity_chest.to_csv(path_out+files_list_out_act[0])
             # df_activity_thigh.to_csv(path_out+files_list_out_act[1])
             
             print(f'df_activity_chest:\n{df_activity_chest}\n{df_activity_chest.T}')
+            print(f'df_activity_thigh:\n{df_activity_thigh}\n{df_activity_thigh.T}')
             
             # df_activity_chest_T = df_activity_chest.T
             fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(6, 6))
-            df_activity_chest.T.plot(ax=ax)
+            # df_activity_chest.T.plot(ax=ax)
+            # df_activity_thigh.T.plot(ax=ax)
             
             y_ini = -0.02
             y_end =  1.02
@@ -285,7 +288,12 @@ def main(args):
             ax.set_ylim(y_ini,y_end)
             
             plt.tight_layout()
-            fig.savefig(f'{path_fig}act_{prefix}.png')
+            
+            df_activity_chest.T.plot(ax=ax)
+            fig.savefig(f'{path_fig}act_{prefix}_chest.png')
+            
+            # df_activity_thigh.T.plot(ax=ax)
+            # fig.savefig(f'{path_fig}act_{prefix}_thigh.png')
         
         ## vector magnitude activity
         ############################
