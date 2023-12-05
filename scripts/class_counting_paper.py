@@ -564,7 +564,7 @@ class Counting_Actigraphy:
             # print(f'repositioning {repos_labels[-1]}: {repos_data[-1]}')
             
             ## compliance factor estimation
-            arr_compl, compliance_factor = self.complianceEstimation(arr_rep)
+            arr_compl, arr_compl_bin, compliance_factor = self.complianceEstimation(arr_rep)
             self.list_arr_compl.append(arr_compl.tolist())
             
             ## time period of each night in seconds subtracting first time and data from last time and date
@@ -596,7 +596,7 @@ class Counting_Actigraphy:
         
         coeff_rep_act = (coeff_rep>=1).astype(int) 
         
-        return  coeff_rep, np.round(100*coeff_rep_act.mean(),2) 
+        return  coeff_rep, coeff_rep_act, np.round(100*coeff_rep_act.mean(),2) 
         
     
     def nightDuration(self, date_ini, date_end, time_ini, time_end):
@@ -677,7 +677,17 @@ class Counting_Actigraphy:
         # print(f'repositioning {repos_labels[-1]}: {repos_data[-1]}')
         
         ## compliance factor estimation
-        arr_compl, compliance_factor = self.complianceEstimation(arr_rep)
+        arr_compl, arr_compl_bin, compliance_factor = self.complianceEstimation(arr_rep)
+        
+        x_ini = self.x_ini
+        x_end = self.x_end
+        compliance_factor = np.round(100*arr_compl_bin[x_ini:x_end].mean(),2)
+        print(f'compliance_factor: {compliance_factor}')
+        
+        ## sliding window to average results of compliance
+        # win_size_minutes = 60 ## min (1 hour)
+        # arr_compl_curve = self.vm_sWin_groups(arr_compl_bin, win_size_minutes)
+        # self.plot_measure_compl(arr_compl_bin, arr_compl_curve)
         
         ## smoothing appling a low pass filter
         # win_size_minutes=15
@@ -691,6 +701,28 @@ class Counting_Actigraphy:
         
         self.plot_compliance(arr_compl, filename, save_flag)
         
+        return 0
+        
+    def plot_measure_compl(self, arr_bin, arr_curve):
+        
+        fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(12, 1), gridspec_kw={'width_ratios': [3, 1]})
+        fig.canvas.mpl_connect('key_press_event', self.on_press)
+        fig.canvas.draw()
+        
+        x_ini = self.x_ini
+        x_end = self.x_end
+        
+        ax[0].plot(arr_bin)
+        ax[0].plot(arr_curve)
+        
+        ax[1].boxplot(arr_curve[x_ini:x_end], showfliers=False)
+
+        ax[0].set_xlim(x_ini,x_end)
+        ax[-1].xaxis.set_major_formatter(mticker.FuncFormatter(self.update_ticks_x))
+        
+        y_ini= -0.2
+        y_end=  1.2
+        ax[0].set_ylim(y_ini,y_end)
         
         
         return 0
@@ -913,7 +945,8 @@ class Counting_Actigraphy:
         
         font = {'fontname':'DejaVu Sans'}
         axarr.set_xlabel('time [h]', **font)
-        axarr.set_ylabel(f'compliance [p.c./{self.label_hours}]', **font)
+        # axarr.set_ylabel(f'compliance [p.c./{self.label_hours}]', **font)
+        axarr.set_ylabel(f'posture\nchanging rate', **font)
         
         if save_flag:
             fig.savefig(filename, bbox_inches='tight')
@@ -1141,6 +1174,7 @@ class Counting_Actigraphy:
             
             # indices_vertical_lines = self.list_start_end_night
         else:
+            print(f'low pass filter option selected.')
             self.df_inclinometers = self.df_lpf_inclinometers
             axarr.set_xlim(x_ini,x_end)
             axarr.xaxis.set_major_formatter(mticker.FuncFormatter(self.update_ticks_x))
@@ -1160,17 +1194,18 @@ class Counting_Actigraphy:
         
         # self.plotVerticalLines(axarr, self.list_start_end_night)
         
-        axarr.plot(arr_incl[0], color='tab:blue')
-        axarr.plot(arr_incl[1], color='tab:orange')
-        axarr.plot(arr_incl[2], color='tab:green')
-        axarr.plot(arr_incl[3], color='tab:red')
+        # axarr.plot(arr_incl[0], color='tab:blue')
+        # axarr.plot(arr_incl[1], color='tab:orange')
+        # axarr.plot(arr_incl[2], color='tab:green')
+        # axarr.plot(arr_incl[3], color='tab:red')
         
         x = np.arange(len(arr_incl[0]))
-        axarr.fill_between(x, 0, arr_incl[0], facecolor='tab:blue', alpha=0.5, interpolate=True)
-        axarr.fill_between(x, 0, arr_incl[1], facecolor='tab:orange', alpha=0.5, interpolate=True)
-        axarr.fill_between(x, 0, arr_incl[2], facecolor='tab:green', alpha=0.5, interpolate=True)
-        axarr.fill_between(x, 0, arr_incl[3], facecolor='tab:red', alpha=0.5, interpolate=True)
-
+        axarr.fill_between(x, 0, arr_incl[0], facecolor='tab:blue',   edgecolor="black", alpha=0.5, interpolate=True, hatch='.')
+        axarr.fill_between(x, 0, arr_incl[1], facecolor='tab:orange', edgecolor="black", alpha=0.5, interpolate=True, hatch='\\')
+        axarr.fill_between(x, 0, arr_incl[2], facecolor='tab:green',  edgecolor="black", alpha=0.5, interpolate=True, hatch='o')
+        axarr.fill_between(x, 0, arr_incl[3], facecolor='tab:red',    edgecolor="black", alpha=0.5, interpolate=True, hatch='/')
+        
+        
         # print(f'plot {len(arr_incl[0])}, {len(self.arr_rep)}')
         
         # axarr[5].plot(self.arr_rep, color='tab:blue')
@@ -1198,10 +1233,10 @@ class Counting_Actigraphy:
         # ax.legend([c], ["An ellipse, not a rectangle"],
           # handler_map={mpatches.Circle: HandlerEllipse()})
         
-        off_patch = mpatches.Patch(facecolor='tab:blue', edgecolor="tab:blue", label='off', alpha=0.5)
-        lyi_patch = mpatches.Patch(facecolor='tab:orange', edgecolor="tab:orange", label='lyi', alpha=0.5)
-        sit_patch = mpatches.Patch(facecolor='tab:green', edgecolor="tab:green", label='sit', alpha=0.5)
-        sta_patch = mpatches.Patch(facecolor='tab:red', edgecolor="tab:red", label='sta', alpha=0.5)
+        off_patch = mpatches.Patch(facecolor='tab:blue', edgecolor="black", label='off', alpha=0.5, hatch='.')
+        lyi_patch = mpatches.Patch(facecolor='tab:orange', edgecolor="black", label='lyi', alpha=0.5,  hatch='\\')
+        sit_patch = mpatches.Patch(facecolor='tab:green', edgecolor="black", label='sit', alpha=0.5, hatch='o')
+        sta_patch = mpatches.Patch(facecolor='tab:red', edgecolor="black", label='sta', alpha=0.5, hatch='/')
         # red_patch = mpatches.Patch(color='red', label='The red data')
         # axarr.legend(handles=[red_patch], bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
         # fig.legend(handles=[red_patch], loc='outside upper right')
@@ -1354,9 +1389,9 @@ class Counting_Actigraphy:
         # ax[3].plot(arr_act_030min, color='tab:gray')
         
         ax0.plot(arr_vec_mag,    color='tab:purple', label='VM (counts)')
-        ax1.plot(arr_act_001min, color='tab:brown',  marker='o', markevery=0.3, label='SW_1min')
-        ax2.plot(arr_act_015min, color='tab:pink',   marker='^', markevery=0.3, label='SW_15min')
-        ax3.plot(arr_act_030min, color='tab:gray',   marker='s', markevery=0.3, label='SW_30min')
+        ax1.plot(arr_act_001min, color='tab:brown',  marker='o', markevery=0.3, label='SM_1min' )
+        ax2.plot(arr_act_015min, color='tab:pink',   marker='^', markevery=0.3, label='SM_15min')
+        ax3.plot(arr_act_030min, color='tab:gray',   marker='s', markevery=0.3, label='SM_30min')
         # ax[4].plot(arr_act_060min, color='tab:olive')
         # ax[5].plot(arr_act_120min, color='tab:cyan')
        
@@ -1389,7 +1424,7 @@ class Counting_Actigraphy:
         # data = [arr_act_001min[x_ini:x_end], arr_act_015min[x_ini:x_end], arr_act_030min[x_ini:x_end], arr_act_060min[x_ini:x_end], arr_act_120min[x_ini:x_end]]
         data = [arr_act_001min[x_ini:x_end], arr_act_015min[x_ini:x_end], arr_act_030min[x_ini:x_end]]
         
-        ax4.boxplot(data, labels=['SW_1min', 'SW_15min', 'SW_30min'])
+        ax4.boxplot(data, showfliers=False, labels=['SM_1min', 'SM_15min', 'SM_30min'])
         # ax4.set_xticklabels(['SW_1min', 'SW_15min', 'SW_30min'])
         
         y_ini= -0.02

@@ -130,7 +130,7 @@ def main(args):
         obj_chest.inclinometers_original()
         obj_chest.nightCounts('original')
         plt.rcParams.update({'font.size': 12})
-        save_flag=True
+        save_flag=False
         obj_chest.plotActigraphyNormal(path_fig+prefix+'chest.png', save_flag, prefix+' chest')
         plt.rcParams.update({'font.size': 12})
         ## original data inclinometers ##
@@ -140,8 +140,8 @@ def main(args):
         obj_thigh.inclinometers_original()
         obj_thigh.nightCounts('original')
         plt.rcParams.update({'font.size': 12})
-        save_flag=True
-        obj_thigh.plotActigraphyNormal(path_fig+prefix+'thigh.png', save_flag, prefix+' thigh')
+        save_flag=False
+        # obj_thigh.plotActigraphyNormal(path_fig+prefix+'thigh.png', save_flag, prefix+' thigh')
         plt.rcParams.update({'font.size': 12})
         ## original data inclinometers ##
         #################################
@@ -154,7 +154,7 @@ def main(args):
         # win_size_minutes=2**i ## min
         
         ##################################
-        win_size_minutes=0.5 ## min
+        win_size_minutes=5 ## min
         print(f'window size: {win_size_minutes}')
         ##################################
         
@@ -176,21 +176,21 @@ def main(args):
         # obj_chest.plot_Inclinometers('mm')
         # obj_chest.plotPosChanging('mm')
         
-        # #######################
-        # ## low pass filter ##
-        # obj_chest.inclinometers_low_pass_filter(win_size_minutes)
-        # obj_chest.nightCounts('lpf')
-        # plt.rcParams.update({'font.size': 12})
-        # save_flag=False
-        # obj_chest.plot_Inclinometers('lpf', path_fig+prefix+'lpf_chest.png', save_flag)
-        # plt.rcParams.update({'font.size': 18})
-        # save_flag=False
-        # obj_chest.plotPosChanging('lpf', path_fig+prefix+'pos_chest.png', save_flag)
-        # plt.rcParams.update({'font.size': 12})
-        # save_flag=False
-        # obj_chest.compliance_full('lpf', win_size_minutes, path_fig+prefix+'com_chest.png', save_flag)
-        # ## low pass filter ##
-        # ##########################
+        #######################
+        ## low pass filter ##
+        obj_chest.inclinometers_low_pass_filter(win_size_minutes)
+        obj_chest.nightCounts('lpf')
+        plt.rcParams.update({'font.size': 12})
+        save_flag=False
+        obj_chest.plot_Inclinometers('lpf', path_fig+prefix+'lpf_chest.png', save_flag)
+        plt.rcParams.update({'font.size': 18})
+        save_flag=False
+        obj_chest.plotPosChanging('lpf', path_fig+prefix+'pos_chest.png', save_flag)
+        plt.rcParams.update({'font.size': 12})
+        save_flag=True
+        obj_chest.compliance_full('lpf', win_size_minutes, path_fig+prefix+'com_chest.png', save_flag)
+        ## low pass filter ##
+        ##########################
         
         # obj_chest.plotComplianceRep()
         
@@ -242,7 +242,7 @@ def main(args):
         list_activity_thigh = []
         list_name_cols = []
 
-        save_flag=True
+        save_flag=False
         obj_chest.plotVM_2(path_fig+prefix+'_sw_chest', save_flag, prefix+'_sw_chest')
         # obj_thigh.plotVM_2(path_fig+prefix+'_thigh', save_flag, prefix+'_thigh')
         
