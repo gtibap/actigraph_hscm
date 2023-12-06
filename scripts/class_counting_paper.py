@@ -59,7 +59,7 @@ class Counting_Actigraphy:
         self.sta_counts='sta_counts'
         self.night = 'night'
         
-        self.time_ini='22:00:00'
+        self.time_ini='20:00:00'
         self.time_end='08:00:00'
         
         self.color_day = 'tab:green'
@@ -857,6 +857,19 @@ class Counting_Actigraphy:
         ax_vm[0].set_ylabel('counts')
         
         return 0
+        
+    def plotVM_temp(self, arr):
+        
+        fig_vm, ax_vm = plt.subplots(nrows=2, ncols=1, sharex=True)
+        # print(f'ax_vm: {ax_vm.shape}, {type(ax_vm)}')
+        self.plotWithColors(fig_vm, ax_vm, signals=0)
+        
+        ax_vm[1].plot(arr)
+        
+        ax_vm[-1].set_xlabel('time (s)')
+        ax_vm[0].set_ylabel('counts')
+        
+        return 0
 
     def plotWithColors(self,fig,ax,signals):
         
@@ -1496,6 +1509,111 @@ class Counting_Actigraphy:
         # arr_vm_sw = (arr_vma_mod>=self.min_samples).astype(int) 
 
         return arr_act_mod
+    
+    
+    def mobility_estimation(self, win_size_1, win_size_2, win_size_3):
+        
+        ######## vector magnitude ################
+        arr_sw_vm_1 = self.vm_slidingWin(win_size_1)
+        arr_sw_vm_1 = arr_sw_vm_1[:len(self.df1)]
+        
+        arr_sw_vm_2 = self.vm_sWin_groups(arr_sw_vm_1, win_size_2)
+        arr_sw_vm_2 = arr_sw_vm_2[:len(self.df1)]
+        
+        ## separate day and night and calculate mean for each day and each night
+        arr_means_days, arr_means_nights = self.means_mobility(arr_sw_vm_2) 
+        ######## vector magnitude ################
+        ######## inclinometers ###################
+        self.inclinometers_low_pass_filter(win_size_3)
+        
+        ######## inclinometers ###################
+        
+        return 0
+        
+        
+    def means_mobility(self, arr):
+        
+        print(f'means_mobility\ndf1, arr: {len(self.df1)}, {len(arr)}, {len(arr)-len(self.df1)}')
+        df_mobility = pd.DataFrame()
+        
+        ## all dates in one list
+        dates_list = self.df1[self.label_date].unique().tolist()
+        print(self.filename,' dates: ',dates_list)
+        
+        labels_day_night=[]
+        l_night=0
+        l_day=0
+        for date in dates_list:
+
+            df_date = self.df1.loc[self.df1[self.label_date]== date]
+
+            ## from 00:00:00 to 08:00:00
+            df_segment = df_date.loc[df_date[self.label_time]<=self.time_end]
+            # labels for the night values
+            if len(df_segment) > 0:
+                labels_day_night.extend(len(df_segment)*['n'+str(l_night)]) 
+                l_night+=1
+            else:
+                pass
+
+            ## from 08:00:00 to 20:00:00
+            df_segment = df_date.loc[(df_date[self.label_time] > self.time_end) & (df_date[self.label_time] <= self.time_ini)]
+            # labels for the day values
+            if len(df_segment) > 0:
+                labels_day_night.extend(len(df_segment)*['d'+str(l_day)]) 
+                l_day+=1
+            else:
+                pass
+
+            ## from 20:00:00 to 23:59:59
+            df_segment = df_date.loc[df_date[self.label_time] > self.time_ini]
+            # labels for the night values
+            if len(df_segment) > 0:
+                labels_day_night.extend(len(df_segment)*['n'+str(l_night)]) 
+            else:
+                pass
+                
+        # print(f'labels_day_night {len(labels_day_night)}')
+        df_mobility['labels']=labels_day_night
+        df_mobility['activity']=arr
+        
+        # print(f'df_mobility:\n{df_mobility}')
+        self.plotVM_temp(arr)
+        
+         ## all dates in one list
+        labels_mobility = df_mobility['labels'].unique().tolist()
+        print(f'labels_mobility: {labels_mobility}')
+        
+        arr_days=[]
+        arr_nights=[]
+        
+        ### test ###
+        # df_segment = df_mobility.loc[df_mobility['labels'].str.startswith('d')]
+        # print(f'df_segment start with d: \n{df_segment}')
+        
+        # df_segment = df_mobility.loc[df_mobility['labels'].str.startswith('n')]
+        # print(f'df_segment start with n: \n{df_segment}')
+        
+        df_days=pd.DataFrame(columns=['sample_size','vm_mean'])
+        df_nights=pd.DataFrame(columns=['sample_size','vm_mean'])
+        
+        for label in labels_mobility:
+            df_label = df_mobility[df_mobility['labels']== label]
+            samples_size = len(df_label)
+            mean_value = df_label['activity'].mean()
+            
+            if label.startswith('d'):
+                # arr_days.append(mean_value)
+                df_days.loc[len(df_days.index)] = [samples_size, mean_value] 
+            else:
+                # arr_nights.append(mean_value)
+                df_nights.loc[len(df_nights.index)] = [samples_size, mean_value] 
+                
+        # print(f'{label}, {len(df_label)}, {mean_value}')
+        print(f'df_days:\n{df_days}')
+        print(f'df_nights:\n{df_nights}')
+        
+        return 0, 0
         
     
     def plotVectorMagnitude(self):
@@ -1550,6 +1668,7 @@ class Counting_Actigraphy:
         
         return 0
     
+    
     def plotComplianceRep(self):
         
         arr_compl = np.array(self.list_arr_compl) 
@@ -1567,6 +1686,7 @@ class Counting_Actigraphy:
         # self.plotImshowRow(np.reshape(median_arr_compl, (1, -1)), 'median')
             
         return 0
+        
         
     def plotImshow(self, arr_compl, arr_compl_2):
         
@@ -1605,6 +1725,7 @@ class Counting_Actigraphy:
         
         return 0
         
+        
     def plotImshow_simple(self, arr_compl, arr_compl_2):
         
         size_x, size_y = arr_compl.shape
@@ -1641,6 +1762,7 @@ class Counting_Actigraphy:
         ax2.set_xlabel('hour')
         
         return 0
+
     
     def plotImshow_simple_2(self, arr_compl, arr_compl_2):
         
@@ -1649,8 +1771,6 @@ class Counting_Actigraphy:
         
         ax.plot(arr_compl_2[0])
         # print(f'arr_compl_2:\n{arr_compl_2}, {arr_compl_2.shape}')
-        
-        
         
         
     def plotImshowRow(self, arr_compl, text):
