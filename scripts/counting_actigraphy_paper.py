@@ -180,21 +180,21 @@ def main(args):
         # obj_chest.plot_Inclinometers('mm')
         # obj_chest.plotPosChanging('mm')
         
-        #######################
-        ## low pass filter ##
-        obj_chest.inclinometers_low_pass_filter(win_size_minutes)
-        obj_chest.nightCounts('lpf')
-        plt.rcParams.update({'font.size': 12})
-        save_flag=False
-        obj_chest.plot_Inclinometers('lpf', path_fig+prefix+'lpf_chest.png', save_flag)
-        plt.rcParams.update({'font.size': 18})
-        save_flag=False
-        obj_chest.plotPosChanging('lpf', path_fig+prefix+'pos_chest.png', save_flag)
-        plt.rcParams.update({'font.size': 12})
-        save_flag=True
-        obj_chest.compliance_full('lpf', win_size_minutes, path_fig+prefix+'com_chest.png', save_flag)
-        ## low pass filter ##
-        ##########################
+        # #######################
+        # ## low pass filter ##
+        # obj_chest.inclinometers_low_pass_filter(win_size_minutes)
+        # obj_chest.nightCounts('lpf')
+        # plt.rcParams.update({'font.size': 12})
+        # save_flag=False
+        # obj_chest.plot_Inclinometers('lpf', path_fig+prefix+'lpf_chest.png', save_flag)
+        # plt.rcParams.update({'font.size': 18})
+        # save_flag=False
+        # obj_chest.plotPosChanging('lpf', path_fig+prefix+'pos_chest.png', save_flag)
+        # plt.rcParams.update({'font.size': 12})
+        # save_flag=True
+        # obj_chest.compliance_full('lpf', win_size_minutes, path_fig+prefix+'com_chest.png', save_flag)
+        # ## low pass filter ##
+        # ##########################
         
         # obj_chest.plotComplianceRep()
         
@@ -255,7 +255,9 @@ def main(args):
         win_size_2 = 120 # min applied to vector magnitude
         win_size_3 = 5 # min applied to inclinometers
         
-        obj_chest.mobility_estimation(win_size_1, win_size_2, win_size_3)
+        path_measurements_out = "../data/projet_officiel/measurements/"
+        
+        obj_chest.mobility_estimation(win_size_1, win_size_2, win_size_3, path_measurements_out+prefix)
         ###################################
         
         

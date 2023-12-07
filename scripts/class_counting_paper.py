@@ -475,7 +475,7 @@ class Counting_Actigraphy:
         self.df_lpf_inclinometers[self.incl_sit]=arr_new_sit
         self.df_lpf_inclinometers[self.incl_sta]=arr_new_sta
         
-        return 0
+        return self.df_lpf_inclinometers
     
     
     def filterLowPass(self, arr, fc, order):
@@ -1511,29 +1511,77 @@ class Counting_Actigraphy:
         return arr_act_mod
     
     
-    def mobility_estimation(self, win_size_1, win_size_2, win_size_3):
+    def mobility_estimation(self, win_size_1, win_size_2, win_size_3, path):
         
+        ## we apply the algorithms to the complete data points (all data: days and nights in a row). 
+        ##########################################
         ######## vector magnitude ################
+
+        ## sliding window full provides a vector bigger than the original; that is why we cut the last part of the resultant vector
+
         arr_sw_vm_1 = self.vm_slidingWin(win_size_1)
         arr_sw_vm_1 = arr_sw_vm_1[:len(self.df1)]
         
         arr_sw_vm_2 = self.vm_sWin_groups(arr_sw_vm_1, win_size_2)
         arr_sw_vm_2 = arr_sw_vm_2[:len(self.df1)]
-        
-        ## separate day and night and calculate mean for each day and each night
-        arr_means_days, arr_means_nights = self.means_mobility(arr_sw_vm_2) 
+
         ######## vector magnitude ################
+        ##########################################
         ######## inclinometers ###################
-        self.inclinometers_low_pass_filter(win_size_3)
+
+        df_incl_filtered = self.inclinometers_low_pass_filter(win_size_3)
+        ## counting number of repositioning 
+        arr_rep, repos_labels, repos_data  = self.counting_repositioning(df_incl_filtered)
+        ## insert a value of zero at the begining of the array to make it same size original
+        arr_rep = np.insert(arr_rep,0,0).astype(int)
+        # print(f'repositioning {repos_labels[-1]}: {repos_data[-1]}')
+        ## compliance factor estimation
+        arr_compl, arr_compl_bin, compliance_factor = self.complianceEstimation(arr_rep)
+        arr_compl_bin = arr_compl_bin[:len(self.df1)]
         
         ######## inclinometers ###################
+        ##########################################
+        ##### day and night segmentation #########
+        ## separate day and night and calculate mean for each day and each night
+
+        df_mobility = self.days_nights() 
+        
+        df_mobility['vma_act'] = arr_sw_vm_2
+        df_mobility['inc_act'] = arr_compl_bin
+        
+        # print(f'mobility:\n{df_mobility}')
+        
+        df_days, df_nights = self.means_mobility(df_mobility) 
+        # print(f'df_days:\n{df_days}')
+        # print(f'df_nights:\n{df_nights}')
+        df_days.to_csv(path+'_days.csv', index=False)
+        df_nights.to_csv(path+'_nights.csv', index=False)
+        
+        
+        # ######## vector magnitude ################
+        # ######## inclinometers ###################
+        # df_incl_filtered = self.inclinometers_low_pass_filter(win_size_3)
+        
+        # ## counting number of repositioning 
+        # arr_rep, repos_labels, repos_data  = self.counting_repositioning(df_incl_filtered)
+        # print(f'repositioning {repos_labels[-1]}: {repos_data[-1]}')
+        
+        # ## compliance factor estimation
+        # arr_compl, arr_compl_bin, compliance_factor = self.complianceEstimation(arr_rep)
+        
+        # x_ini = self.x_ini
+        # x_end = self.x_end
+        # compliance_factor = np.round(100*arr_compl_bin[x_ini:x_end].mean(),2)
+        # print(f'compliance_factor: {compliance_factor}')
+        
+        # ######## inclinometers ###################
         
         return 0
+    
+    
+    def days_nights(self):
         
-        
-    def means_mobility(self, arr):
-        
-        print(f'means_mobility\ndf1, arr: {len(self.df1)}, {len(arr)}, {len(arr)-len(self.df1)}')
+        # print(f'means_mobility\ndf1, arr: {len(self.df1)}, {len(arr)}, {len(arr)-len(self.df1)}')
         df_mobility = pd.DataFrame()
         
         ## all dates in one list
@@ -1551,6 +1599,7 @@ class Counting_Actigraphy:
             df_segment = df_date.loc[df_date[self.label_time]<=self.time_end]
             # labels for the night values
             if len(df_segment) > 0:
+                # creates a list of labels same size df_segment to identify the night number
                 labels_day_night.extend(len(df_segment)*['n'+str(l_night)]) 
                 l_night+=1
             else:
@@ -1560,6 +1609,7 @@ class Counting_Actigraphy:
             df_segment = df_date.loc[(df_date[self.label_time] > self.time_end) & (df_date[self.label_time] <= self.time_ini)]
             # labels for the day values
             if len(df_segment) > 0:
+                # creates a list of labels same size df_segment to identify the day number
                 labels_day_night.extend(len(df_segment)*['d'+str(l_day)]) 
                 l_day+=1
             else:
@@ -1569,23 +1619,28 @@ class Counting_Actigraphy:
             df_segment = df_date.loc[df_date[self.label_time] > self.time_ini]
             # labels for the night values
             if len(df_segment) > 0:
+                # creates a list of labels same size df_segment to identify the night number
                 labels_day_night.extend(len(df_segment)*['n'+str(l_night)]) 
             else:
                 pass
                 
         # print(f'labels_day_night {len(labels_day_night)}')
         df_mobility['labels']=labels_day_night
-        df_mobility['activity']=arr
-        
+        # df_mobility['activity']=arr
         # print(f'df_mobility:\n{df_mobility}')
-        self.plotVM_temp(arr)
+        # self.plotVM_temp(arr)
+    
+        return df_mobility
+    
+
+    def means_mobility(self, df_mobility):
         
-         ## all dates in one list
+        ## all dates in one list
         labels_mobility = df_mobility['labels'].unique().tolist()
         print(f'labels_mobility: {labels_mobility}')
         
-        arr_days=[]
-        arr_nights=[]
+        # arr_days=[]
+        # arr_nights=[]
         
         ### test ###
         # df_segment = df_mobility.loc[df_mobility['labels'].str.startswith('d')]
@@ -1594,26 +1649,27 @@ class Counting_Actigraphy:
         # df_segment = df_mobility.loc[df_mobility['labels'].str.startswith('n')]
         # print(f'df_segment start with n: \n{df_segment}')
         
-        df_days=pd.DataFrame(columns=['sample_size','vm_mean'])
-        df_nights=pd.DataFrame(columns=['sample_size','vm_mean'])
+        df_days=pd.DataFrame(columns=['sample_size','vma_mean', 'inc_mean'])
+        df_nights=pd.DataFrame(columns=['sample_size','vma_mean', 'inc_mean'])
         
         for label in labels_mobility:
             df_label = df_mobility[df_mobility['labels']== label]
             samples_size = len(df_label)
-            mean_value = df_label['activity'].mean()
+            mean_value_vma = df_label['vma_act'].mean()
+            mean_value_inc = df_label['inc_act'].mean()
             
             if label.startswith('d'):
                 # arr_days.append(mean_value)
-                df_days.loc[len(df_days.index)] = [samples_size, mean_value] 
+                df_days.loc[len(df_days.index)] = [samples_size, mean_value_vma, mean_value_inc] 
             else:
                 # arr_nights.append(mean_value)
-                df_nights.loc[len(df_nights.index)] = [samples_size, mean_value] 
+                df_nights.loc[len(df_nights.index)] = [samples_size, mean_value_vma, mean_value_inc] 
                 
         # print(f'{label}, {len(df_label)}, {mean_value}')
-        print(f'df_days:\n{df_days}')
-        print(f'df_nights:\n{df_nights}')
+        # print(f'df_days:\n{df_days}')
+        # print(f'df_nights:\n{df_nights}')
         
-        return 0, 0
+        return df_days, df_nights
         
     
     def plotVectorMagnitude(self):
