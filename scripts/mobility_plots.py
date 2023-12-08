@@ -21,45 +21,92 @@
 #  MA 02110-1301, USA.
 #  
 #  
+from itertools import cycle
 
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+# sns.set()
 
-def plot_boxplots(df_vma_days, df_vma_nights, df_inc_days, df_inc_nights):
+
+def plot_vma(df_vma_days, df_vma_nights, path_out, flag_save_fig):
 
     data_day = df_vma_days.assign(period='day')
     data_night = df_vma_nights.assign(period='night')
     cdf = pd.concat([data_day, data_night]) 
+    # print(cdf)
+    mdf = pd.melt(cdf, id_vars=['period'], var_name=['subject'])
+    # print(mdf)
+    
+    fig, ax = plt.subplots()
+    
+    ax = sns.boxplot(data=mdf, x='subject', y="value", hue="period", palette="pastel")
+
+    #########################
+    hatches = ['//','//', '..','..', '//','..', '//','..', '//','..']
+    for i, patch in enumerate(ax.patches):
+        patch.set_hatch(hatches[i])
+    #########################
+    
+    ax.set(ylim=(-0.05, 1.05))
+    ax.set(xticklabels = (['P_1', 'P_2', 'P_3', 'P_4']))
+    
+    size_font = 20
+    
+    ax.set_xlabel("subject",fontsize=size_font)
+    ax.set_ylabel("activity rate",fontsize=size_font)
+    ax.tick_params(labelsize=size_font)
+
+    plt.legend(fontsize=size_font, loc='upper center', bbox_to_anchor=(0.5, 1.18), ncol=2, fancybox=True, shadow=False)
+    
+    if flag_save_fig:
+        plt.savefig(path_out+'boxplot_act.png', bbox_inches='tight')
+    
+    return 0
+
+
+def plot_incl(df_inc_days, df_inc_nights, path_out, flag_save_fig):
+
+    data_day = df_inc_days.assign(period='day')
+    data_night = df_inc_nights.assign(period='night')
+    cdf = pd.concat([data_day, data_night]) 
     print(cdf)
     mdf = pd.melt(cdf, id_vars=['period'], var_name=['subject'])
     print(mdf)
-    ax = sns.boxplot(x='subject', y="value", hue="period", data=mdf)
+    
+    fig, ax = plt.subplots()
+    
+    ax = sns.boxplot(data=mdf, x='subject', y="value", hue="period", palette="pastel")
 
-    # data_day = df_vma_days.assign(Location=1)
-    # data_night = df_vma_nights.assign(Location=2)
-    # data3 = pd.DataFrame(np.random.rand(17,3)+0.4, columns=['A','B','C']).assign(Location=3)
- 
-    # cdf = pd.concat([data_day, data_night])    
-    # mdf = pd.melt(cdf, id_vars=['Location'], var_name=['Subject'])
-    # print(mdf.head())
-    # print(mdf)
+    #########################
+    hatches = ['//','//', '..','..', '//','..', '//','..', '//','..', '//','..', '//','..']
+    for i, patch in enumerate(ax.patches):
+        print(i)
+        patch.set_hatch(hatches[i])
+    #########################
+    
+    ax.set(ylim=(-0.05, 1.05))
+    ax.set(xticklabels = (['P_1', 'P_2', 'P_3', 'P_4']))
+    
+    size_font = 20
+    
+    ax.set_xlabel("subject",fontsize=size_font)
+    ax.set_ylabel("posture changing rate",fontsize=size_font)
+    ax.tick_params(labelsize=size_font)
 
-    #    Location Letter     value
-    # 0         1      A  0.223565
-    # 1         1      A  0.515797
-    # 2         1      A  0.377588
-    # 3         1      A  0.687614
-    # 4         1      A  0.094116
-
-    # ax = sns.boxplot(x="Location", y="value", hue="Subject", data=cdf)   
-
+    plt.legend(fontsize=size_font, loc='upper center', bbox_to_anchor=(0.5, 1.18), ncol=2, fancybox=True, shadow=False)
+    
+    if flag_save_fig:
+        plt.savefig(path_out+'boxplot_inc.png', bbox_inches='tight')
+    
     return 0
+
 
 def main(args):
     # print(f'mobility plots')
     path_in = "../data/projet_officiel/measurements/"
+    path_out = "../data/projet_officiel/measurements/figures/"
     filenames = ['A006','A003','A026','A018']
     
     df_vma_days = pd.DataFrame(columns=filenames)
@@ -95,8 +142,10 @@ def main(args):
     # df_vma_nights.boxplot()
     # df_inc_days.boxplot()
     # df_inc_nights.boxplot()
-    
-    plot_boxplots(df_vma_days, df_vma_nights, df_inc_days, df_inc_nights)
+    flag_save_fig=True
+    plot_vma(df_vma_days, df_vma_nights, path_out, flag_save_fig)
+    flag_save_fig=True
+    plot_incl(df_inc_days, df_inc_nights, path_out, flag_save_fig)
     
     # titanic = sns.load_dataset("titanic")
     # print(titanic)
