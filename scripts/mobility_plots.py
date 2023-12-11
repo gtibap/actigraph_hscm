@@ -109,6 +109,9 @@ def main(args):
     path_out = "../data/projet_officiel/measurements/figures/"
     filenames = ['A006','A003','A026','A018']
     
+    ## prefix could be: 1, 15, or 30 -- represents the applied sliding window size in minutes
+    prefix = args[1]
+    
     df_vma_days = pd.DataFrame(columns=filenames)
     df_vma_nights = pd.DataFrame(columns=filenames)
     
@@ -117,8 +120,8 @@ def main(args):
     
     for fn in filenames:
         print(fn)
-        fn_days   = path_in + fn + '_days.csv'
-        fn_nights = path_in + fn + '_nights.csv'
+        fn_days   = path_in + fn +'_' + prefix + 'min_days.csv'
+        fn_nights = path_in + fn +'_' + prefix + 'min_nights.csv'
     
         df_days = pd.read_csv(fn_days)  
         df_nights = pd.read_csv(fn_nights)  
@@ -143,8 +146,8 @@ def main(args):
     # df_inc_days.boxplot()
     # df_inc_nights.boxplot()
     flag_save_fig=True
-    plot_vma(df_vma_days, df_vma_nights, path_out, flag_save_fig)
-    flag_save_fig=True
+    plot_vma(df_vma_days, df_vma_nights, path_out+prefix+'min_', flag_save_fig)
+    flag_save_fig=False
     plot_incl(df_inc_days, df_inc_nights, path_out, flag_save_fig)
     
     # titanic = sns.load_dataset("titanic")

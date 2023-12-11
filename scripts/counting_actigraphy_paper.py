@@ -85,6 +85,9 @@ def main(args):
     path_fig = "../data/projet_officiel/figures/"
     # prefix = 'A010'
     prefix = args[1]
+    sw_val = int(args[2])
+    lpf_val = float(args[3])
+    
     files_list=[prefix+'_chest.csv', prefix+'_thigh.csv']
     files_list_out_rep=[prefix+'_chest_repositioning.csv', prefix+'_thigh_repositioning.csv']
     files_list_out_act=[prefix+'_chest_activity.csv', prefix+'_thigh_activity.csv']
@@ -158,8 +161,8 @@ def main(args):
         # win_size_minutes=2**i ## min
         
         ##################################
-        win_size_minutes=5 ## min
-        print(f'window size: {win_size_minutes}')
+        # win_size_minutes=5 ## min
+        # print(f'window size: {win_size_minutes}')
         ##################################
         
         ## sliding windows ##
@@ -235,29 +238,33 @@ def main(args):
         
         #############################
         ## vector magnitude activity        
-        min_value=1 ## counts
-        min_samples_window = 1 ## at least 2 samples to consider it as a valid activity
-        win_size=15 ## min
+        # min_value=1 ## counts
+        # min_samples_window = 1 ## at least 2 samples to consider it as a valid activity
+        # win_size=15 ## min
         ## get values using several window sizes; provides info activity frequency during each night
         ## windows' size base of 2 (from 1min [2**0] to 128min [2**7]): 1,2,4,8,16,32,64,128
         
         
-        list_activity_chest = []
-        list_activity_thigh = []
-        list_name_cols = []
+        # list_activity_chest = []
+        # list_activity_thigh = []
+        # list_name_cols = []
 
-        save_flag=False
+        # save_flag=False
         # obj_chest.plotVM_2(path_fig+prefix+'_sw_chest', save_flag, prefix+'_sw_chest')
         # obj_thigh.plotVM_2(path_fig+prefix+'_thigh', save_flag, prefix+'_thigh')
         
         ###################################
-        win_size_1 = 15 # min applied to vector magnitude
+        win_size_1 = sw_val # min applied to vector magnitude
         win_size_2 = 120 # min applied to vector magnitude
-        win_size_3 = 5 # min applied to inclinometers
+        win_size_3 = lpf_val # min applied to inclinometers
+        
+        print(f'window size: {win_size_1}')
+        print(f'low-pass filter: {win_size_3}')
         
         path_measurements_out = "../data/projet_officiel/measurements/"
         
-        obj_chest.mobility_estimation(win_size_1, win_size_2, win_size_3, path_measurements_out+prefix)
+        # obj_chest.mobility_vma(win_size_1, win_size_2, path_measurements_out+'vma_'+prefix+'_'+str(win_size_1)+'min')
+        obj_chest.mobility_inc(win_size_3, path_measurements_out+'inc_'+prefix+'_'+str(win_size_1)+'min')
         ###################################
         
         

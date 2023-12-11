@@ -1524,6 +1524,8 @@ class Counting_Actigraphy:
         
         arr_sw_vm_2 = self.vm_sWin_groups(arr_sw_vm_1, win_size_2)
         arr_sw_vm_2 = arr_sw_vm_2[:len(self.df1)]
+        
+        # self.plot_activity(arr_sw_vm_1, arr_sw_vm_2)
 
         ######## vector magnitude ################
         ##########################################
@@ -1543,7 +1545,7 @@ class Counting_Actigraphy:
         ##########################################
         ##### day and night segmentation #########
         ## separate day and night and calculate mean for each day and each night
-
+        ## genarate a list with labels of day+number and night+number
         df_mobility = self.days_nights() 
         
         df_mobility['vma_act'] = arr_sw_vm_2
@@ -1551,9 +1553,12 @@ class Counting_Actigraphy:
         
         # print(f'mobility:\n{df_mobility}')
         
+        ## calculate mean value for 12h periods of days and nights
         df_days, df_nights = self.means_mobility(df_mobility) 
         # print(f'df_days:\n{df_days}')
         # print(f'df_nights:\n{df_nights}')
+        
+        ## save the mean values from the VM and Inclinometers of days and nights
         df_days.to_csv(path+'_days.csv', index=False)
         df_nights.to_csv(path+'_nights.csv', index=False)
         
@@ -1577,6 +1582,90 @@ class Counting_Actigraphy:
         # ######## inclinometers ###################
         
         return 0
+    
+    
+    def mobility_vma(self, win_size_1, win_size_2, path):
+        
+        ## we apply the algorithms to the complete data points (all data: days and nights in a row). 
+        ##########################################
+        ######## vector magnitude ################
+
+        ## sliding window full provides a vector bigger than the original; that is why we cut the last part of the resultant vector
+
+        arr_sw_vm_1 = self.vm_slidingWin(win_size_1)
+        arr_sw_vm_1 = arr_sw_vm_1[:len(self.df1)]
+        
+        arr_sw_vm_2 = self.vm_sWin_groups(arr_sw_vm_1, win_size_2)
+        arr_sw_vm_2 = arr_sw_vm_2[:len(self.df1)]
+        
+        # self.plot_activity(arr_sw_vm_1, arr_sw_vm_2)
+
+        ######## vector magnitude ################
+        ##########################################
+        
+        ##########################################
+        ##### day and night segmentation #########
+        ## separate day and night and calculate mean for each day and each night
+        ## genarate a list with labels of day+number and night+number
+        df_mobility = self.days_nights() 
+        
+        df_mobility['vma_act'] = arr_sw_vm_2
+        
+        # print(f'mobility:\n{df_mobility}')
+        
+        ## calculate mean value for 12h periods of days and nights
+        df_days, df_nights = self.means_vma(df_mobility) 
+        # print(f'df_days:\n{df_days}')
+        # print(f'df_nights:\n{df_nights}')
+        
+        ## save the mean values from the VM and Inclinometers of days and nights
+        df_days.to_csv(path+'_days.csv', index=False)
+        df_nights.to_csv(path+'_nights.csv', index=False)
+        
+        return 0
+    
+
+    def mobility_inc(self, win_size_3, path):
+        
+        ## we apply the algorithms to the complete data points (all data: days and nights in a row). 
+        ##########################################
+        ######## inclinometers ###################
+
+        df_incl_filtered = self.inclinometers_low_pass_filter(win_size_3)
+        ## counting number of repositioning 
+        arr_rep, repos_labels, repos_data  = self.counting_repositioning(df_incl_filtered)
+        ## insert a value of zero at the begining of the array to make it same size original
+        arr_rep = np.insert(arr_rep,0,0).astype(int)
+        # print(f'repositioning {repos_labels[-1]}: {repos_data[-1]}')
+        ## compliance factor estimation
+        arr_compl, arr_compl_bin, compliance_factor = self.complianceEstimation(arr_rep)
+        arr_compl_bin = arr_compl_bin[:len(self.df1)]
+        
+        self.plot_inc(df_incl_filtered, arr_rep, arr_compl_bin)
+        
+        ######## inclinometers ###################
+        ##########################################
+        ##### day and night segmentation #########
+        ## separate day and night and calculate mean for each day and each night
+        ## genarate a list with labels of day+number and night+number
+        df_mobility = self.days_nights() 
+        
+        df_mobility['inc_act'] = arr_compl_bin
+        
+        # print(f'mobility:\n{df_mobility}')
+        
+        ## calculate mean value for 12h periods of days and nights
+        df_days, df_nights = self.means_inc(df_mobility) 
+        # print(f'df_days:\n{df_days}')
+        # print(f'df_nights:\n{df_nights}')
+        
+        ## save the mean values from the VM and Inclinometers of days and nights
+        df_days.to_csv(path+'_days.csv', index=False)
+        df_nights.to_csv(path+'_nights.csv', index=False)
+        
+        return 0
+    
+    
     
     
     def days_nights(self):
@@ -1670,7 +1759,114 @@ class Counting_Actigraphy:
         # print(f'df_nights:\n{df_nights}')
         
         return df_days, df_nights
+    
+    def means_vma(self, df_mobility):
         
+        ## all dates in one list
+        labels_mobility = df_mobility['labels'].unique().tolist()
+        print(f'labels_mobility: {labels_mobility}')
+        
+        df_days  =pd.DataFrame(columns=['sample_size','vma_mean'])
+        df_nights=pd.DataFrame(columns=['sample_size','vma_mean'])
+        
+        for label in labels_mobility:
+            df_label = df_mobility[df_mobility['labels']== label]
+            samples_size = len(df_label)
+            mean_value_vma = df_label['vma_act'].mean()
+            
+            if label.startswith('d'):
+                # arr_days.append(mean_value)
+                df_days.loc[len(df_days.index)]     = [samples_size, mean_value_vma] 
+            else:
+                # arr_nights.append(mean_value)
+                df_nights.loc[len(df_nights.index)] = [samples_size, mean_value_vma] 
+                
+        # print(f'{label}, {len(df_label)}, {mean_value}')
+        # print(f'df_days:\n{df_days}')
+        # print(f'df_nights:\n{df_nights}')
+        
+        return df_days, df_nights
+
+
+    def means_inc(self, df_mobility):
+        
+        ## all dates in one list
+        labels_mobility = df_mobility['labels'].unique().tolist()
+        print(f'labels_mobility: {labels_mobility}')
+        
+        df_days=pd.DataFrame(columns  =['sample_size', 'inc_mean'])
+        df_nights=pd.DataFrame(columns=['sample_size', 'inc_mean'])
+        
+        for label in labels_mobility:
+            df_label = df_mobility[df_mobility['labels']== label]
+            samples_size = len(df_label)
+            mean_value_inc = df_label['inc_act'].mean()
+            
+            if label.startswith('d'):
+                # arr_days.append(mean_value)
+                df_days.loc[len(df_days.index)]     = [samples_size, mean_value_inc] 
+            else:
+                # arr_nights.append(mean_value)
+                df_nights.loc[len(df_nights.index)] = [samples_size, mean_value_inc] 
+                
+        # print(f'{label}, {len(df_label)}, {mean_value}')
+        # print(f'df_days:\n{df_days}')
+        # print(f'df_nights:\n{df_nights}')
+        
+        return df_days, df_nights
+    
+    def plot_inc(self, df, arr_1, arr_2):
+        
+        ## read inclinometers 
+        arr_off = self.df1[self.incl_off].to_numpy()
+        arr_lyi = self.df1[self.incl_lyi].to_numpy()
+        arr_sit = self.df1[self.incl_sit].to_numpy()
+        arr_sta = self.df1[self.incl_sta].to_numpy()
+        
+        ## read filtered inclinometers 
+        arr_lpf_off = df[self.incl_off].to_numpy()
+        arr_lpf_lyi = df[self.incl_lyi].to_numpy()
+        arr_lpf_sit = df[self.incl_sit].to_numpy()
+        arr_lpf_sta = df[self.incl_sta].to_numpy()
+        
+        fig1, ax1 = plt.subplots(nrows=10, ncols=1, sharex=True)
+        fig1.canvas.mpl_connect('key_press_event', self.on_press)
+        ax1[0].plot(arr_off)
+        ax1[1].plot(arr_lyi)
+        ax1[2].plot(arr_sit)
+        ax1[3].plot(arr_sta)
+        
+        ax1[4].plot(arr_lpf_off)
+        ax1[5].plot(arr_lpf_lyi)
+        ax1[6].plot(arr_lpf_sit)
+        ax1[7].plot(arr_lpf_sta)
+        
+        ax1[8].plot(arr_1)
+        ax1[9].plot(arr_2)
+        
+        # fig2, ax2 = plt.subplots(nrows=2, ncols=1, sharex=True)
+        # fig2.canvas.mpl_connect('key_press_event', self.on_press)
+
+        # arr_vma = self.df1[self.vec_mag].to_numpy()
+        ## plot signals vector magnitude
+        # ax[0].plot(arr_vma)
+        # ax2[0].plot(arr_1)
+        # ax2[1].plot(arr_2)
+        
+        return 0
+    
+    def plot_activity(self, arr_1, arr_2):
+        
+        fig, ax = plt.subplots(nrows=3, ncols=1, sharex=True)
+        fig.canvas.mpl_connect('key_press_event', self.on_press)
+
+        arr_vma = self.df1[self.vec_mag].to_numpy()
+        ## plot signals vector magnitude
+        ax[0].plot(arr_vma)
+        ax[1].plot(arr_1)
+        ax[2].plot(arr_2)
+        
+        return 0
     
     def plotVectorMagnitude(self):
         
