@@ -438,7 +438,8 @@ class Counting_Actigraphy:
         
         spm = 60 ## seconds per min
         window_size = int(spm*win_size_minutes)
-        period = 2*window_size
+        # period = 2*window_size
+        period = window_size
         freq = 1/period
         print(f'lpf cut freq: {freq}')
         
@@ -1509,6 +1510,25 @@ class Counting_Actigraphy:
         # arr_vm_sw = (arr_vma_mod>=self.min_samples).astype(int) 
 
         return arr_act_mod
+        
+    
+    def inc_slidingWin(self, arr, win_size_min):
+        
+        min_samples = 1
+        
+        spm = 60 ## seconds per min
+        window_size = int(spm*win_size_min)
+        # print(  'window size (s): ', window_size)
+        ## window to average values (same weight)
+        win = signal.windows.boxcar(window_size)
+        
+        arr_mod = np.rint(signal.convolve(arr, win, mode='full'))
+        ## the sample is valid if the magnitude is greater than or equal to a min number of samples (self.min_samples)
+
+        arr_sw = (arr_mod>=min_samples).astype(int) 
+
+        return arr_sw
+    
     
     
     def mobility_estimation(self, win_size_1, win_size_2, win_size_3, path):
@@ -1641,7 +1661,7 @@ class Counting_Actigraphy:
         arr_compl, arr_compl_bin, compliance_factor = self.complianceEstimation(arr_rep)
         arr_compl_bin = arr_compl_bin[:len(self.df1)]
         
-        self.plot_inc(df_incl_filtered, arr_rep, arr_compl_bin)
+        self.plot_inc(df_incl_filtered, arr_rep, arr_compl_bin, 0)
         
         ######## inclinometers ###################
         ##########################################
@@ -1664,6 +1684,62 @@ class Counting_Actigraphy:
         df_nights.to_csv(path+'_nights.csv', index=False)
         
         return 0
+    
+    
+    def mobility_inc_2(self, win_size_3, path):
+        
+        ## we apply the algorithms to the complete data points (all data: days and nights in a row). 
+        ##########################################
+        ######## inclinometers ###################
+
+        t_s = 1 # 1 min -- 1/t_s frequency cut low-pass filter 
+        df_incl_filtered = self.inclinometers_low_pass_filter(t_s)
+        ## counting number of repositioning 
+        arr_rep, repos_labels, repos_data  = self.counting_repositioning(self.df1)
+        ## insert a value of zero at the begining of the array to make it same size original
+        arr_rep = np.insert(arr_rep,0,0).astype(int)
+        # print(f'repositioning {repos_labels[-1]}: {repos_data[-1]}')
+        
+        ## sliding window (with a window size of win_size_3) makes more evident the position changing samples
+        arr_sw = self.inc_slidingWin(arr_rep, win_size_3)
+        arr_sw = arr_sw[:len(self.df1)]
+        
+        ## sliding window averaging results window size 120 min
+        win_size_4 = 120 # 120 min
+        arr_sw_2 = self.vm_sWin_groups(arr_sw, win_size_4)
+        arr_sw_2 = arr_sw_2[:len(self.df1)]
+        
+        # self.plot_inc(self.df1, arr_rep, arr_sw, arr_sw_2)
+        
+        
+        ## compliance factor estimation
+        # arr_compl, arr_compl_bin, compliance_factor = self.complianceEstimation(arr_rep)
+        # arr_compl_bin = arr_compl_bin[:len(self.df1)]
+        
+        # self.plot_inc(df_incl_filtered, arr_rep, arr_compl_bin, 0)
+        
+        ######## inclinometers ###################
+        ##########################################
+        ##### day and night segmentation #########
+        ## separate day and night and calculate mean for each day and each night
+        ## genarate a list with labels of day+number and night+number
+        df_mobility = self.days_nights() 
+        
+        df_mobility['inc_act'] = arr_sw_2
+        
+        # print(f'mobility:\n{df_mobility}')
+        
+        ## calculate mean value for 12h periods of days and nights
+        df_days, df_nights = self.means_inc(df_mobility) 
+        # print(f'df_days:\n{df_days}')
+        # print(f'df_nights:\n{df_nights}')
+        
+        ## save the mean values from the VM and Inclinometers of days and nights
+        df_days.to_csv(path+'_days.csv', index=False)
+        df_nights.to_csv(path+'_nights.csv', index=False)
+        
+        return 0
+    
     
     
     
@@ -1815,7 +1891,7 @@ class Counting_Actigraphy:
         
         return df_days, df_nights
     
-    def plot_inc(self, df, arr_1, arr_2):
+    def plot_inc(self, df, arr_1, arr_2, arr_3):
         
         ## read inclinometers 
         arr_off = self.df1[self.incl_off].to_numpy()
@@ -1829,7 +1905,7 @@ class Counting_Actigraphy:
         arr_lpf_sit = df[self.incl_sit].to_numpy()
         arr_lpf_sta = df[self.incl_sta].to_numpy()
         
-        fig1, ax1 = plt.subplots(nrows=10, ncols=1, sharex=True)
+        fig1, ax1 = plt.subplots(nrows=11, ncols=1, sharex=True)
         fig1.canvas.mpl_connect('key_press_event', self.on_press)
         ax1[0].plot(arr_off)
         ax1[1].plot(arr_lyi)
@@ -1843,6 +1919,7 @@ class Counting_Actigraphy:
         
         ax1[8].plot(arr_1)
         ax1[9].plot(arr_2)
+        ax1[10].plot(arr_3)
         
         # fig2, ax2 = plt.subplots(nrows=2, ncols=1, sharex=True)
         # fig2.canvas.mpl_connect('key_press_event', self.on_press)

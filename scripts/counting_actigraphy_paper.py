@@ -264,7 +264,8 @@ def main(args):
         path_measurements_out = "../data/projet_officiel/measurements/"
         
         # obj_chest.mobility_vma(win_size_1, win_size_2, path_measurements_out+'vma_'+prefix+'_'+str(win_size_1)+'min')
-        obj_chest.mobility_inc(win_size_3, path_measurements_out+'inc_'+prefix+'_'+str(win_size_1)+'min')
+        # obj_chest.mobility_inc(win_size_3, path_measurements_out+'inc_'+prefix+'_'+str(int(win_size_3))+'min')
+        obj_chest.mobility_inc_2(win_size_3, path_measurements_out+'inc2_'+prefix+'_'+str(int(win_size_3))+'min')
         ###################################
         
         
