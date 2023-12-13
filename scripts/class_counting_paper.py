@@ -1692,8 +1692,8 @@ class Counting_Actigraphy:
         ##########################################
         ######## inclinometers ###################
 
-        t_s = 1 # 1 min -- 1/t_s frequency cut low-pass filter 
-        df_incl_filtered = self.inclinometers_low_pass_filter(t_s)
+        # t_s = 1 # 1 min -- 1/t_s frequency cut low-pass filter 
+        # df_incl_filtered = self.inclinometers_low_pass_filter(t_s)
         ## counting number of repositioning 
         arr_rep, repos_labels, repos_data  = self.counting_repositioning(self.df1)
         ## insert a value of zero at the begining of the array to make it same size original
