@@ -25,8 +25,8 @@ class Activity_Measurements:
         self.incl_lyi ='Inclinometer Lying'
         
         
-        self.time_ini='20:00:00'
-        self.time_end='08:00:00'
+        self.time_ini='21:00:00'
+        self.time_end='09:00:00'
         
         self.color_day = 'tab:green'
         self.color_night = 'tab:purple'
@@ -204,7 +204,7 @@ class Activity_Measurements:
         arr_sta_lyi = self.counting_per_two_incl(arr_sta, arr_lyi)
         arr_sta_sit = self.counting_per_two_incl(arr_sta, arr_sit)
     
-        ## array of repositionings (logical or |)
+        # ## array of repositionings (logical or |)
         arr_rep =(arr_off_lyi | arr_lyi_off | arr_sit_off | arr_sta_off |
                   arr_off_sit | arr_lyi_sit | arr_sit_lyi | arr_sta_lyi |
                   arr_off_sta | arr_lyi_sta | arr_sit_sta | arr_sta_sit)
@@ -295,7 +295,7 @@ class Activity_Measurements:
         return 0
     
     
-    def getDataFrame(self):
+    def get_df1(self):
         return self.df1
         
     def getVectorMagnitude(self):
