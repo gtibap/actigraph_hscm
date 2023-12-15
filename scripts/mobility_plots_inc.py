@@ -136,7 +136,7 @@ def main(args):
         #### inc_mean days from index 1 to index 5
         df_inc_days[fn] = df_days.iloc[1:6]['inc_mean'].to_list()
         #### inc_mean nights from index 0 to index 5
-        df_inc_nights[fn] = df_nights.iloc[0:6]['inc_mean'].to_list()
+        df_inc_nights[fn] = df_nights.iloc[1:6]['inc_mean'].to_list()
         # print(df_vm_days)
         # print(df_vma_nights)
     

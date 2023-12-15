@@ -24,6 +24,11 @@ class Activity_Measurements:
         self.incl_sit ='Inclinometer Sitting'
         self.incl_lyi ='Inclinometer Lying'
         
+        self.off_filtered = 'off_filtered'
+        self.lyi_filtered = 'lyi_filtered'
+        self.sit_filtered = 'sit_filtered'
+        self.sta_filtered = 'sta_filtered'
+        self.sum_filtered = 'sum_filtered'
         
         self.time_ini='21:00:00'
         self.time_end='09:00:00'
@@ -180,13 +185,70 @@ class Activity_Measurements:
     
         return 0
 
-    
-    def posture_changing(self):
+
+    def filterLowPass(self, arr, fc, order):
+        sampling_rate = 1 ## 1 Hz, 1 sample per second
+        sos = signal.butter(order, fc, btype='lowpass', fs=sampling_rate, output='sos')
+        filtered = signal.sosfiltfilt(sos, arr)
+        return filtered
+
+    def inclinometers_lpf(self, size_min):
         
+        arr_date = self.df1[self.label_date].to_numpy()
+        arr_time = self.df1[self.label_time].to_numpy()
+        
+        ## read inclinometers 
         arr_off = self.df1[self.incl_off].to_numpy()
         arr_lyi = self.df1[self.incl_lyi].to_numpy()
         arr_sit = self.df1[self.incl_sit].to_numpy()
         arr_sta = self.df1[self.incl_sta].to_numpy()
+        
+        spm = 60 ## seconds per min
+        period = spm*size_min
+
+        freq = 1/period
+        order=2
+        arr_off_mod = self.filterLowPass(arr_off, freq, order)
+        arr_lyi_mod = self.filterLowPass(arr_lyi, freq, order)
+        arr_sit_mod = self.filterLowPass(arr_sit, freq, order)
+        arr_sta_mod = self.filterLowPass(arr_sta, freq, order)
+        
+        coeff_stack = np.vstack((arr_off_mod, 
+                                 arr_lyi_mod, 
+                                 arr_sit_mod, 
+                                 arr_sta_mod))
+                                 
+        sum_coeff = np.sum(coeff_stack, axis=0)
+        
+        index_coeff = np.argmax(coeff_stack, axis=0)
+        arr_new_off = (index_coeff==0).astype(int)
+        arr_new_lyi = (index_coeff==1).astype(int)
+        arr_new_sit = (index_coeff==2).astype(int)
+        arr_new_sta = (index_coeff==3).astype(int)
+        
+        ## grouping the resultant data
+        df_lpf_inc = pd.DataFrame()
+        df_lpf_inc[self.label_date]=arr_date
+        df_lpf_inc[self.label_time]=arr_time
+        df_lpf_inc[self.off_filtered]=arr_off_mod
+        df_lpf_inc[self.lyi_filtered]=arr_lyi_mod
+        df_lpf_inc[self.sit_filtered]=arr_sit_mod
+        df_lpf_inc[self.sta_filtered]=arr_sta_mod
+        df_lpf_inc[self.sum_filtered]=sum_coeff
+        df_lpf_inc[self.incl_off]=arr_new_off
+        df_lpf_inc[self.incl_lyi]=arr_new_lyi
+        df_lpf_inc[self.incl_sit]=arr_new_sit
+        df_lpf_inc[self.incl_sta]=arr_new_sta
+        
+        return df_lpf_inc
+    
+    
+    def posture_changing(self, df):
+        
+        arr_off = df[self.incl_off].to_numpy()
+        arr_lyi = df[self.incl_lyi].to_numpy()
+        arr_sit = df[self.incl_sit].to_numpy()
+        arr_sta = df[self.incl_sta].to_numpy()
         
         arr_off_lyi = self.counting_per_two_incl(arr_off, arr_lyi)
         arr_off_sit = self.counting_per_two_incl(arr_off, arr_sit)
@@ -255,7 +317,9 @@ class Activity_Measurements:
         # print(f'labels_list: {labels_list}')
         
         for label in labels_list:
+            
             df_label = self.df1[self.df1[self.label_day_night]== label]
+            
             samples_size = len(df_label)
             mean_vma = df_label[self.vma_b].mean()
             mean_inc = df_label[self.inc_b].mean()
@@ -282,9 +346,20 @@ class Activity_Measurements:
         
         return 0
         
-    def inc_processing(self, size_a, size_b):
+    def inc_processing(self, size_a, size_b, flag):
         
-        arr_inc = self.posture_changing()
+        # ## first step signals' filtering to remove activity of short duration
+        if flag:
+            tc = 1.0 # 1min, fc = 1/60: removes micro-movements
+        else:
+            tc = 1.0/29.0 # min ->  fc = 0.5 Hz : keep all components; half of frequency of sampling (max. freq. Nyquist)
+            # df_incl_filtered = self.df1
+            
+        df_incl_filtered = self.inclinometers_lpf(tc)
+        
+        self.plot_Inclinometers(df_incl_filtered)
+        
+        arr_inc = self.posture_changing(df_incl_filtered)
         
         arr_a = self.slidingWindow_A(arr_inc, size_a)
         arr_b = self.slidingWindow_B(arr_a, size_b)
@@ -294,6 +369,61 @@ class Activity_Measurements:
         
         return 0
     
+    def plot_Inclinometers(self, df):
+        
+        fig, ax = plt.subplots(nrows=12, ncols=1, sharex=True, figsize=(10, 2))
+        fig.canvas.mpl_connect('key_press_event', self.on_press)
+                
+        arr_0 = np.empty((4, 0)).tolist()
+        arr_1 = np.empty((4, 0)).tolist()
+        arr_2 = np.empty((4, 0)).tolist()
+        
+        arr_0[0] =self.df1[self.incl_off].to_numpy()
+        arr_0[1] =self.df1[self.incl_lyi].to_numpy()
+        arr_0[2] =self.df1[self.incl_sit].to_numpy()
+        arr_0[3] =self.df1[self.incl_sta].to_numpy()
+        
+        arr_1[0] = df[self.off_filtered].to_numpy()
+        arr_1[1] = df[self.lyi_filtered].to_numpy()
+        arr_1[2] = df[self.sit_filtered].to_numpy()
+        arr_1[3] = df[self.sta_filtered].to_numpy()
+        
+        arr_2[0] =df[self.incl_off].to_numpy()
+        arr_2[1] =df[self.incl_lyi].to_numpy()
+        arr_2[2] =df[self.incl_sit].to_numpy()
+        arr_2[3] =df[self.incl_sta].to_numpy()
+        
+        ###########
+        
+        ax[0].plot(arr_0[0], color='tab:blue')
+        ax[1].plot(arr_0[1], color='tab:orange')
+        ax[2].plot(arr_0[2], color='tab:green')
+        ax[3].plot(arr_0[3], color='tab:red')
+        
+        ax[4].plot(arr_1[0], color='tab:blue')
+        ax[5].plot(arr_1[1], color='tab:orange')
+        ax[6].plot(arr_1[2], color='tab:green')
+        ax[7].plot(arr_1[3], color='tab:red')
+        
+        ax[8].plot(arr_2[0], color='tab:blue')
+        ax[9].plot(arr_2[1], color='tab:orange')
+        ax[10].plot(arr_2[2], color='tab:green')
+        ax[11].plot(arr_2[3], color='tab:red')
+        
+        # y_ini= -0.1
+        # y_end=  1.2
+        # ax[0].set_ylim(y_ini,y_end)
+        return 0
+    
+    def on_press(self, event):
+        # print('press', event.key)
+        sys.stdout.flush()
+        
+        if event.key == 'x':
+            plt.close('all')
+        else:
+            pass
+        return 0
     
     def get_df1(self):
         return self.df1
@@ -303,4 +433,10 @@ class Activity_Measurements:
     
     def getDayNightLabels(self):
         return self.df1[self.label_day_night].tolist()
+        
+    def getMeansDays(self):
+        return self.df_days
+        
+    def getMeansNights(self):
+        return self.df_nights
 
