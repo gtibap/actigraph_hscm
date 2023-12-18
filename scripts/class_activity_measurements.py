@@ -49,6 +49,7 @@ class Activity_Measurements:
         self.df1 = pd.DataFrame([])
         self.df_days  = pd.DataFrame(columns  =['sample_size', 'vma_mean', 'inc_mean'])
         self.df_nights= pd.DataFrame(columns=['sample_size', 'vma_mean', 'inc_mean'])
+        self.df_incl_filtered = pd.DataFrame()
         
         
     def openFile(self, path, filename):
@@ -350,16 +351,15 @@ class Activity_Measurements:
         
         # ## first step signals' filtering to remove activity of short duration
         if flag:
-            tc = 1.0 # 1min, fc = 1/60: removes micro-movements
+            tc = 1.0 # minutes, fc = 1/(60*tc): to remove micro-movements
         else:
             tc = 1.0/29.0 # min ->  fc = 0.5 Hz : keep all components; half of frequency of sampling (max. freq. Nyquist)
-            # df_incl_filtered = self.df1
             
-        df_incl_filtered = self.inclinometers_lpf(tc)
+        self.df_incl_filtered = self.inclinometers_lpf(tc)
         
-        self.plot_Inclinometers(df_incl_filtered)
+        # self.plot_Inclinometers(df_incl_filtered)
         
-        arr_inc = self.posture_changing(df_incl_filtered)
+        arr_inc = self.posture_changing(self.df_incl_filtered)
         
         arr_a = self.slidingWindow_A(arr_inc, size_a)
         arr_b = self.slidingWindow_B(arr_a, size_b)
@@ -368,10 +368,54 @@ class Activity_Measurements:
         self.df1[self.inc_b]=arr_b
         
         return 0
-    
-    def plot_Inclinometers(self, df):
+
         
-        fig, ax = plt.subplots(nrows=12, ncols=1, sharex=True, figsize=(10, 2))
+    def plot_Inclinometers_results(self):
+        
+        fig, ax = plt.subplots(nrows=10, ncols=1, sharex=True, figsize=(12, 6))
+        fig.canvas.mpl_connect('key_press_event', self.on_press)
+                
+        arr_0 = np.empty((4, 0)).tolist()
+        arr_2 = np.empty((4, 0)).tolist()
+        
+        arr_0[0] =self.df1[self.incl_off].to_numpy()
+        arr_0[1] =self.df1[self.incl_lyi].to_numpy()
+        arr_0[2] =self.df1[self.incl_sit].to_numpy()
+        arr_0[3] =self.df1[self.incl_sta].to_numpy()
+        
+        arr_2[0] =self.df_incl_filtered[self.incl_off].to_numpy()
+        arr_2[1] =self.df_incl_filtered[self.incl_lyi].to_numpy()
+        arr_2[2] =self.df_incl_filtered[self.incl_sit].to_numpy()
+        arr_2[3] =self.df_incl_filtered[self.incl_sta].to_numpy()
+        
+        arr_a = self.df1[self.inc_a].to_list()
+        arr_b = self.df1[self.inc_b].to_list()
+        
+        ###########
+        
+        ax[0].plot(arr_0[0], color='tab:blue')
+        ax[1].plot(arr_0[1], color='tab:orange')
+        ax[2].plot(arr_0[2], color='tab:green')
+        ax[3].plot(arr_0[3], color='tab:red')
+        
+        ax[4].plot(arr_2[0], color='tab:blue')
+        ax[5].plot(arr_2[1], color='tab:orange')
+        ax[6].plot(arr_2[2], color='tab:green')
+        ax[7].plot(arr_2[3], color='tab:red')
+        
+        ax[8].plot(arr_a, color='tab:purple')
+        ax[9].plot(arr_b, color='tab:brown')
+        
+        y_ini= -0.1
+        y_end=  1.2
+        ax[-1].set_ylim(y_ini,y_end)
+        
+        return 0
+    
+    
+    def plot_Inclinometers(self):
+        
+        fig, ax = plt.subplots(nrows=12, ncols=1, sharex=True, figsize=(12, 6))
         fig.canvas.mpl_connect('key_press_event', self.on_press)
                 
         arr_0 = np.empty((4, 0)).tolist()
@@ -383,15 +427,15 @@ class Activity_Measurements:
         arr_0[2] =self.df1[self.incl_sit].to_numpy()
         arr_0[3] =self.df1[self.incl_sta].to_numpy()
         
-        arr_1[0] = df[self.off_filtered].to_numpy()
-        arr_1[1] = df[self.lyi_filtered].to_numpy()
-        arr_1[2] = df[self.sit_filtered].to_numpy()
-        arr_1[3] = df[self.sta_filtered].to_numpy()
+        arr_1[0] = self.df_incl_filtered[self.off_filtered].to_numpy()
+        arr_1[1] = self.df_incl_filtered[self.lyi_filtered].to_numpy()
+        arr_1[2] = self.df_incl_filtered[self.sit_filtered].to_numpy()
+        arr_1[3] = self.df_incl_filtered[self.sta_filtered].to_numpy()
         
-        arr_2[0] =df[self.incl_off].to_numpy()
-        arr_2[1] =df[self.incl_lyi].to_numpy()
-        arr_2[2] =df[self.incl_sit].to_numpy()
-        arr_2[3] =df[self.incl_sta].to_numpy()
+        arr_2[0] =self.df_incl_filtered[self.incl_off].to_numpy()
+        arr_2[1] =self.df_incl_filtered[self.incl_lyi].to_numpy()
+        arr_2[2] =self.df_incl_filtered[self.incl_sit].to_numpy()
+        arr_2[3] =self.df_incl_filtered[self.incl_sta].to_numpy()
         
         ###########
         
@@ -410,9 +454,6 @@ class Activity_Measurements:
         ax[10].plot(arr_2[2], color='tab:green')
         ax[11].plot(arr_2[3], color='tab:red')
         
-        # y_ini= -0.1
-        # y_end=  1.2
-        # ax[0].set_ylim(y_ini,y_end)
         return 0
     
     def on_press(self, event):

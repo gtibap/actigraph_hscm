@@ -333,7 +333,7 @@ def main(args):
     win_a =  10 # 10 minutes
     win_b = 120 # 120 minutes
     
-    flag_filter=False
+    flag_filter=True
     # self.df_days  = pd.DataFrame(columns  =['sample_size', 'vma_mean', 'inc_mean'])
     # self.df_nights= pd.DataFrame(columns=['sample_size', 'vma_mean', 'inc_mean'])
     
@@ -369,15 +369,17 @@ def main(args):
     # plot_vma_cycle(list_objs)
     # plot_cycle_alpha(list_objs, vma_b, 'Vector Magnitude Activity')
     # plot_cycle_alpha(list_objs, inc_b, 'Inclinometers Activity')
+    list_objs[0].plot_Inclinometers()
+    list_objs[0].plot_Inclinometers_results()
     
     ## plot boxplots
     # files_names=['A006', 'A003', 'A026', 'A018',]
-    flag_save_fig=True
+    flag_save_fig=False
     title = 'Vector Magnitude'
     label_y = "activity rate"
     plot_boxplots(df_vma_days, df_vma_nights, label_y, title, path_out+'vma_rate_', flag_save_fig)
     
-    flag_save_fig=True
+    flag_save_fig=False
     title = 'Inclinometers'
     if flag_filter:
         label_y = "posture changing rate\nfilter on"
