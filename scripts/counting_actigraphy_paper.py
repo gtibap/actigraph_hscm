@@ -249,8 +249,8 @@ def main(args):
         # list_activity_thigh = []
         # list_name_cols = []
 
-        # save_flag=False
-        # obj_chest.plotVM_2(path_fig+prefix+'_sw_chest', save_flag, prefix+'_sw_chest')
+        save_flag=True
+        obj_chest.plotVM_3(path_fig+prefix+'_sw_chest_out', save_flag, prefix+'_sw_chest')
         # obj_thigh.plotVM_2(path_fig+prefix+'_thigh', save_flag, prefix+'_thigh')
         
         ###################################
