@@ -1465,7 +1465,9 @@ class Counting_Actigraphy:
     def plotVM_3(self, filename, save_flag, title):
        
 ##        fig_vm, ax_vm = plt.subplots(nrows=2, ncols=1,figsize=(10, 2))
-        fig, ax = plt.subplots(nrows=4, ncols=1, sharex=True, figsize=(10, 3), gridspec_kw={'height_ratios': [2, 1, 1, 1,]})
+        fig, ax = plt.subplots(nrows=4, ncols=1, sharex=True, figsize=(10, 6), gridspec_kw={'height_ratios': [2, 1, 1, 1,]})
+        # fig.tight_layout(h_pad=1)
+        # fig.tight_layout()
         
         # fig2, ax2 = plt.subplots(nrows=3, ncols=2, figsize=(10, 3))
         fig2 = plt.figure(figsize=(10, 3))
@@ -1541,26 +1543,32 @@ class Counting_Actigraphy:
 ##        indices_vertical_lines = self.list_start_end_night        
 ##        self.plotVerticalLines(ax, indices_vertical_lines)
        
-        ax[0].plot(arr_vec_mag,   color='tab:purple')
-        ax[1].plot(arr_sw_001min, alpha=0.5, color='tab:brown',  )
-        ax[2].plot(arr_sw_015min, alpha=0.5, color='tab:pink',   )
-        ax[3].plot(arr_sw_030min, alpha=0.5, color='tab:gray',   )
+        ax[0].plot(arr_vec_mag,   color='tab:purple', label='VM\n(counts)' )
+        ax[1].plot(arr_sw_001min, alpha=0.5, color='tab:brown', label='s\'' )
+        ax[2].plot(arr_sw_015min, alpha=0.5, color='tab:pink',  label='s\'' )
+        ax[3].plot(arr_sw_030min, alpha=0.5, color='tab:gray',  label='s\'' )
         
-        ax[1].plot(arr_act_001min, color='tab:brown',  marker='o', markevery=0.25, label='1 min' )
-        ax[2].plot(arr_act_015min, color='tab:pink',   marker='^', markevery=0.25, label='15 min')
-        ax[3].plot(arr_act_030min, color='tab:gray',   marker='s', markevery=0.25, label='30 min')
+        ax[1].plot(arr_act_001min, color='tab:brown',  marker='o', markevery=0.25, label='s_out' )
+        ax[2].plot(arr_act_015min, color='tab:pink',   marker='^', markevery=0.25, label='s_out')
+        ax[3].plot(arr_act_030min, color='tab:gray',   marker='s', markevery=0.25, label='s_out')
         
         # , label='VM (counts)'
         # , label='SM_1min' 
         # , label='SM_15min'
         # , label='SM_30min'
         
-        ax[0].legend(['VM (counts)'])
-        # ax[1].legend()
-        # ax[2].legend()
-        # ax[3].legend()
+        ax[0].legend(title='', loc='upper left', bbox_to_anchor=(1.0, 1.0), ncol=1, fancybox=True, shadow=True)
+        ax[1].legend(title='a=1 min', alignment='center', loc='upper left', bbox_to_anchor=(1.0, 1.1), ncol=1, fancybox=True, shadow=True)
+        ax[2].legend(title='a=15 min', alignment='center', loc='upper left', bbox_to_anchor=(1.0, 1.1), ncol=1, fancybox=True, shadow=True)
+        ax[3].legend(title='a=30 min', alignment='center', loc='upper left', bbox_to_anchor=(1.0, 1.1), ncol=1, fancybox=True, shadow=True)
         
-        fig.legend(loc='upper center', bbox_to_anchor=(0.5, 1.02), ncol=3, fancybox=True, shadow=True)
+        # ax[0].set_title('Input signal: VM (counts)')
+        # ax[1].set_title('A =  1 min, B = 120 min')
+        # ax[2].set_title('A = 15 min, B = 120 min')
+        # ax[3].set_title('A = 30 min, B = 120 min')
+        
+        
+        # fig.legend(loc='upper center', bbox_to_anchor=(0.5, 1.02), ncol=3, fancybox=True, shadow=True)
         
         # fig.legend(loc='upper center', bbox_to_anchor=(0.5, 1.02), ncol=3, fancybox=True, shadow=True)
         
