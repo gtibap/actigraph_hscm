@@ -149,7 +149,7 @@ class Activity_Measurements:
 
             df_date = self.df1.loc[self.df1[self.label_date]== date]
 
-            ## from 00:00:00 to 08:00:00
+            ## from 00:00:00 to self.time_end
             df_segment = df_date.loc[df_date[self.label_time]<=self.time_end]
             # labels for the night values
             if len(df_segment) > 0:
@@ -160,7 +160,7 @@ class Activity_Measurements:
             else:
                 pass
 
-            ## from 08:00:00 to 20:00:00
+            ## from self.time_end to self.time_ini
             df_segment = df_date.loc[(df_date[self.label_time] > self.time_end) & (df_date[self.label_time] <= self.time_ini)]
             # labels for the day values
             if len(df_segment) > 0:
@@ -171,7 +171,7 @@ class Activity_Measurements:
             else:
                 pass
 
-            ## from 20:00:00 to 23:59:59
+            ## from self.time_ini to 23:59:59
             df_segment = df_date.loc[df_date[self.label_time] > self.time_ini]
             # labels for the night values
             if len(df_segment) > 0:
