@@ -4,6 +4,7 @@
 #  activity_measurements.py
 
 from class_activity_measurements import Activity_Measurements
+from matplotlib.ticker import LinearLocator
 
 import numpy as np
 import pandas as pd
@@ -14,6 +15,7 @@ import sys
 label_vma  ='Vector Magnitude'
 label_day_night = 'day_night'
 label_binary_day_night = 'binary_day_night'
+label_incl = 'Inclinometers Activity'
 vma_a='vma_a'
 vma_b='vma_b'
 inc_a='inc_a'
@@ -35,33 +37,25 @@ def plot_vector_magnitude(list_objs, flag_save, path):
     list_nights=['n1','n2','n3','n4','n5']
         
     rows_number = len(list_objs)
-    fig, ax = plt.subplots(nrows=rows_number, ncols=1, figsize=(12, 6),)
+    fig, ax = plt.subplots(nrows=rows_number, ncols=1, figsize=(12, 6), sharex=True, )
     fig.canvas.mpl_connect('key_press_event', on_press)
     fig.canvas.draw()
     
     plt.rcParams.update({'font.size': 12})
-    # plt.rc('axes', titlesize=12)     # fontsize of the axes title
-    # plt.rc('axes', labelsize=12)    # fontsize of the x and y labels
-    # plt.rc('xtick', labelsize=12)    # fontsize of the tick labels
-    # plt.rc('ytick', labelsize=12)    # fontsize of the tick labels
     
-    # fig2, ax2 = plt.subplots(nrows=rows_number, ncols=1, figsize=(12, 6),)
-    # fig2.canvas.mpl_connect('key_press_event', on_press)
-    # fig2.canvas.draw()
-
-    num_samples = 43200
+    num_samples = 43200 ## 12 hours, a sample every second
 
     y_ini=  -10.0
-    y_end=  380.0
+    y_end=   60.0
     
-    x_text_pos = 0
-    y_text_pos = y_end - 80
+    # x_text_pos = 0
+    # y_text_pos = y_end - 80
     
     for i, obj in enumerate(list_objs):
 
         df = list_objs[i].get_df1()
         
-        trans = ax[i].get_xaxis_transform() # x in data untis, y in axes fraction
+        trans = ax[i].get_xaxis_transform() # x in data units, y in axes fraction. This is for legend location
         id_d = 1
         id_n = 1
 
@@ -70,7 +64,7 @@ def plot_vector_magnitude(list_objs, flag_save, path):
         ax[i].vlines(x=[id_ini], ymin=y_ini, ymax=y_end, colors='purple', ls='--', lw=1, label='')
         ## paint each day and each night
         labels_list = df[label_day_night].unique().tolist()
-        print(f'labels: {labels_list}')
+        # print(f'labels: {labels_list}')
         for label in labels_list:
             
             if (label in list_days) or (label in list_nights):
@@ -79,22 +73,12 @@ def plot_vector_magnitude(list_objs, flag_save, path):
                 vma=df_label[label_vma].to_list()
                 # ids=df_label.index
                 ids=np.arange(id_ini, id_ini+len(df_label))
-                print(f'ids size: {len(ids)}, {len(df_label)}')
+                # print(f'ids size: {len(ids)}, {len(df_label)}')
                 
                 if label.startswith('d'):
                     ax[i].plot(ids, vma, color='tab:blue')
-                    # annotation
-                    # x_text_pos = ids[int(len(ids)/2)]
-                    # ax[i].annotate(f'd{id_d}', xy =(x_text_pos, y_text_pos),) 
-                    # ann = ax[i].annotate(f'd{id_d}', xy=(x_text_pos, y_text_pos), xycoords=trans)    
-                    # id_d+=1 
                 else:
                     ax[i].plot(ids, vma, color='tab:orange')
-                    # annotation
-                    # x_text_pos = ids[int(len(ids)/2)]
-                    # ax[i].annotate(f'n{id_n}', xy =(x_text_pos, y_text_pos),)  
-                    # ann = ax[i].annotate(f'd{id_n}', xy=(x_text_pos, y_text_pos), xycoords=trans)    
-                    # id_n+=1 
                 
                 id_ini=id_ini+len(df_label)
                 # vertical line
@@ -110,11 +94,6 @@ def plot_vector_magnitude(list_objs, flag_save, path):
         ax[1].set_xticklabels([])
         ax[2].set_xticklabels([])
         
-        # ax[0].set_ylabel('counts')
-        # ax[1].set_ylabel('counts')
-        # ax[2].set_ylabel('counts')
-        # ax[3].set_ylabel('counts')
-        
         # legend
         asia = ['B','A','A','A']
         nl = ['C4','C6','T7','T10']
@@ -122,38 +101,125 @@ def plot_vector_magnitude(list_objs, flag_save, path):
             ax[i].legend(title=f'P{i+1} - VM\n(counts)\nAIS: {asia[i]}\nNLI: {nl[i]}', alignment='center', loc='upper left', bbox_to_anchor=(1.0, 1.1), ncol=1, fancybox=True, shadow=True)
         
         ## annotate
-        trans = ax[0].get_xaxis_transform() # x in data untis, y in axes fraction
+        trans = ax[0].get_xaxis_transform() # x in data units, y in axes fraction
         list_x_pos = (2*num_samples)*np.arange(5)
-        # ann = ax[0].annotate('MgII', xy=(2000, 1.05 ), xycoords=trans)
+        
         for i, x_pos in enumerate(list_x_pos):
             ann = ax[0].annotate(f'd{i+1}', xy=(x_pos + int(num_samples/2), 1.05 ), xycoords=trans, fontsize=12, color='tab:blue')
             ann = ax[0].annotate(f'n{i+1}', xy=(x_pos + int(3*num_samples/2), 1.05 ), xycoords=trans, fontsize=12, color='tab:orange')
                 
-
         ## font size labels and ticks
-        ax[-1].set_xlabel('samples', fontsize=12)
+        xticks = np.linspace(0, num_samples*10, 11).astype(int)
+        ax[-1].set_xticks(xticks, (xticks/3600).astype(int), fontsize=12)
+        ax[-1].set_xlabel('time [h]', fontsize=12)
         
         for i in range(len(ax)):
-            ax[i].set_yticks([0,200], [0,200], fontsize=12)
+            ax[i].set_yticks([y_ini+10,y_end-10], [int(y_ini+10),int(y_end-10)], fontsize=12)
         
         for tick in ax[-1].xaxis.get_major_ticks():
             tick.label.set_fontsize(12) 
-        
-        
-        
-        # multiple lines all full height
-        
-        # sns.lineplot(data=df, x=df.index, y=label_vma, hue=label_binary_day_night, ax=ax[i])
-        # ax[i].get_legend().set_visible(False)
-        
-        # arr_vm = list_objs[i].getVectorMagnitude()
-        # ax2[i].plot(arr_vm)
-        # ax2[i].set_ylim(y_ini,y_end)
         
     if flag_save:
         fig.savefig(path+'vm_all.png', bbox_inches='tight')
         
     return 0
+    
+
+def plot_incl_activity(list_objs, flag_save, path):
+
+    list_days=['d1','d2','d3','d4','d5']
+    list_nights=['n1','n2','n3','n4','n5']
+        
+    rows_number = len(list_objs)
+    fig, ax = plt.subplots(nrows=rows_number, ncols=1, figsize=(12, 6), sharex=True,)
+    fig.canvas.mpl_connect('key_press_event', on_press)
+    fig.canvas.draw()
+    
+    plt.rcParams.update({'font.size': 12})
+    
+    num_samples = 43200
+
+    y_ini=  -0.2
+    y_end=   1.2
+    
+    # x_text_pos = 0
+    # y_text_pos = y_end - 80
+    
+    for i, obj in enumerate(list_objs):
+
+        df = list_objs[i].get_df1()
+        
+        trans = ax[i].get_xaxis_transform() # x in data untis, y in axes fraction
+        ## counters initialization
+        id_d = 1
+        id_n = 1
+        id_ini = 0
+        
+        ax[i].vlines(x=[id_ini], ymin=y_ini, ymax=y_end, colors='purple', ls='--', lw=1, label='')
+        ## paint each day and each night
+        labels_list = df[label_day_night].unique().tolist()
+        print(f'labels: {labels_list}')
+        for label in labels_list:
+            
+            if (label in list_days) or (label in list_nights):
+                
+                df_label = df[df[label_day_night]== label]
+                incl=df_label[label_incl].to_list()
+                # ids=df_label.index
+                ids=np.arange(id_ini, id_ini+len(df_label))
+                # print(f'ids size: {len(ids)}, {len(df_label)}')
+                
+                if label.startswith('d'):
+                    ax[i].plot(ids, incl, color='tab:blue')
+                else:
+                    ax[i].plot(ids, incl, color='tab:orange')
+                
+                id_ini=id_ini+len(df_label)
+                # vertical line
+                ax[i].vlines(x=[id_ini], ymin=y_ini, ymax=y_end, colors='purple', ls='--', lw=1, label='')
+                
+            else:
+                pass
+        
+        ax[i].set_ylim(y_ini,y_end)
+        
+        # hide xtick values
+        ax[0].set_xticklabels([])
+        ax[1].set_xticklabels([])
+        ax[2].set_xticklabels([])
+        
+        # legend
+        asia = ['B','A','A','A']
+        nl = ['C4','C6','T7','T10']
+        for i in np.arange(4):
+            ax[i].legend(title=f'P{i+1} - Incl.\nActivity\nAIS: {asia[i]}\nNLI: {nl[i]}', alignment='center', loc='upper left', bbox_to_anchor=(1.0, 1.1), ncol=1, fancybox=True, shadow=True)
+        
+        ## annotate
+        trans = ax[0].get_xaxis_transform() # x in data untis, y in axes fraction
+        list_x_pos = (2*num_samples)*np.arange(5)
+        
+        for i, x_pos in enumerate(list_x_pos):
+            ann = ax[0].annotate(f'd{i+1}', xy=(x_pos + int(num_samples/2), 1.05 ), xycoords=trans, fontsize=12, color='tab:blue')
+            ann = ax[0].annotate(f'n{i+1}', xy=(x_pos + int(3*num_samples/2), 1.05 ), xycoords=trans, fontsize=12, color='tab:orange')
+                
+        ## font size labels and ticks
+        xticks = np.linspace(0, num_samples*10, 11).astype(int)
+        ax[-1].set_xticks(xticks, (xticks/3600).astype(int), fontsize=12)
+        ax[-1].set_xlabel('time [h]', fontsize=12)
+        
+        for i in range(len(ax)):
+            ax[i].set_yticks([0,1], [0,1], fontsize=12)
+        
+        for tick in ax[-1].xaxis.get_major_ticks():
+            tick.label.set_fontsize(12) 
+        
+    if flag_save:
+        fig.savefig(path+'incl_all.png', bbox_inches='tight')
+        
+    return 0
+    
+
+
 
 def plot_vma_step(list_objs, step):
     
@@ -414,8 +480,8 @@ def main(args):
             print(f'Problem reading the file {filename}.')
             
     ## plot Vector Magnitude
-    flag_save = False
-    # plot_vector_magnitude(list_objs, flag_save, path_out)
+    flag_save = True
+    plot_vector_magnitude(list_objs, flag_save, path_out)
     
     df_vma_days = pd.DataFrame(columns=files_names)
     df_vma_nights = pd.DataFrame(columns=files_names)
@@ -427,7 +493,7 @@ def main(args):
     win_a =  10 # 10 minutes
     win_b = 120 # 120 minutes
     
-    flag_filter=True
+    flag_filter=False
     # self.df_days  = pd.DataFrame(columns  =['sample_size', 'vma_mean', 'inc_mean'])
     # self.df_nights= pd.DataFrame(columns=['sample_size', 'vma_mean', 'inc_mean'])
     
@@ -457,33 +523,38 @@ def main(args):
         
         print('done.')
 
+    ## inclinometers activity: posture changing
+    flag_save = True
+    plot_incl_activity(list_objs, flag_save, path_out)
+    
     ## plot results processing
     # plot_vma_step(list_objs, 1)
     # plot_vma_step(list_objs, 2)
     # plot_vma_cycle(list_objs)
-    flag_save = True
+    # flag_save = False
     # plot_cycle_alpha(list_objs, vma_b, 'Vector Magnitude Activity', flag_save, path_out+'vm_')
-    plot_cycle_alpha(list_objs, inc_b, 'Inclinometers Activity, Filter On', flag_save, path_out+'inc_on_')
+    # plot_cycle_alpha(list_objs, inc_b, 'Inclinometers Activity, Filter On', flag_save, path_out+'inc_on_')
     # list_objs[0].plot_Inclinometers()
     # list_objs[0].plot_Inclinometers_results()
     
     
     ## plot boxplots
     # files_names=['A006', 'A003', 'A026', 'A018',]
-    flag_boxplots = False
+    flag_boxplots = True
     
     if flag_boxplots:
-        flag_save_fig=False
+        flag_save_fig=True
         title = 'Vector Magnitude'
         label_y = "activity rate"
         plot_boxplots(df_vma_days, df_vma_nights, label_y, title, path_out+'vma_rate_', flag_save_fig)
         
-        flag_save_fig=False
+        flag_save_fig=True
         title = 'Inclinometers'
         if flag_filter:
-            label_y = "posture changing rate\nfilter on"
+            label_y = "posture changing rate\n(filter on)"
         else:
-            label_y = "posture changing rate\nfilter off"
+            label_y = "posture changing rate\n(filter off)"
+        # label_y = "posture changing rate"
         plot_boxplots(df_inc_days, df_inc_nights, label_y, title, path_out+'inc_rate_', flag_save_fig)
     
     # for i,filename in enumerate(files_names):

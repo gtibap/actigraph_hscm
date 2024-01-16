@@ -41,6 +41,8 @@ class Activity_Measurements:
         self.time_sec = 'time_sec'
         self.label_day_night = 'day_night'
         self.label_binary_day_night = 'binary_day_night'
+        self.label_incl = 'Inclinometers Activity'
+        
         self.vma_a='vma_a'
         self.vma_b='vma_b'
         self.inc_a='inc_a'
@@ -360,6 +362,9 @@ class Activity_Measurements:
         # self.plot_Inclinometers(df_incl_filtered)
         
         arr_inc = self.posture_changing(self.df_incl_filtered)
+        print(f'arr_inc, df1: {len(arr_inc)}, {len(self.df1)}')
+        self.df1[self.label_incl] = arr_inc
+        
         
         arr_a = self.slidingWindow_A(arr_inc, size_a)
         arr_b = self.slidingWindow_B(arr_a, size_b)
