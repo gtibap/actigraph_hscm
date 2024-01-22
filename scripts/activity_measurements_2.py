@@ -39,13 +39,13 @@ def on_press(event):
         pass
     return 0
 
-def plot_vector_magnitude(list_objs, flag_save, path):
+def plot_vector_magnitude(list_objs, labels, group_title, body_part_title, flag_save, path):
 
     # list_days=['d1','d2','d3','d4','d5']
     # list_nights=['n1','n2','n3','n4','n5']
         
     rows_number = len(list_objs)
-    fig, ax = plt.subplots(nrows=rows_number, ncols=1, figsize=(12, 6), sharex=True, )
+    fig, ax = plt.subplots(nrows=rows_number, ncols=1, figsize=(16, 8), sharex=True, )
     fig.canvas.mpl_connect('key_press_event', on_press)
     fig.canvas.draw()
     
@@ -94,39 +94,50 @@ def plot_vector_magnitude(list_objs, flag_save, path):
                 
             else:
                 pass
+
+
+    # hide xtick values
+    # ax[0].set_xticklabels([])
+    # ax[1].set_xticklabels([])
+    # ax[2].set_xticklabels([])
+    
+    ## legend
+    # asia = ['B','A','A','A']
+    # nl = ['C4','C6','T7','T10']
+    for i in np.arange(len(list_objs)):
+        ##
+        ax[i].legend([], title=f'{labels[i]}', alignment='center', loc='upper left', bbox_to_anchor=(1.0, 1.1), ncol=1, fancybox=True, shadow=True,)
         
+        ## y scale
         ax[i].set_ylim(y_ini,y_end)
         
         # hide xtick values
-        ax[0].set_xticklabels([])
-        ax[1].set_xticklabels([])
-        ax[2].set_xticklabels([])
+        ax[i].set_xticklabels([])
         
-        ## legend
-        # asia = ['B','A','A','A']
-        # nl = ['C4','C6','T7','T10']
-        for i in np.arange(4):
-            ax[i].legend([], title=f'P{i+1} - VM\n(counts)\nAIS: {asia[i]}\nNLI: {nl[i]}', alignment='center', loc='upper left', bbox_to_anchor=(1.0, 1.1), ncol=1, fancybox=True, shadow=True,)
+    # for i in np.arange(4):
+        # ax[i].legend([], title=f'P{i+1} - VM\n(counts)\nAIS: {asia[i]}\nNLI: {nl[i]}', alignment='center', loc='upper left', bbox_to_anchor=(1.0, 1.1), ncol=1, fancybox=True, shadow=True,)
+    
+    ## annotate
+    trans = ax[0].get_xaxis_transform() # x in data units, y in axes fraction
+    list_x_pos = (2*num_samples)*np.arange(5)
+    
+    for i, x_pos in enumerate(list_x_pos):
+        ann = ax[0].annotate(f'd{i+1}', xy=(x_pos + int(num_samples/2), 1.05 ), xycoords=trans, fontsize=12, color='tab:blue')
+        ann = ax[0].annotate(f'n{i+1}', xy=(x_pos + int(3*num_samples/2), 1.05 ), xycoords=trans, fontsize=12, color='tab:orange')
+            
+    ## font size labels and ticks hours
+    xticks = np.linspace(0, num_samples*10, 11).astype(int)
+    ax[-1].set_xticks(xticks, (xticks/3600).astype(int), fontsize=12)
+  
+    ax[-1].set_xlabel('time [h]', fontsize=12)
+    
+    for i in range(len(ax)):
+        ax[i].set_yticks([y_ini+10,y_end-10], [int(y_ini+10),int(y_end-10)], fontsize=12)
+    
+    for tick in ax[-1].xaxis.get_major_ticks():
+        tick.label1.set_fontsize(12) 
         
-        ## annotate
-        trans = ax[0].get_xaxis_transform() # x in data units, y in axes fraction
-        list_x_pos = (2*num_samples)*np.arange(5)
-        
-        for i, x_pos in enumerate(list_x_pos):
-            ann = ax[0].annotate(f'd{i+1}', xy=(x_pos + int(num_samples/2), 1.05 ), xycoords=trans, fontsize=12, color='tab:blue')
-            ann = ax[0].annotate(f'n{i+1}', xy=(x_pos + int(3*num_samples/2), 1.05 ), xycoords=trans, fontsize=12, color='tab:orange')
-                
-        ## font size labels and ticks hours
-        xticks = np.linspace(0, num_samples*10, 11).astype(int)
-        ax[-1].set_xticks(xticks, (xticks/3600).astype(int), fontsize=12)
-      
-        ax[-1].set_xlabel('time [h]', fontsize=12)
-        
-        for i in range(len(ax)):
-            ax[i].set_yticks([y_ini+10,y_end-10], [int(y_ini+10),int(y_end-10)], fontsize=12)
-        
-        for tick in ax[-1].xaxis.get_major_ticks():
-            tick.label1.set_fontsize(12) 
+    fig.suptitle(f'Activity VM {body_part_title}\n{group_title}')
         
     if flag_save:
         fig.savefig(path+'vm.png', bbox_inches='tight')
@@ -462,15 +473,15 @@ def plot_boxplots(df_days, df_nights, label_y, title, path_out, flag_save_fig):
     
     ax = sns.boxplot(data=mdf, x='subject', y="value", hue="period", palette="pastel")
 
-    #########################
-    hatches = ['//','//', '..','..', '//','..', '//','..', '//','..', '//','..', '//','..']
-    for i, patch in enumerate(ax.patches):
-        # print(i)
-        patch.set_hatch(hatches[i])
-    #########################
+    # #########################
+    # hatches = ['//','//', '..','..', '//','..', '//','..', '//','..', '//','..', '//','..']
+    # for i, patch in enumerate(ax.patches):
+        ## print(i)
+        # patch.set_hatch(hatches[i])
+    # #########################
     
     ax.set(ylim=(-0.05, 1.05))
-    ax.set(xticklabels = (['P1', 'P2', 'P3', 'P4']))
+    # ax.set(xticklabels = (['P1', 'P2', 'P3', 'P4']))
     
     size_font = 20
     
@@ -493,6 +504,8 @@ def main(args):
     path = "../data/projet_officiel/"
     path_out = "../data/projet_officiel/measurements/figures/"
     
+    # files_names=[]
+    
     ## ASIA Impairment Scale (AIS)
     ## group from zero (0) to two (2), being 
     ##  0: A y B, 
@@ -505,35 +518,48 @@ def main(args):
     ## t: thigh.
     body_part = args[2] 
     
-    # if group == '0':
-        # files_names=['A006', 'A021', 'A022', 'A025', 'A028', 'A037', 'A039', 'A003', 'A023', 'A032', 'A012', 'A040', 'A026', 'A018',]
-    # elif group == '1':
-        # files_names=['A019', 'A043', 'A005', 'A034', 'A009', 'A014', 'A035', 'A017', 'A041', 'A011',]
-    # elif group == '2':
-        # files_names=['A024', 'A007', 'A010', 'A013', 'A020', 'A016', 'A031', 'A036', 'A030', 'A029', 'A002',]
-    # else:
-        # print(f'selected group out of the list (0,1,2). ')
-        # return 0
-
-    # if body_part == 'c':
-        # files_list = [ name+'_chest.csv' for name in file_names]
-    # elif body_part == 't':
-        # files_list = [ name+'_thigh.csv' for name in file_names]
-    # else:
-        # print(f'selected body part out of the list (c,t'). ')
-        # return 0
+    if group == '0':
+        files_names=['A006', 'A021', 'A022', 'A025', 'A028', 'A037', 'A039', 'A003', 'A023', 'A032', 'A012', 'A040', 'A026', 'A018',]
+        prefix_one = 'AB_'
+        group_title = 'AIS : A and B'
+        ## number of days (and nights) of recorded values
+        list_records = [5, 5, 5, 5, 5, 5, 5, 5, 5, 2, 1, 4, 5, 5,]
         
-    body_part = 'chest'
+    elif group == '1':
+        files_names=['A019', 'A043', 'A005', 'A034', 'A009', 'A014', 'A035', 'A017', 'A041', 'A011',]
+        prefix_one = 'C_'
+        group_title = 'AIS : C'
+    elif group == '2':
+        files_names=['A024', 'A007', 'A010', 'A013', 'A020', 'A016', 'A031', 'A036', 'A030', 'A029', 'A002',]
+        prefix_one = 'D_'
+        group_title = 'AIS : D'
+    else:
+        print(f'selected group out of the list (0,1,2). ')
+        return 0
+
+    if body_part == 'c':
+        files_list = [ name+'_chest.csv' for name in files_names]
+        prefix_two='chest_'
+        body_part_title = 'Chest'
+    elif body_part == 't':
+        files_list = [ name+'_thigh.csv' for name in files_names]
+        prefix_two='thigh_'
+        body_part_title = 'Thigh'
+    else:
+        print(f'selected body part out of the list (c,t). ')
+        return 0
+        
+    # body_part = 'chest'
     # body_part = 'thigh'
     
-    if body_part == 'chest':
-        files_list=['A006_chest.csv', 'A003_chest.csv', 'A026_chest.csv', 'A018_chest.csv',]
-        prefix_name='chest_'
-    else:
-        files_list=['A006_thigh.csv', 'A003_thigh.csv', 'A026_thigh.csv', 'A018_thigh.csv',]
-        prefix_name='thigh_'
+    # if body_part == 'chest':
+        # files_list=['A006_chest.csv', 'A003_chest.csv', 'A026_chest.csv', 'A018_chest.csv',]
+        # prefix_name='chest_'
+    # else:
+        # files_list=['A006_thigh.csv', 'A003_thigh.csv', 'A026_thigh.csv', 'A018_thigh.csv',]
+        # prefix_name='thigh_'
         
-    files_names=['A006', 'A003', 'A026', 'A018',]
+    # files_names=['A006', 'A003', 'A026', 'A018',]
     
     
     
@@ -553,7 +579,8 @@ def main(args):
     ###########################        
     ## plot Vector Magnitude
     flag_save = True
-    plot_vector_magnitude(list_objs, flag_save, path_out+prefix_name)
+    
+    plot_vector_magnitude(list_objs, files_names, group_title, body_part_title, flag_save, path_out+prefix_one+prefix_two)
     ###########################
     
     df_vma_days = pd.DataFrame(columns=files_names)
@@ -570,74 +597,83 @@ def main(args):
     # self.df_days  = pd.DataFrame(columns  =['sample_size', 'vma_mean', 'inc_mean'])
     # self.df_nights= pd.DataFrame(columns=['sample_size', 'vma_mean', 'inc_mean'])
     
-    for i, obj in enumerate(list_objs):
-        
-        print(f'processing {obj.filename}... ', end='')
-        fn = files_names[i]
-        
-        obj.vma_processing(win_a, win_b)
-        obj.inc_processing(win_a, win_b, flag_filter)
-        
-        ## calculate mean value for 12h periods of days and nights for vector magnitude and inclinometers
-        obj.means_days_nights()
-        
-        ## read data -> boxplots
-        df_days = obj.getMeansDays()
-        df_nights = obj.getMeansNights()
-        
-        #### vma_mean days from index 1 to index 5
-        df_vma_days[fn] = df_days.iloc[1:6]['vma_mean'].to_list()
-        #### vma_mean nights from index 1 to index 5
-        df_vma_nights[fn] = df_nights.iloc[1:6]['vma_mean'].to_list()
-        #### inc_mean days from index 1 to index 5
-        df_inc_days[fn] = df_days.iloc[1:6]['inc_mean'].to_list()
-        #### inc_mean nights from index 1 to index 5
-        df_inc_nights[fn] = df_nights.iloc[1:6]['inc_mean'].to_list()
-        
-        print('done.')
+    flag_continue = False
+    list_objs = list_objs[:8]
+    
+    if flag_continue:
+    
+        for i, obj in enumerate(list_objs):
+            
+            print(f'processing {obj.filename}... ', end='')
+            fn = files_names[i]
+            
+            obj.vma_processing(win_a, win_b)
+            obj.inc_processing(win_a, win_b, flag_filter)
+            
+            ## calculate mean value for 12h periods of days and nights for vector magnitude and inclinometers
+            obj.means_days_nights()
+            
+            ## read data -> boxplots
+            df_days = obj.getMeansDays()
+            df_nights = obj.getMeansNights()
+            
+            ## number of days (and nights) of recorded data 
+            num_rec = list_records[i] + 1
+            
+            #### vma_mean days from index 1 to index 5
+            df_vma_days[fn] = df_days.iloc[1:num_rec]['vma_mean'].to_list()
+            #### vma_mean nights from index 1 to index 5
+            df_vma_nights[fn] = df_nights.iloc[1:num_rec]['vma_mean'].to_list()
+            #### inc_mean days from index 1 to index 5
+            df_inc_days[fn] = df_days.iloc[1:num_rec]['inc_mean'].to_list()
+            #### inc_mean nights from index 1 to index 5
+            df_inc_nights[fn] = df_nights.iloc[1:num_rec]['inc_mean'].to_list()
+            
+            print('done.')
 
-    ###########################
-    ## inclinometers activity: posture changing
-    flag_save = True
-    plot_incl_activity(list_objs, flag_save, path_out+prefix_name)
-    ###########################
-    
-    ## plot results processing
-    # plot_vma_step(list_objs, 1)
-    # plot_vma_step(list_objs, 2)
-    # plot_vma_cycle(list_objs)
-    #############################
-    flag_save = True
-    plot_cycle_alpha(list_objs, vma_b, 'Vector Magnitude Activity', flag_save, path_out+prefix_name+'vm_')
-    plot_cycle_alpha(list_objs, inc_b, 'Inclinometers Activity', flag_save, path_out+prefix_name+'incl_')
-    #############################
-    # list_objs[0].plot_Inclinometers()
-    # list_objs[0].plot_Inclinometers_results()
-    
-    
-    ## plot boxplots
-    # files_names=['A006', 'A003', 'A026', 'A018',]
-    flag_boxplots = True
-    
-    if flag_boxplots:
-        flag_save_fig=True
-        title = 'Vector Magnitude'
-        label_y = "VM activity rate"
-        plot_boxplots(df_vma_days, df_vma_nights, label_y, title, path_out+prefix_name+'vm_', flag_save_fig)
+        ###########################
+        ## inclinometers activity: posture changing
+        flag_save = False
+        plot_incl_activity(list_objs, flag_save, path_out+prefix_name)
+        ###########################
         
-        flag_save_fig=True
-        title = 'Inclinometers'
-        # if flag_filter:
-            # label_y = "posture changing rate\n(filter on)"
-        # else:
-            # label_y = "posture changing rate\n(filter off)"
-        label_y = "Incl. activity rate"
-        plot_boxplots(df_inc_days, df_inc_nights, label_y, title, path_out+prefix_name+'incl_', flag_save_fig)
-    
-    # for i,filename in enumerate(files_names):
-        # df_days = pd.read_csv(fn_days)  
-        # df_nights = pd.read_csv(fn_nights)  
-    
+        ## plot results processing
+        # plot_vma_step(list_objs, 1)
+        # plot_vma_step(list_objs, 2)
+        # plot_vma_cycle(list_objs)
+        #############################
+        flag_save = False
+        plot_cycle_alpha(list_objs, vma_b, 'Vector Magnitude Activity', flag_save, path_out+prefix_name+'vm_')
+        plot_cycle_alpha(list_objs, inc_b, 'Inclinometers Activity', flag_save, path_out+prefix_name+'incl_')
+        #############################
+        # list_objs[0].plot_Inclinometers()
+        # list_objs[0].plot_Inclinometers_results()
+        
+        
+        ## plot boxplots
+        # files_names=['A006', 'A003', 'A026', 'A018',]
+        flag_boxplots = True
+        
+        if flag_boxplots:
+            flag_save_fig=False
+            title = 'Vector Magnitude'
+            label_y = "VM activity rate"
+            plot_boxplots(df_vma_days, df_vma_nights, label_y, title, path_out+prefix_name+'vm_', flag_save_fig)
+            
+            flag_save_fig=False
+            title = 'Inclinometers'
+            # if flag_filter:
+                # label_y = "posture changing rate\n(filter on)"
+            # else:
+                # label_y = "posture changing rate\n(filter off)"
+            label_y = "Incl. activity rate"
+            plot_boxplots(df_inc_days, df_inc_nights, label_y, title, path_out+prefix_name+'incl_', flag_save_fig)
+        
+        # for i,filename in enumerate(files_names):
+            # df_days = pd.read_csv(fn_days)  
+            # df_nights = pd.read_csv(fn_nights)  
+    else:
+        pass
 
     plt.show()
     
