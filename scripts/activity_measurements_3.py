@@ -39,13 +39,13 @@ def on_press(event):
         pass
     return 0
 
-def plot_vector_magnitude(list_objs, labels, group_title, body_part_title, flag_save, path):
+def plot_vector_magnitude(list_objs, labels_rec, labels_con, group_title, body_part_title, flag_save, path):
 
     # list_days=['d1','d2','d3','d4','d5']
     # list_nights=['n1','n2','n3','n4','n5']
         
     rows_number = len(list_objs)
-    fig, ax = plt.subplots(nrows=rows_number, ncols=1, figsize=(16, 8), sharex=True, )
+    fig, ax = plt.subplots(nrows=rows_number, ncols=1, figsize=(18, 10), sharex=True, )
     fig.canvas.mpl_connect('key_press_event', on_press)
     fig.canvas.draw()
     
@@ -106,7 +106,7 @@ def plot_vector_magnitude(list_objs, labels, group_title, body_part_title, flag_
     # nl = ['C4','C6','T7','T10']
     for i in np.arange(len(list_objs)):
         ##
-        ax[i].legend([], title=f'{labels[i]}', alignment='center', loc='upper left', bbox_to_anchor=(1.0, 1.1), ncol=1, fancybox=True, shadow=True,)
+        ax[i].legend([], title=f'{labels_rec[i]}\n{labels_con[i]}', alignment='center', loc='upper left', bbox_to_anchor=(1.0, 1.15), ncol=1, fancybox=True, shadow=True,)
         
         ## y scale
         ax[i].set_ylim(y_ini,y_end)
@@ -318,10 +318,10 @@ def plot_vma_cycle(list_objs):
     return 0
 
 
-def plot_cycle_alpha(list_objs, selected_label, title, flag_save, path):
+def plot_cycle_alpha(list_objs, labels_rec, labels_con, selected_label, group_title, body_part_title, flag_save, path):
     
     rows_number = len(list_objs)
-    fig, ax = plt.subplots(nrows=rows_number, ncols=1, figsize=(12, 6), sharex=True,)
+    fig, ax = plt.subplots(nrows=rows_number, ncols=1, figsize=(18, 10), sharex=True,)
     fig.canvas.mpl_connect('key_press_event', on_press)
     fig.canvas.draw()
     
@@ -409,12 +409,24 @@ def plot_cycle_alpha(list_objs, selected_label, title, flag_save, path):
 
     ## legend
     if selected_label == vma_b:
-        signal_label = 'VM'
+        # signal_label = 'VM'
+        fig.suptitle(f'Activity VM {body_part_title}\n{group_title}')
     else:
-        signal_label = 'Incl.'
+        # signal_label = 'Incl.'
+        fig.suptitle(f'Activity Incl. {body_part_title}\n{group_title}')
     # ax[0].legend(loc='upper right', bbox_to_anchor=(1.0, 1.4),fancybox=False, shadow=False, ncol=2)
-    for i in np.arange(4):
-        ax[i].legend([], title=f'P{i+1} - S_out\nS_in: {signal_label}\nAIS: {asia[i]}\nNLI: {nl[i]}', alignment='center', loc='upper left', bbox_to_anchor=(1.0, 1.1), ncol=1, fancybox=True, shadow=True,)
+    # for i in np.arange(4):
+        # ax[i].legend([], title=f'P{i+1} - S_out\nS_in: {signal_label}\nAIS: {asia[i]}\nNLI: {nl[i]}', alignment='center', loc='upper left', bbox_to_anchor=(1.0, 1.1), ncol=1, fancybox=True, shadow=True,)
+    for i in np.arange(len(list_objs)):
+        ##
+        ax[i].legend([], title=f'{labels_rec[i]}\n{labels_con[i]}', alignment='center', loc='upper left', bbox_to_anchor=(1.0, 1.15), ncol=1, fancybox=True, shadow=True,)
+        
+        ## y scale
+        ax[i].set_ylim(y_ini,y_end)
+        
+        # hide xtick values
+        ax[i].set_xticklabels([])
+    
     
     
     x_ticks= b=np.arange(0,(25*3600), 3600)
@@ -434,6 +446,8 @@ def plot_cycle_alpha(list_objs, selected_label, title, flag_save, path):
     ax[-1].set_xlabel('24-hour clock [hh]')
    
     # fig.suptitle(title)
+    
+    
     
     if flag_save:
         fig.savefig(path+'24h.png', bbox_inches='tight')
@@ -458,9 +472,9 @@ def plot_alpha(df, start, size, color, pattern, sel_label, ax):
     
 
 ## boxplots
-def plot_boxplots(df_days, df_nights, label_y, title, path_out, flag_save_fig):
+def plot_boxplots(df_days, df_nights, label_y, labels_rec, labels_con, title, group_title, body_part_title, path_out, flag_save_fig):
 
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(12, 6))
     fig.canvas.mpl_connect('key_press_event', on_press)
     fig.canvas.draw()
     
@@ -482,16 +496,29 @@ def plot_boxplots(df_days, df_nights, label_y, title, path_out, flag_save_fig):
     
     ax.set(ylim=(-0.05, 1.05))
     # ax.set(xticklabels = (['P1', 'P2', 'P3', 'P4']))
+    # ax.set(xticklabels = (['P1', 'P2', 'P3', 'P4']))
     
-    size_font = 20
     
-    ax.set_xlabel("subject",fontsize=size_font)
+    ticks_x = []
+    for a, b in zip(labels_rec, labels_con):
+        ticks_x.append(f'{a}\n{b}')
+    
+    ax.set_xticklabels(ticks_x)
+    
+    size_font = 12
+    
+    ax.set_xlabel("ASIA Impairment Scale + (Neurological Level of Injury)",fontsize=size_font)
     ax.set_ylabel(label_y,fontsize=size_font)
     ax.tick_params(labelsize=size_font)
     
     # fig.suptitle(title)
 
-    plt.legend(fontsize=size_font, loc='upper center', bbox_to_anchor=(0.5, 1.18), ncol=2, fancybox=True, shadow=False)
+    # plt.legend(fontsize=size_font, loc='upper center', bbox_to_anchor=(0.5, 1.18), ncol=2, fancybox=True, shadow=False)
+    ax.legend(fontsize=size_font, alignment='center', loc='upper left', bbox_to_anchor=(1.0, 1.0), ncol=1, fancybox=True, shadow=True)
+    
+    # ax.legend([], title=f'{labels[i]}', alignment='center', loc='upper left', bbox_to_anchor=(1.0, 1.1), ncol=1, fancybox=True, shadow=True,)
+    
+    fig.suptitle(f'Activity {title} {body_part_title}\n{group_title}')
     
     if flag_save_fig:
         plt.savefig(path_out+'boxplot.png', bbox_inches='tight')
@@ -519,25 +546,28 @@ def main(args):
     body_part = args[2] 
     
     if group == '0':
-        files_names=['A006', 'A021', 'A022', 'A025', 'A028', 'A037', 'A039', 'A003', 'A023', 'A032', 'A012', 'A040', 'A026', 'A018',]
+        files_names=['A006', 'A021', 'A022', 'A025', 'A028', 'A037', 'A039', 'A003', 'A023', 'A026', 'A018',]
         prefix_one = 'AB_'
         group_title = 'AIS : A and B'
         ## Neurological Level of Injury
-        list_nli=['B (C4) -> B (C4)', 'B (C4) -> B (C4)', 'B (C4) -> D (C4)', 'B (C5) -> B (C4)', 'A (C5) -> A (C5)', 'B (C5) -> D (C5)', 'A (C5) -> A (C5)', 'A (C6) -> A (C6)', 'A (C6) -> A (C6)', 'A (C6) -> A (C6)', 'B (T1) -> C (T1)', 'A (T4) -> A (T5)', 'A (T7) -> A (T7)', 'A (T10)-> C (T10)']
+        list_nli_rec=['B (C4)', 'B (C4)', 'B (C4)', 'B (C5)', 'A (C5)', 'B (C5)', 'A (C5)', 'A (C6)', 'A (C6)', 'A (T7)', 'A (T10)']
+        list_nli_con=['B (C4)', 'B (C4)', 'D (C4)', 'B (C4)', 'A (C5)', 'D (C5)', 'A (C5)', 'A (C6)', 'A (C6)', 'A (T7)', 'C (T10)']
         ## number of days (and nights) of recorded values
         list_records = [5, 5, 5, 5, 5, 5, 5, 5, 5, 2, 1, 4, 5, 5,]
     elif group == '1':
-        files_names=['A019', 'A043', 'A005', 'A034', 'A009', 'A014', 'A035', 'A017', 'A041', 'A011',]
+        files_names=['A019', 'A043', 'A005', 'A009', 'A014', 'A035', 'A041', 'A011',]
         prefix_one = 'C_'
         group_title = 'AIS : C'
         ## Neurological Level of Injury
-        list_nli=['C (C1) -> D (C1)', 'C (C2) -> C (C2)', 'C (C3) -> D (C3)', 'C (C3) -> C (C3)', 'C (C4) -> C (C4)', 'C (C4) -> C (C4)', 'C (C4) -> C (C4)', 'C (C5) -> C (C5)', 'C (C5) -> D (C5)', 'C (D6) -> C (D6)']
+        list_nli_rec=['C (C1)', 'C (C2)', 'C (C3)', 'C (C4)', 'C (C4)', 'C (C4)', 'C (C5)', 'C (D6)']
+        list_nli_con=['D (C1)', 'C (C2)', 'D (C3)', 'C (C4)', 'C (C4)', 'C (C4)', 'D (C5)', 'C (D6)']
     elif group == '2':
-        files_names=['A024', 'A007', 'A010', 'A013', 'A020', 'A016', 'A031', 'A036', 'A030', 'A029', 'A002',]
+        files_names=['A024', 'A007', 'A010', 'A013', 'A016', 'A031', 'A036', 'A002',]
         prefix_one = 'D_'
         group_title = 'AIS : D'
         ## Neurological Level of Injury
-        list_nli=['D (C3) -> D (C3)', 'D (C4) -> D (C4)', 'D (C4) -> D (C4)', 'D (C4) -> D (C4)', 'D (C4) -> D (C4)', 'D (C5) -> D (C5)', 'D (C5) -> D (C5)', 'D (C5) -> D (C5)', 'D (CC C5) -> D (CC C5)', 'D (CC C6) -> D (CC C6)', 'D (T11) -> D (T11)']
+        list_nli_rec=['D (C3)', 'D (C4)', 'D (C4)', 'D (C4)', 'D (C5)', 'D (C5)', 'D (C5)', 'D (T11)']
+        list_nli_con=['D (C3)', 'D (C4)', 'D (C4)', 'D (C4)', 'D (C5)', 'D (C5)', 'D (C5)', 'D (T11)']
     else:
         print(f'selected group out of the list (0,1,2). ')
         return 0
@@ -582,10 +612,11 @@ def main(args):
         except ValueError:
             print(f'Problem reading the file {filename}.')
     
+    prefix_name = prefix_one+prefix_two
     ###########################        
     ## plot Vector Magnitude
-    flag_save = False
-    plot_vector_magnitude(list_objs, list_nli, group_title, body_part_title, flag_save, path_out+prefix_one+prefix_two)
+    flag_save = True
+    plot_vector_magnitude(list_objs, list_nli_rec, list_nli_con, group_title, body_part_title, flag_save, path_out+prefix_name)
     ###########################
     
     df_vma_days = pd.DataFrame(columns=files_names)
@@ -602,14 +633,13 @@ def main(args):
     # self.df_days  = pd.DataFrame(columns  =['sample_size', 'vma_mean', 'inc_mean'])
     # self.df_nights= pd.DataFrame(columns=['sample_size', 'vma_mean', 'inc_mean'])
     
-    flag_continue = False
+    flag_continue = True
+    # flag_continue = False
     # list_objs = list_objs[:8]
     
     if flag_continue:
     
         for i, obj in enumerate(list_objs):
-            
-            # if list_records[i] == 5:
             
             print(f'processing {obj.filename}... ', end='')
             fn = files_names[i]
@@ -641,8 +671,8 @@ def main(args):
 
         ###########################
         ## inclinometers activity: posture changing
-        flag_save = False
-        plot_incl_activity(list_objs, flag_save, path_out+prefix_name)
+        # flag_save = False
+        # plot_incl_activity(list_objs, flag_save, path_out+prefix_name)
         ###########################
         
         ## plot results processing
@@ -650,36 +680,27 @@ def main(args):
         # plot_vma_step(list_objs, 2)
         # plot_vma_cycle(list_objs)
         #############################
-        flag_save = False
-        plot_cycle_alpha(list_objs, vma_b, 'Vector Magnitude Activity', flag_save, path_out+prefix_name+'vm_')
-        plot_cycle_alpha(list_objs, inc_b, 'Inclinometers Activity', flag_save, path_out+prefix_name+'incl_')
+        flag_save = True
+        plot_cycle_alpha(list_objs, list_nli_rec, list_nli_con, vma_b,  group_title, body_part_title, flag_save, path_out+prefix_name+'vm_')
+        # plot_cycle_alpha(list_objs, inc_b, 'Inclinometers Activity', flag_save, path_out+prefix_name+'incl_')
         #############################
         # list_objs[0].plot_Inclinometers()
         # list_objs[0].plot_Inclinometers_results()
         
         
-        ## plot boxplots
-        # files_names=['A006', 'A003', 'A026', 'A018',]
         flag_boxplots = True
         
         if flag_boxplots:
-            flag_save_fig=False
-            title = 'Vector Magnitude'
+            flag_save_fig=True
+            title = 'VM'
             label_y = "VM activity rate"
-            plot_boxplots(df_vma_days, df_vma_nights, label_y, title, path_out+prefix_name+'vm_', flag_save_fig)
+            plot_boxplots(df_vma_days, df_vma_nights, label_y, list_nli_rec, list_nli_con, title, group_title, body_part_title, path_out+prefix_name+'vm_', flag_save_fig)
             
-            flag_save_fig=False
-            title = 'Inclinometers'
-            # if flag_filter:
-                # label_y = "posture changing rate\n(filter on)"
-            # else:
-                # label_y = "posture changing rate\n(filter off)"
-            label_y = "Incl. activity rate"
-            plot_boxplots(df_inc_days, df_inc_nights, label_y, title, path_out+prefix_name+'incl_', flag_save_fig)
+            # flag_save_fig=False
+            # title = 'Inclinometers'
+            # label_y = "Incl. activity rate"
+            # plot_boxplots(df_inc_days, df_inc_nights, label_y, title, path_out+prefix_name+'incl_', flag_save_fig)
         
-        # for i,filename in enumerate(files_names):
-            # df_days = pd.read_csv(fn_days)  
-            # df_nights = pd.read_csv(fn_nights)  
     else:
         pass
 
