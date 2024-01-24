@@ -189,6 +189,56 @@ class Activity_Measurements:
         return 0
 
 
+    def immobility(self):
+        
+        arr_vma = self.df1[self.vec_mag].to_numpy()
+        labels_day_night = self.df1[self.label_day_night].to_numpy()
+        
+        # print(f'vma: {len(arr_vma)}, {len(labels_day_night)}')
+        # print(f'vma: {arr_vma}, {labels_day_night}')
+        
+        ## values of Vector Magnitude greater than zero means activity; zero means immobility
+        ab = (arr_vma > 0).astype(int)
+        
+        ## True means change in state: from immobility to activity or from activity to immobility
+        arr = (ab[:-1] != ab[1:])
+        ## adding a zero at the begining to make the output array same size than the input one
+        arr = np.insert(arr,0,0).astype(int)
+        
+        ## get indices values non-zero; where changes in state happened
+        ids_nz = np.flatnonzero(arr)
+        ## insert index for the first and last samples; extremes of the input array
+        ids_nz = np.insert(ids_nz,0,0)
+        ids_nz = np.insert(ids_nz, len(ids_nz), len(arr_vma)-1)
+        
+        ## difference between two neiborn values
+        arr_seg = np.diff(ids_nz)
+        
+        ## to associate periods of immobility to days and nights
+        labels_dn = labels_day_night[ids_nz]
+        
+        
+        ## if VM starts with zero, then the immobility values are with even indexes
+        if ab[0] == 0:
+            arr_imm = arr_seg[::2]
+            idx_imm = labels_dn[:-1:2]
+        else:
+            arr_imm = arr_seg[1::2]
+            idx_imm = labels_dn[1:-1:2]
+        
+        df_imm = pd.DataFrame()
+        df_imm['time']=arr_imm
+        df_imm['label']=idx_imm
+        
+        print(f'imm:\n{df_imm}')
+        
+        return 0
+    
+    
+    
+    
+
+
     def filterLowPass(self, arr, fc, order):
         sampling_rate = 1 ## 1 Hz, 1 sample per second
         sos = signal.butter(order, fc, btype='lowpass', fs=sampling_rate, output='sos')
