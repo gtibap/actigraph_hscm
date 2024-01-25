@@ -559,12 +559,13 @@ def main(args):
     body_part = args[2] 
     
     if group == '0':
-        files_names=['A006', 'A021', 'A022', 'A025', 'A028', 'A037', 'A039', 'A003', 'A023', 'A026', 'A018',]
+        files_names=['A006', 'A021', 'A022', 'A025', 'A028', 'A037', 'A039', 'A044', 'A003', 'A023', 'A026', 'A018',]
         prefix_one = 'AB_'
         group_title = 'AIS : A and B'
         ## Neurological Level of Injury
-        list_nli_rec=['B (C4)', 'B (C4)', 'B (C4)', 'B (C5)', 'A (C5)', 'B (C5)', 'A (C5)', 'A (C6)', 'A (C6)', 'A (T7)', 'A (T10)']
-        list_nli_con=['B (C4)', 'B (C4)', 'D (C4)', 'B (C4)', 'A (C5)', 'D (C5)', 'A (C5)', 'A (C6)', 'A (C6)', 'A (T7)', 'C (T10)']
+        list_nli_rec=['B (C4)', 'B (C4)', 'B (C4)', 'B (C5)', 'A (C5)', 'B (C5)', 'A (C5)', 'A (C5)', 'A (C6)', 'A (C6)', 'A (T7)', 'A (T10)',]
+        list_nli_con=['B (C4)', 'B (C4)', 'D (C4)', 'B (C4)', 'A (C5)', 'D (C5)', 'A (C5)', 'Maybe C', 'A (C6)', 'A (C6)', 'A (T7)', 'C (T10)',]
+        list_pi=[]
         ## number of days (and nights) of recorded values
         # list_records = [5, 5, 5, 5, 5, 5, 5, 5, 5, 2, 1, 4, 5, 5,]
     elif group == '1':
@@ -572,8 +573,9 @@ def main(args):
         prefix_one = 'C_'
         group_title = 'AIS : C'
         ## Neurological Level of Injury
-        list_nli_rec=['C (C1)', 'C (C2)', 'C (C3)', 'C (C4)', 'C (C4)', 'C (C4)', 'C (C5)', 'C (D6)']
-        list_nli_con=['D (C1)', 'C (C2)', 'D (C3)', 'C (C4)', 'C (C4)', 'C (C4)', 'D (C5)', 'C (D6)']
+        list_nli_rec=['C (C1)', 'C (C2)', 'C (C3)', 'C (C4)', 'C (C4)', 'C (C4)', 'C (C5)', 'C (D6)', ]
+        list_nli_con=['D (C1)', 'C (C2)', 'D (C3)', 'C (C4)', 'C (C4)', 'C (C4)', 'D (C5)', 'C (D6)', ]
+        list_pi=[]
     elif group == '2':
         files_names=['A024', 'A007', 'A010', 'A013', 'A016', 'A031', 'A036', 'A002',]
         prefix_one = 'D_'
@@ -581,6 +583,44 @@ def main(args):
         ## Neurological Level of Injury
         list_nli_rec=['D (C3)', 'D (C4)', 'D (C4)', 'D (C4)', 'D (C5)', 'D (C5)', 'D (C5)', 'D (T11)']
         list_nli_con=['D (C3)', 'D (C4)', 'D (C4)', 'D (C4)', 'D (C5)', 'D (C5)', 'D (C5)', 'D (T11)']
+        list_pi=[]
+        
+    elif group == '3':
+        files_names=['A001', 'A004', 'A015', 'A027', 'A033', 'A038', 'A042',]
+        prefix_one = 'SQC_'
+        group_title = 'AIS : SQC'
+        list_nli_rec=['SQC', 'SQC', 'SQC', 'SQC', 'CCS C2', 'SQC', 'SQC',]
+        list_nli_con=['SQC', 'SQC', 'SQC', 'SQC', 'CCS C2', 'SQC', 'SQC',]
+        list_pi=[]
+    elif group == '4':
+        files_names=['A019', 'A035', 'A020', 'A016',]
+        prefix_one = 'before_'
+        group_title = 'Pressure injured patients\nBefore Recruitment'
+        list_nli_rec=['C (C1)', 'C (C4)', 'D (C4)', 'D (C5)',]
+        list_nli_con=['D (C1)', 'C (C4)', 'D (C4)', 'D (C5)',]
+        list_pi=[]
+    elif group == '5':
+        files_names=['A023', 'A019', 'A014', 'A015',]
+        prefix_one = 'during_'
+        group_title = 'Pressure injured patients\nDuring Recruitment'
+        list_nli_rec=['A (C6)', 'C (C1)', 'C (C4)', 'SQC',]
+        list_nli_con=['A (C6)', 'D (C1)', 'C (C4)', 'SQC',]
+        list_pi=[]
+    elif group == '6':
+        files_names=['A006', 'A039', 'A040', 'A005' , 'A041', 'A001', 'A015', 'A033',]
+        prefix_one = 'after_'
+        group_title = 'Pressure injured patients\nAfter Recruitment'
+        list_nli_rec=['B (C4)', 'A (C5)', 'A (T4)', 'C (C3)', 'C (C5)', 'SQC', 'SQC', 'CCS (C2)',]
+        list_nli_con=['B (C4)', 'A (C5)', 'A (T5)', 'D (C3)', 'D (C5)', 'SQC', 'SQC', 'CCS (C2)',]
+        list_pi=[]
+    # elif group == '4':
+        # files_names=['A006', 'A039', 'A023', 'A040', 'A019', 'A005', 'A035', 'A014', 'A041', 'A020', 'A016', 'A001', 'A015', 'A033',]
+        # prefix_one = 'PI_'
+        # group_title = 'AIS : Multiple'
+        # list_nli_rec=['B (C4)', 'A (C5)', 'A (C6)', 'A (T4)', 'C (C1)', 'C (C3)', 'C (C4)', 'C (C4)', 'C (C5)', 'D (C4)', 'D (C5)', 'SQC', 'SQC', 'CCS (C2)',]
+        # list_nli_rec=['B (C4)', 'A (C5)', 'A (C6)', 'A (T4)', 'C (C1)', 'C (C3)', 'C (C4)', 'C (C4)', 'C (C5)', 'D (C4)', 'D (C5)', 'SQC', 'SQC', 'CCS (C2)',]
+        # list_nli_con=['B (C4)', 'A (C5)', 'A (C6)', 'A (T5)', 'D (C1)', 'D (C3)', 'C (C4)', 'C (C4)', 'D (C5)', 'D (C4)', 'D (C5)', 'SQC', 'SQC', 'CCS (C2)',]
+        # list_pi=['0 0 1', '0 0 1', '0 1 0', '0 0 1', '1 1 0', '0 0 1', '1 0 0', '0 1 0', '0 0 1', '1 0 0', '1 0 0', '0 0 1', '0 1 1', '0 0 1',]
     else:
         print(f'selected group out of the list (0,1,2). ')
         return 0
@@ -614,7 +654,7 @@ def main(args):
     
     list_objs = [[]]*len(files_list)
     
-    files_list = files_list[:1]
+    # files_list = files_list[:1]
     # print(f'files_list: {files_list}, {files_list[:1]}')
     
     for i,filename in enumerate(files_list):
@@ -630,17 +670,17 @@ def main(args):
             print(f'Problem reading the file {filename}.')
     
     prefix_name = prefix_one+prefix_two
-    # ###########################        
-    # ## plot Vector Magnitude
-    # flag_save = True
-    # plot_vector_magnitude(list_objs, list_nli_rec, list_nli_con, group_title, body_part_title, flag_save, path_out+prefix_name)
-    # ###########################
+    ###########################        
+    ## plot Vector Magnitude
+    flag_save = True
+    plot_vector_magnitude(list_objs, list_nli_rec, list_nli_con, group_title, body_part_title, flag_save, path_out+prefix_name)
+    ###########################
 
 
     ###############################
     ## histogram time immobility
     
-    list_objs[0].immobility()
+    # list_objs[0].immobility()
     
     
     
