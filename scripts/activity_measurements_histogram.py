@@ -654,7 +654,8 @@ def main(args):
     
     list_objs = [[]]*len(files_list)
     
-    # files_list = files_list[:1]
+    id_obj=11
+    files_list = files_list[id_obj:]
     # print(f'files_list: {files_list}, {files_list[:1]}')
     
     for i,filename in enumerate(files_list):
@@ -670,17 +671,19 @@ def main(args):
             print(f'Problem reading the file {filename}.')
     
     prefix_name = prefix_one+prefix_two
-    ###########################        
-    ## plot Vector Magnitude
-    flag_save = True
-    plot_vector_magnitude(list_objs, list_nli_rec, list_nli_con, group_title, body_part_title, flag_save, path_out+prefix_name)
-    ###########################
+    # ###########################        
+    # ## plot Vector Magnitude
+    # flag_save = True
+    # plot_vector_magnitude(list_objs, list_nli_rec, list_nli_con, group_title, body_part_title, flag_save, path_out+prefix_name)
+    # ###########################
 
 
     ###############################
     ## histogram time immobility
     
-    # list_objs[0].immobility()
+    list_objs[0].immobility()
+    # list_objs[0].histogram_immobility()
+    list_objs[0].statistics()
     
     
     

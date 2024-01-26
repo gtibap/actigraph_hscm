@@ -1,11 +1,15 @@
 from datetime import datetime
 from scipy import signal
+
 import numpy as np
 import pandas as pd
 import matplotlib.patches as mpatches
 import matplotlib.ticker as mticker
 import matplotlib.pyplot as plt
 import seaborn as sns
+import scipy.stats as st
+from scipy.stats import skewnorm
+
 import os
 import re
 import sys
@@ -33,6 +37,10 @@ class Activity_Measurements:
         self.time_ini='21:00:00'
         self.time_end='09:00:00'
         
+        self.list_days=['d1','d2','d3','d4','d5']
+        self.list_nights=['n1','n2','n3','n4','n5']
+
+        
         self.color_day = 'tab:green'
         self.color_night = 'tab:purple'
         
@@ -42,6 +50,7 @@ class Activity_Measurements:
         self.label_day_night = 'day_night'
         self.label_binary_day_night = 'binary_day_night'
         self.label_incl = 'Inclinometers Activity'
+        self.label_duration = 'duration'
         
         self.vma_a='vma_a'
         self.vma_b='vma_b'
@@ -52,6 +61,9 @@ class Activity_Measurements:
         self.df_days  = pd.DataFrame(columns  =['sample_size', 'vma_mean', 'inc_mean'])
         self.df_nights= pd.DataFrame(columns=['sample_size', 'vma_mean', 'inc_mean'])
         self.df_incl_filtered = pd.DataFrame()
+        self.df_act = pd.DataFrame(columns=[self.label_duration, self.label_day_night])
+        self.df_imm = pd.DataFrame(columns=[self.label_duration, self.label_day_night])
+
         
         
     def openFile(self, path, filename):
@@ -190,6 +202,9 @@ class Activity_Measurements:
 
 
     def immobility(self):
+        ## immobility identifies changes of activity-inactivity and inactivity-activity
+        ## identifies duration of inactivity segments
+        ## a histogram of inactivity segments duration is plotted after their calculation
         
         arr_vma = self.df1[self.vec_mag].to_numpy()
         labels_day_night = self.df1[self.label_day_night].to_numpy()
@@ -198,10 +213,10 @@ class Activity_Measurements:
         # print(f'vma: {arr_vma}, {labels_day_night}')
         
         ## values of Vector Magnitude greater than zero means activity; zero means immobility
-        ab = (arr_vma > 0).astype(int)
+        arr_vma = (arr_vma > 0).astype(int)
         
         ## True means change in state: from immobility to activity or from activity to immobility
-        arr = (ab[:-1] != ab[1:])
+        arr = (arr_vma[:-1] != arr_vma[1:])
         ## adding a zero at the begining to make the output array same size than the input one
         arr = np.insert(arr,0,0).astype(int)
         
@@ -209,34 +224,121 @@ class Activity_Measurements:
         ids_nz = np.flatnonzero(arr)
         ## insert index for the first and last samples; extremes of the input array
         ids_nz = np.insert(ids_nz,0,0)
-        ids_nz = np.insert(ids_nz, len(ids_nz), len(arr_vma)-1)
+        ids_nz = np.insert(ids_nz, len(ids_nz), len(arr_vma))
         
         ## difference between two neiborn values
-        arr_seg = np.diff(ids_nz)
+        arr_diff = np.diff(ids_nz)
         
         ## to associate periods of immobility to days and nights
-        labels_dn = labels_day_night[ids_nz]
+        labels_dn = labels_day_night[ids_nz[:-1]]
         
         
-        ## if VM starts with zero, then the immobility values are with even indexes
-        if ab[0] == 0:
-            arr_imm = arr_seg[::2]
-            idx_imm = labels_dn[:-1:2]
+        ## if VM starts with zero, then the immobility values are with even indexes starting with 0
+        if arr_vma[0] == 0:
+            ## immobility data
+            self.df_imm[self.label_duration] = arr_diff[::2]
+            self.df_imm[self.label_day_night] = labels_dn[::2]
+            ## activity data
+            self.df_act[self.label_duration] = arr_diff[1::2]
+            self.df_act[self.label_day_night] = labels_dn[1::2]
         else:
-            arr_imm = arr_seg[1::2]
-            idx_imm = labels_dn[1:-1:2]
+            ## immobility data
+            self.df_imm[self.label_duration] = arr_diff[1::2]
+            self.df_imm[self.label_day_night] = labels_dn[1::2]
+            ## activity data
+            self.df_act[self.label_duration] = arr_diff[::2]
+            self.df_act[self.label_day_night] = labels_dn[::2]
         
-        df_imm = pd.DataFrame()
-        df_imm['time']=arr_imm
-        df_imm['label']=idx_imm
-        
-        print(f'imm:\n{df_imm}')
+        # print(f'imm:\n{self.df_imm}')
+        # print(f'act:\n{self.df_act}')
         
         return 0
+
+
+    def statistics(self):
+        
+        list_ratio_act_d=[]
+        list_ratio_imm_d=[]
+        list_ratio_act_n=[]
+        list_ratio_imm_n=[]
+        ## spending time of both detected activity and immobility
+        labels_list = self.df_imm[self.label_day_night].unique().tolist()
+        print(f'days and nights: {labels_list}')
     
-    
-    
-    
+        for label in labels_list:
+            
+            if (label in self.list_days) or (label in self.list_nights):
+            
+                df_imm = self.df_imm[self.df_imm[self.label_day_night]== label]
+                x_imm=df_imm[self.label_duration].to_numpy()
+                
+                df_act = self.df_act[self.df_act[self.label_day_night]== label]
+                x_act=df_act[self.label_duration].to_numpy()
+                
+                ## calculate percentages of spending time
+                imm_sum = np.sum(x_imm)
+                act_sum = np.sum(x_act)
+                ref_sum = act_sum+imm_sum
+                
+                ratio_act = act_sum/ref_sum
+                ratio_imm = imm_sum/ref_sum
+                
+                # print(f'sum act imm: {label} {round(100*act_sum/ref_sum,2)} %, {round(100*imm_sum/ref_sum,2)} %')
+                
+                if label.startswith('d'):
+                    list_ratio_act_d.append(ratio_act)
+                    list_ratio_imm_d.append(ratio_imm)
+                else:
+                    list_ratio_act_n.append(ratio_act)
+                    list_ratio_imm_n.append(ratio_imm)
+        
+        # print(f'list ratio:\n{list_ratio_act_d}\n{list_ratio_imm_d}\n{list_ratio_act_n}\n{list_ratio_imm_n}')
+        ## average of both activity and immobility
+        print(f'average ratio:\n \
+        {np.mean(list_ratio_act_d)}, {np.std(list_ratio_act_d)}\n \
+        {np.mean(list_ratio_imm_d)}, {np.std(list_ratio_imm_d)}\n \
+        {np.mean(list_ratio_act_n)}, {np.std(list_ratio_act_n)}\n \
+        {np.mean(list_ratio_imm_n)}, {np.std(list_ratio_imm_n)}')
+        
+        return 0
+        
+
+    def histogram_immobility(self):
+        
+
+        fig1, ax1 = plt.subplots(nrows=1, ncols=2, sharex=True, sharey=True, figsize=(16, 8))
+        fig1.canvas.mpl_connect('key_press_event', self.on_press)
+        
+        fig2, ax2 = plt.subplots(nrows=1, ncols=2, sharex=True, sharey=True, figsize=(16, 8))
+        fig2.canvas.mpl_connect('key_press_event', self.on_press)
+        
+        ## plot histograms day by day and night by night
+        labels_list = self.df_imm[self.label_day_night].unique().tolist()
+        
+        for label in labels_list:
+            
+            if (label in self.list_days) or (label in self.list_nights):
+            
+                df_imm = self.df_imm[self.df_imm[self.label_day_night]== label]
+                x_imm=df_imm[self.label_duration].to_numpy()
+                
+                df_act = self.df_act[self.df_act[self.label_day_night]== label]
+                x_act=df_act[self.label_duration].to_numpy()
+                
+                binwidth_imm = 60
+                bins_imm=range(min(x_imm), max(x_imm) + binwidth_imm, binwidth_imm)
+                
+                binwidth_act = 1
+                bins_act=range(min(x_act), max(x_act) + binwidth_act, binwidth_act)
+                
+                if label.startswith('d'):
+                    ax1[0].hist(x_imm, density=False, bins=bins_imm)
+                    ax2[0].hist(x_act, density=False, bins=bins_act)
+                else:
+                    ax1[1].hist(x_imm, density=False, bins=bins_imm)
+                    ax2[1].hist(x_act, density=False, bins=bins_act)
+        
+        return 0
 
 
     def filterLowPass(self, arr, fc, order):
