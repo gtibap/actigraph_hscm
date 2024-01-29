@@ -654,8 +654,8 @@ def main(args):
     
     list_objs = [[]]*len(files_list)
     
-    id_obj=11
-    files_list = files_list[id_obj:]
+    id_obj=0
+    files_list = files_list[id_obj:id_obj+1]
     # print(f'files_list: {files_list}, {files_list[:1]}')
     
     for i,filename in enumerate(files_list):
@@ -685,13 +685,7 @@ def main(args):
     # list_objs[0].histogram_immobility()
     list_objs[0].statistics()
     
-    
-    
-    
-    
-    
-    
-    
+    # list_objs[0].boxplots()
     
     
     

@@ -254,6 +254,58 @@ class Activity_Measurements:
         
         return 0
 
+    def boxplots(self):
+        
+        df_imm_bp = pd.DataFrame(columns=['time','day_night','cycle'])
+        df_act_bp = pd.DataFrame(columns=['time','day_night','cycle'])
+        
+        labels_list = self.df_imm[self.label_day_night].unique().tolist()
+        print(f'days and nights: {labels_list}')
+    
+        for label in labels_list:
+            
+            df_temp_imm = pd.DataFrame()
+            df_temp_act = pd.DataFrame()
+            
+            if (label in self.list_days) or (label in self.list_nights):
+                
+                # print(f'{label}:    ')
+            
+                df_i = self.df_imm[self.df_imm[self.label_day_night]== label]
+                df_temp_imm['time']=df_i[self.label_duration].to_numpy()
+                # print(f'x_imm: {x_imm}')
+                
+                df_a = self.df_act[self.df_act[self.label_day_night]== label]
+                df_temp_act['time']=df_a[self.label_duration].to_numpy()
+                
+                if label.startswith('d'):
+                    df_temp_imm['day_night']='d'
+                    df_temp_act['day_night']='d'
+                else:
+                    df_temp_imm['day_night']='n'
+                    df_temp_act['day_night']='n'
+                ## cycle could be 1,2, ..., or 5
+                df_temp_imm['cycle']=label[-1]
+                df_temp_act['cycle']=label[-1]
+                
+                df_imm_bp = pd.concat([df_imm_bp, df_temp_imm], ignore_index=True)
+                df_act_bp = pd.concat([df_act_bp, df_temp_act], ignore_index=True)
+
+            else:
+                pass
+                
+        print(f'New dataframes:\n{df_imm_bp}\n{df_act_bp}')
+        
+        
+        fig, ax = plt.subplots(figsize=(12, 6))
+        fig.canvas.mpl_connect('key_press_event', self.on_press)
+        fig.canvas.draw()
+        
+        ax = sns.boxplot(data=df_imm_bp, x='cycle', y="time", hue="day_night", palette="pastel")
+        
+        return 0
+        
+
 
     def statistics(self):
         
@@ -264,26 +316,91 @@ class Activity_Measurements:
         ## spending time of both detected activity and immobility
         labels_list = self.df_imm[self.label_day_night].unique().tolist()
         print(f'days and nights: {labels_list}')
+        
+        df_imm_all=pd.DataFrame()
+        df_ref_all=pd.DataFrame(columns=['label', '%act', '%imm'])
     
         for label in labels_list:
             
             if (label in self.list_days) or (label in self.list_nights):
+                
+                # print(f'{label}:    ')
             
-                df_imm = self.df_imm[self.df_imm[self.label_day_night]== label]
-                x_imm=df_imm[self.label_duration].to_numpy()
+                df_i = self.df_imm[self.df_imm[self.label_day_night]== label]
+                x_imm=df_i[self.label_duration].to_numpy()
+                # print(f'x_imm: {x_imm}')
                 
-                df_act = self.df_act[self.df_act[self.label_day_night]== label]
-                x_act=df_act[self.label_duration].to_numpy()
+                df_a = self.df_act[self.df_act[self.label_day_night]== label]
+                x_act=df_a[self.label_duration].to_numpy()
+                # print(f'x_act: {x_act}')
                 
+                ## description of data distribution using quartiles Q0, Q1, Q2, Q3, Q4
+                q_act = np.percentile(x_act, [0, 25, 50, 75, 100])
+                q_imm = np.percentile(x_imm, [0, 25, 50, 75, 100])
+                
+                # print(f'stats:\nact: {q_act}\nimm:{q_imm}')
+
                 ## calculate percentages of spending time
                 imm_sum = np.sum(x_imm)
                 act_sum = np.sum(x_act)
-                ref_sum = act_sum+imm_sum
-                
-                ratio_act = act_sum/ref_sum
+                ref_sum = imm_sum + act_sum
+
                 ratio_imm = imm_sum/ref_sum
+                ratio_act = act_sum/ref_sum
                 
-                # print(f'sum act imm: {label} {round(100*act_sum/ref_sum,2)} %, {round(100*imm_sum/ref_sum,2)} %')
+                # print(f'summing of act, imm, total: {act_sum}, {imm_sum}, {ref_sum}')
+                # print(f'sum act imm: {label} {round(100*ratio_act,2)} %, {round(100*ratio_imm,2)} %')
+                
+                row = [label, round(100*ratio_act,2), round(100*ratio_imm,2)] 
+                new_df = pd.DataFrame([row], columns=['label', '%act', '%imm'])
+                df_ref_all = pd.concat([df_ref_all, new_df], axis=0, ignore_index=True)
+                
+                arr_threshold_imm = 60*np.array([10,30,60])  ## numbers inside array in minutes, multiply by 60 to obtain values in seconds
+                
+                arr_threshold_imm = np.insert(arr_threshold_imm,0,0)
+                arr_threshold_imm = np.insert(arr_threshold_imm, len(arr_threshold_imm), np.max(x_imm))
+                
+                print(f'threshold_imm: {arr_threshold_imm}')
+                
+                df_table_imm = pd.DataFrame()
+                
+                cont=0
+                for thr_0, thr_1 in zip(arr_threshold_imm[:-1], arr_threshold_imm[1:]):
+                    outliers_imm = x_imm[(x_imm > thr_0) & (x_imm <= thr_1)]
+                    # print(f'outliers_imm {thr_0}, {thr_1}: {outliers_imm}')
+                    
+                    num_samples = len(outliers_imm)
+                    time_samples= np.sum(outliers_imm)
+                    per_samples = round(100*(time_samples / imm_sum),2) 
+                    
+                    values_col = [num_samples, time_samples, per_samples]
+                    df_table_imm[cont] = values_col
+                    cont+=1
+                
+                df_table_imm['labels']=['samples','time','percentage']
+                df_table_imm['day_night']=label
+                
+                # print(f'table imm:\n{df_table_imm}')
+                # print(f'100 %: {df_table_imm.iloc[2,:].sum()}')
+                
+                df_imm_all = pd.concat([df_imm_all, df_table_imm], ignore_index=True)
+                    
+                    
+                
+                
+                # outliers_act = x_act[x_act > (q_act[3]+1.5*(q_act[3]-q_act[1]))]
+                
+                # outliers_act = x_act[x_act > (q_act[3]+1.5*(q_act[3]-q_act[1]))]
+                # sum_outliers_act = np.sum(outliers_act)
+                # print(f'outliers act: {outliers_act}, {sum_outliers_act}, {sum_outliers_act/act_sum},')
+                
+                # threshold_imm = q_imm[3]+1.5*(q_imm[3]-q_imm[1])
+                # outliers_imm = x_imm[x_imm > threshold_imm]
+                
+                # sum_outliers_imm = np.sum(outliers_imm)
+                # print(f'threshold outliers imm: {threshold_imm}')
+                # print(f'outliers imm: {outliers_imm}, {sum_outliers_imm}, {sum_outliers_imm/imm_sum},')
+                
                 
                 if label.startswith('d'):
                     list_ratio_act_d.append(ratio_act)
@@ -291,14 +408,20 @@ class Activity_Measurements:
                 else:
                     list_ratio_act_n.append(ratio_act)
                     list_ratio_imm_n.append(ratio_imm)
+            else:
+                pass
+        
+        print(f'df_ref_all:\n{df_ref_all}')
+                
+        print(f'df_imm_all imm:\n{df_imm_all}')
         
         # print(f'list ratio:\n{list_ratio_act_d}\n{list_ratio_imm_d}\n{list_ratio_act_n}\n{list_ratio_imm_n}')
         ## average of both activity and immobility
-        print(f'average ratio:\n \
-        {np.mean(list_ratio_act_d)}, {np.std(list_ratio_act_d)}\n \
-        {np.mean(list_ratio_imm_d)}, {np.std(list_ratio_imm_d)}\n \
-        {np.mean(list_ratio_act_n)}, {np.std(list_ratio_act_n)}\n \
-        {np.mean(list_ratio_imm_n)}, {np.std(list_ratio_imm_n)}')
+        # print(f'average ratio:\n \
+        # {np.mean(list_ratio_act_d)}, {np.std(list_ratio_act_d)}\n \
+        # {np.mean(list_ratio_imm_d)}, {np.std(list_ratio_imm_d)}\n \
+        # {np.mean(list_ratio_act_n)}, {np.std(list_ratio_act_n)}\n \
+        # {np.mean(list_ratio_imm_n)}, {np.std(list_ratio_imm_n)}')
         
         return 0
         
