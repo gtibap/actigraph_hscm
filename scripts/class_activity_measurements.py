@@ -313,12 +313,18 @@ class Activity_Measurements:
         list_ratio_imm_d=[]
         list_ratio_act_n=[]
         list_ratio_imm_n=[]
+        list_thr1_d=[]
+        list_thr2_d=[]
+        list_thr1_n=[]
+        list_thr2_n=[]
+        
         ## spending time of both detected activity and immobility
         labels_list = self.df_imm[self.label_day_night].unique().tolist()
-        print(f'days and nights: {labels_list}')
+        # print(f'days and nights: {labels_list}')
         
         df_imm_all=pd.DataFrame()
-        df_ref_all=pd.DataFrame(columns=['label', '%act', '%imm'])
+        df_ratio_d=pd.DataFrame()
+        df_ratio_n=pd.DataFrame()
     
         for label in labels_list:
             
@@ -326,17 +332,19 @@ class Activity_Measurements:
                 
                 # print(f'{label}:    ')
             
+                ## immobility day or night
                 df_i = self.df_imm[self.df_imm[self.label_day_night]== label]
                 x_imm=df_i[self.label_duration].to_numpy()
                 # print(f'x_imm: {x_imm}')
                 
+                ## activity day or night
                 df_a = self.df_act[self.df_act[self.label_day_night]== label]
                 x_act=df_a[self.label_duration].to_numpy()
                 # print(f'x_act: {x_act}')
                 
                 ## description of data distribution using quartiles Q0, Q1, Q2, Q3, Q4
-                q_act = np.percentile(x_act, [0, 25, 50, 75, 100])
-                q_imm = np.percentile(x_imm, [0, 25, 50, 75, 100])
+                # q_act = np.percentile(x_act, [0, 25, 50, 75, 100])
+                # q_imm = np.percentile(x_imm, [0, 25, 50, 75, 100])
                 
                 # print(f'stats:\nact: {q_act}\nimm:{q_imm}')
 
@@ -351,41 +359,57 @@ class Activity_Measurements:
                 # print(f'summing of act, imm, total: {act_sum}, {imm_sum}, {ref_sum}')
                 # print(f'sum act imm: {label} {round(100*ratio_act,2)} %, {round(100*ratio_imm,2)} %')
                 
-                row = [label, round(100*ratio_act,2), round(100*ratio_imm,2)] 
-                new_df = pd.DataFrame([row], columns=['label', '%act', '%imm'])
-                df_ref_all = pd.concat([df_ref_all, new_df], axis=0, ignore_index=True)
+                # row = [label, round(100*ratio_act,2), round(100*ratio_imm,2)] 
+                # new_df = pd.DataFrame([row], columns=['label', '%act', '%imm'])
+                # df_ref_all = pd.concat([df_ref_all, new_df], axis=0, ignore_index=True)
                 
-                arr_threshold_imm = 60*np.array([10,30,60])  ## numbers inside array in minutes, multiply by 60 to obtain values in seconds
+                # arr_threshold_imm = 60*np.array([10,30,60])  ## numbers inside array in minutes, multiply by 60 to obtain values in seconds
                 
-                arr_threshold_imm = np.insert(arr_threshold_imm,0,0)
-                arr_threshold_imm = np.insert(arr_threshold_imm, len(arr_threshold_imm), np.max(x_imm))
+                # arr_threshold_imm = np.insert(arr_threshold_imm,0,0)
+                # arr_threshold_imm = np.insert(arr_threshold_imm, len(arr_threshold_imm), np.max(x_imm))
                 
-                print(f'threshold_imm: {arr_threshold_imm}')
+                # print(f'threshold_imm: {arr_threshold_imm}')
                 
-                df_table_imm = pd.DataFrame()
+                # df_table_imm = pd.DataFrame()
                 
-                cont=0
-                for thr_0, thr_1 in zip(arr_threshold_imm[:-1], arr_threshold_imm[1:]):
-                    outliers_imm = x_imm[(x_imm > thr_0) & (x_imm <= thr_1)]
+                # cont=0
+                # for thr_0, thr_1 in zip(arr_threshold_imm[:-1], arr_threshold_imm[1:]):
+                    # outliers_imm = x_imm[(x_imm > thr_0) & (x_imm <= thr_1)]
                     # print(f'outliers_imm {thr_0}, {thr_1}: {outliers_imm}')
                     
-                    num_samples = len(outliers_imm)
-                    time_samples= np.sum(outliers_imm)
-                    per_samples = round(100*(time_samples / imm_sum),2) 
+                    # num_samples = len(outliers_imm)
+                    # time_samples= np.sum(outliers_imm)
+                    # per_samples = round(100*(time_samples / imm_sum),2) 
                     
-                    values_col = [num_samples, time_samples, per_samples]
-                    df_table_imm[cont] = values_col
-                    cont+=1
+                    # values_col = [num_samples, time_samples, per_samples]
+                    # df_table_imm[cont] = values_col
+                    # cont+=1
                 
-                df_table_imm['labels']=['samples','time','percentage']
-                df_table_imm['day_night']=label
+                # df_table_imm['labels']=['samples','time','percentage']
+                # df_table_imm['day_night']=label
                 
                 # print(f'table imm:\n{df_table_imm}')
                 # print(f'100 %: {df_table_imm.iloc[2,:].sum()}')
                 
-                df_imm_all = pd.concat([df_imm_all, df_table_imm], ignore_index=True)
+                # df_imm_all = pd.concat([df_imm_all, df_table_imm], ignore_index=True)
                     
-                    
+                ## immobility samples greater than a threshold
+                thr=15*60 ## 15 min * 60 s/min
+                outliers_imm = x_imm[x_imm >= thr]
+                ratio_thr0 = np.sum(outliers_imm)/ref_sum    
+                
+                ## immobility samples greater than a threshold
+                thr=30*60 ## 30 min * 60 s/min
+                outliers_imm = x_imm[x_imm >= thr]
+                ratio_thr1 = np.sum(outliers_imm)/ref_sum
+                
+                thr=60*60 ## 60 min * 60 s/min
+                outliers_imm = x_imm[x_imm >= thr]
+                ratio_thr2 = np.sum(outliers_imm)/ref_sum
+                
+                thr=120*60 ## 120 min * 60 s/min
+                outliers_imm = x_imm[x_imm >= thr]
+                ratio_thr3 = np.sum(outliers_imm)/ref_sum
                 
                 
                 # outliers_act = x_act[x_act > (q_act[3]+1.5*(q_act[3]-q_act[1]))]
@@ -401,19 +425,32 @@ class Activity_Measurements:
                 # print(f'threshold outliers imm: {threshold_imm}')
                 # print(f'outliers imm: {outliers_imm}, {sum_outliers_imm}, {sum_outliers_imm/imm_sum},')
                 
+                row = [label, round(100*ratio_act,2), round(100*ratio_imm,2), round(100*ratio_thr0,2), round(100*ratio_thr1,2), round(100*ratio_thr2,2), round(100*ratio_thr3,2)] 
+                new_df = pd.DataFrame([row], columns=['label', '%act', '%imm_total', '%imm_15min', '%imm_30min', '%imm_60min', '%imm_120min'])
                 
                 if label.startswith('d'):
-                    list_ratio_act_d.append(ratio_act)
-                    list_ratio_imm_d.append(ratio_imm)
+                    # list_ratio_act_d.append(ratio_act)
+                    # list_ratio_imm_d.append(ratio_imm)
+                    # list_thr1_d.append(ratio_thr1)
+                    # list_thr2_d.append(ratio_thr2)
+                    
+                    df_ratio_d = pd.concat([df_ratio_d, new_df], axis=0, ignore_index=True)
+                
                 else:
-                    list_ratio_act_n.append(ratio_act)
-                    list_ratio_imm_n.append(ratio_imm)
+                    # list_ratio_act_n.append(ratio_act)
+                    # list_ratio_imm_n.append(ratio_imm)
+                    # list_thr1_n.append(ratio_thr1)
+                    # list_thr2_n.append(ratio_thr2)
+                    
+                    df_ratio_n = pd.concat([df_ratio_n, new_df], axis=0, ignore_index=True)
+                    
             else:
                 pass
         
-        print(f'df_ref_all:\n{df_ref_all}')
+        # print(f'df_ratio_d:\n{df_ratio_d}\n{df_ratio_d.median(numeric_only=True)}\n{df_ratio_d.median(numeric_only=True).tolist()}')
+        # print(f'df_ratio_n:\n{df_ratio_n}\n{df_ratio_n.median(numeric_only=True)}\n{df_ratio_n.median(numeric_only=True).tolist()}')
                 
-        print(f'df_imm_all imm:\n{df_imm_all}')
+        # print(f'df_imm_all imm:\n{df_imm_all}')
         
         # print(f'list ratio:\n{list_ratio_act_d}\n{list_ratio_imm_d}\n{list_ratio_act_n}\n{list_ratio_imm_n}')
         ## average of both activity and immobility
@@ -423,7 +460,10 @@ class Activity_Measurements:
         # {np.mean(list_ratio_act_n)}, {np.std(list_ratio_act_n)}\n \
         # {np.mean(list_ratio_imm_n)}, {np.std(list_ratio_imm_n)}')
         
-        return 0
+        median_d = df_ratio_d.median(numeric_only=True).tolist()
+        median_n = df_ratio_n.median(numeric_only=True).tolist()
+        
+        return median_d, median_n
         
 
     def histogram_immobility(self):

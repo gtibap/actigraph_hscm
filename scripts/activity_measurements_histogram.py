@@ -56,6 +56,9 @@ def plot_vector_magnitude(list_objs, labels_rec, labels_con, group_title, body_p
     y_ini=  -10.0
     y_end=   60.0
     
+    x_ini = 4*num_samples - int(num_samples/10) 
+    x_end = 5*num_samples + int(num_samples/10) 
+    
     # x_text_pos = 0
     # y_text_pos = y_end - 80
     
@@ -104,12 +107,22 @@ def plot_vector_magnitude(list_objs, labels_rec, labels_con, group_title, body_p
     ## legend
     # asia = ['B','A','A','A']
     # nl = ['C4','C6','T7','T10']
+    
+    # ## font size labels and ticks hours
+    xticks = np.linspace(0, num_samples*10, int(10*12)+1).astype(int)
+    ax[-1].set_xticks(xticks, xticks, fontsize=12)
+    # xticks = np.linspace(0, num_samples*10, 11).astype(int)
+    # ax[-1].set_xticks(xticks, (xticks/3600).astype(int), fontsize=12)
+    
     for i in np.arange(len(list_objs)):
         ##
         ax[i].legend([], title=f'{labels_rec[i]}\n{labels_con[i]}', alignment='center', loc='upper left', bbox_to_anchor=(1.0, 1.15), ncol=1, fancybox=True, shadow=True,)
         
         ## y scale
         ax[i].set_ylim(y_ini,y_end)
+        
+        ## x scales
+        ax[i].set_xlim(x_ini,x_end)
         
         # hide xtick values
         ax[i].set_xticklabels([])
@@ -125,9 +138,7 @@ def plot_vector_magnitude(list_objs, labels_rec, labels_con, group_title, body_p
         ann = ax[0].annotate(f'd{i+1}', xy=(x_pos + int(num_samples/2), 1.05 ), xycoords=trans, fontsize=12, color='tab:blue')
         ann = ax[0].annotate(f'n{i+1}', xy=(x_pos + int(3*num_samples/2), 1.05 ), xycoords=trans, fontsize=12, color='tab:orange')
             
-    ## font size labels and ticks hours
-    xticks = np.linspace(0, num_samples*10, 11).astype(int)
-    ax[-1].set_xticks(xticks, (xticks/3600).astype(int), fontsize=12)
+    
   
     ax[-1].set_xlabel('time [h]', fontsize=12)
     
@@ -543,6 +554,7 @@ def main(args):
     
     path = "../data/projet_officiel/"
     path_out = "../data/projet_officiel/measurements/figures/"
+    path_out_2 = "../data/projet_officiel/measurements/tables/"
     
     # files_names=[]
     
@@ -654,8 +666,8 @@ def main(args):
     
     list_objs = [[]]*len(files_list)
     
-    id_obj=0
-    files_list = files_list[id_obj:id_obj+1]
+    # id_obj=0
+    # files_list = files_list[id_obj:id_obj+1]
     # print(f'files_list: {files_list}, {files_list[:1]}')
     
     for i,filename in enumerate(files_list):
@@ -671,24 +683,47 @@ def main(args):
             print(f'Problem reading the file {filename}.')
     
     prefix_name = prefix_one+prefix_two
-    # ###########################        
-    # ## plot Vector Magnitude
-    # flag_save = True
-    # plot_vector_magnitude(list_objs, list_nli_rec, list_nli_con, group_title, body_part_title, flag_save, path_out+prefix_name)
-    # ###########################
+    ###########################        
+    ## plot Vector Magnitude
+    flag_save = False
+    plot_vector_magnitude(list_objs, list_nli_rec, list_nli_con, group_title, body_part_title, flag_save, path_out+prefix_name)
+    ###########################
+
+    print(f'list_objs: {len(list_objs)}')
 
 
+    df_median_all_d = pd.DataFrame()
+    df_median_all_n = pd.DataFrame()
     ###############################
     ## histogram time immobility
-    
-    list_objs[0].immobility()
-    # list_objs[0].histogram_immobility()
-    list_objs[0].statistics()
+    for i, obj in enumerate(list_objs):
+        
+        print(f'patient {i+1}')
+
+        obj.immobility()
+        # list_objs[0].histogram_immobility()
+        median_d, median_n = obj.statistics()
+        # print(f'day:\n{median_d}')
+        # print(f'night:\n{median_n}')
+        
+        ## insert id to the list of values
+        median_d.insert(0,f'p{i+1}')
+        median_n.insert(0,f'p{i+1}')
+        
+        df_median_d = pd.DataFrame([median_d], columns=['id', '%act', '%imm_total', '%imm_15min', '%imm_30min', '%imm_60min', '%imm_120min'])
+        df_median_n = pd.DataFrame([median_n], columns=['id', '%act', '%imm_total', '%imm_15min', '%imm_30min', '%imm_60min', '%imm_120min'])
+        
+        df_median_all_d = pd.concat([df_median_all_d, df_median_d], axis=0, ignore_index=True)
+        df_median_all_n = pd.concat([df_median_all_n, df_median_n], axis=0, ignore_index=True)
     
     # list_objs[0].boxplots()
+
+    print(f'df_median_all_d:\n{df_median_all_d}')
+    print(f'df_median_all_n:\n{df_median_all_n}')
     
-    
-    
+    ## save df_median_all_d and df_median_all_n tables in a csv file
+    df_median_all_d.to_csv(path_out_2+'median_d.csv', index=False)
+    df_median_all_n.to_csv(path_out_2+'median_n.csv', index=False)
     
     df_vma_days = pd.DataFrame(columns=files_names)
     df_vma_nights = pd.DataFrame(columns=files_names)
@@ -704,7 +739,7 @@ def main(args):
     # self.df_days  = pd.DataFrame(columns  =['sample_size', 'vma_mean', 'inc_mean'])
     # self.df_nights= pd.DataFrame(columns=['sample_size', 'vma_mean', 'inc_mean'])
     
-    flag_continue = False
+    flag_continue = True
     # flag_continue = False
     # list_objs = list_objs[:8]
     
@@ -742,8 +777,8 @@ def main(args):
 
         # ###########################
         # ## inclinometers activity: posture changing
-        flag_save = True
-        plot_incl_activity(list_objs, list_nli_rec, list_nli_con, group_title, body_part_title, flag_save, path_out+prefix_name)
+        # flag_save = True
+        # plot_incl_activity(list_objs, list_nli_rec, list_nli_con, group_title, body_part_title, flag_save, path_out+prefix_name)
         # ###########################
         
         ## plot results processing
@@ -751,9 +786,9 @@ def main(args):
         # plot_vma_step(list_objs, 2)
         # plot_vma_cycle(list_objs)
         #############################
-        flag_save = True
+        # flag_save = True
         # plot_cycle_alpha(list_objs, list_nli_rec, list_nli_con, vma_b,  group_title, body_part_title, flag_save, path_out+prefix_name+'vm_')
-        plot_cycle_alpha(list_objs, list_nli_rec, list_nli_con, inc_b, group_title, body_part_title, flag_save, path_out+prefix_name+'incl_')
+        # plot_cycle_alpha(list_objs, list_nli_rec, list_nli_con, inc_b, group_title, body_part_title, flag_save, path_out+prefix_name+'incl_')
         #############################
         # list_objs[0].plot_Inclinometers()
         # list_objs[0].plot_Inclinometers_results()
@@ -762,15 +797,15 @@ def main(args):
         flag_boxplots = True
         
         if flag_boxplots:
-            # flag_save_fig=False
-            # title = 'VM'
-            # label_y = "VM activity rate"
-            # plot_boxplots(df_vma_days, df_vma_nights, label_y, list_nli_rec, list_nli_con, title, group_title, body_part_title, path_out+prefix_name+'vm_', flag_save_fig)
+            flag_save_fig=False
+            title = 'VM'
+            label_y = "VM activity rate"
+            plot_boxplots(df_vma_days, df_vma_nights, label_y, list_nli_rec, list_nli_con, title, group_title, body_part_title, path_out+prefix_name+'vm_', flag_save_fig)
             
-            flag_save_fig=True
-            title = 'Inclinometers'
-            label_y = "Incl. activity rate"
-            plot_boxplots(df_inc_days, df_inc_nights, label_y, list_nli_rec, list_nli_con, title, group_title, body_part_title, path_out+prefix_name+'incl_', flag_save_fig)
+            # flag_save_fig=True
+            # title = 'Inclinometers'
+            # label_y = "Incl. activity rate"
+            # plot_boxplots(df_inc_days, df_inc_nights, label_y, list_nli_rec, list_nli_con, title, group_title, body_part_title, path_out+prefix_name+'incl_', flag_save_fig)
         
     else:
         pass
