@@ -318,6 +318,7 @@ class Activity_Measurements:
         list_thr1_n=[]
         list_thr2_n=[]
         
+        
         ## spending time of both detected activity and immobility
         labels_list = self.df_imm[self.label_day_night].unique().tolist()
         # print(f'days and nights: {labels_list}')
@@ -426,6 +427,7 @@ class Activity_Measurements:
                 # print(f'outliers imm: {outliers_imm}, {sum_outliers_imm}, {sum_outliers_imm/imm_sum},')
                 
                 row = [label, round(100*ratio_act,2), round(100*ratio_imm,2), round(100*ratio_thr0,2), round(100*ratio_thr1,2), round(100*ratio_thr2,2), round(100*ratio_thr3,2)] 
+                
                 new_df = pd.DataFrame([row], columns=['label', '%act', '%imm_total', '%imm_15min', '%imm_30min', '%imm_60min', '%imm_120min'])
                 
                 if label.startswith('d'):
@@ -443,6 +445,8 @@ class Activity_Measurements:
                     # list_thr2_n.append(ratio_thr2)
                     
                     df_ratio_n = pd.concat([df_ratio_n, new_df], axis=0, ignore_index=True)
+                    list_ratio_act_n.append(row[1])
+                    
                     
             else:
                 pass
@@ -463,7 +467,7 @@ class Activity_Measurements:
         median_d = df_ratio_d.median(numeric_only=True).tolist()
         median_n = df_ratio_n.median(numeric_only=True).tolist()
         
-        return median_d, median_n
+        return median_d, median_n, list_ratio_act_n
         
 
     def histogram_immobility(self):

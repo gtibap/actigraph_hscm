@@ -55,9 +55,10 @@ def plot_vector_magnitude(list_objs, labels_rec, labels_con, group_title, body_p
 
     y_ini=  -10.0
     y_end=   60.0
-    
-    x_ini = 4*num_samples - int(num_samples/10) 
-    x_end = 5*num_samples + int(num_samples/10) 
+
+    ## show night 3 + a little of day3 and day4 (before and after of night 3, respectively)
+    x_ini = 5*num_samples - int(num_samples/20) 
+    x_end = 6*num_samples + int(num_samples/20) 
     
     # x_text_pos = 0
     # y_text_pos = y_end - 80
@@ -108,15 +109,26 @@ def plot_vector_magnitude(list_objs, labels_rec, labels_con, group_title, body_p
     # asia = ['B','A','A','A']
     # nl = ['C4','C6','T7','T10']
     
-    # ## font size labels and ticks hours
+    # ## font size labels and ticks every hour
+    ## 10 blocks of 12h each (10*12), plus 1 tick at the end -> (10*12)+1
     xticks = np.linspace(0, num_samples*10, int(10*12)+1).astype(int)
-    ax[-1].set_xticks(xticks, xticks, fontsize=12)
+    
+    
+    ticks_labels = np.concatenate((np.arange(9,24), np.arange(0,9)), axis=None)
+    ticks_labels = [str(x).zfill(2) for x in ticks_labels]
+    ticks_labels = ticks_labels*5
+    ticks_labels.append(0)
+    
+    ax[-1].set_xticks(xticks, ticks_labels, fontsize=12)
+    
+    # ax[-1].set_xticks(xticks, ticks_labels, fontsize=12)
     # xticks = np.linspace(0, num_samples*10, 11).astype(int)
     # ax[-1].set_xticks(xticks, (xticks/3600).astype(int), fontsize=12)
     
     for i in np.arange(len(list_objs)):
         ##
-        ax[i].legend([], title=f'{labels_rec[i]}\n{labels_con[i]}', alignment='center', loc='upper left', bbox_to_anchor=(1.0, 1.15), ncol=1, fancybox=True, shadow=True,)
+        # ax[i].legend([], title=f'{labels_rec[i]}\n{labels_con[i]}', alignment='center', loc='upper left', bbox_to_anchor=(1.0, 1.15), ncol=1, fancybox=True, shadow=True,)
+        ax[i].legend([], title=f'{labels_rec[i]}', alignment='center', loc='upper left', bbox_to_anchor=(1.0, 1.15), ncol=1, fancybox=True, shadow=True,)
         
         ## y scale
         ax[i].set_ylim(y_ini,y_end)
@@ -125,22 +137,22 @@ def plot_vector_magnitude(list_objs, labels_rec, labels_con, group_title, body_p
         ax[i].set_xlim(x_ini,x_end)
         
         # hide xtick values
-        ax[i].set_xticklabels([])
+        # ax[i].set_xticklabels([])
         
     # for i in np.arange(4):
         # ax[i].legend([], title=f'P{i+1} - VM\n(counts)\nAIS: {asia[i]}\nNLI: {nl[i]}', alignment='center', loc='upper left', bbox_to_anchor=(1.0, 1.1), ncol=1, fancybox=True, shadow=True,)
     
-    ## annotate
-    trans = ax[0].get_xaxis_transform() # x in data units, y in axes fraction
-    list_x_pos = (2*num_samples)*np.arange(5)
+    # ## annotate
+    # trans = ax[0].get_xaxis_transform() # x in data units, y in axes fraction
+    # list_x_pos = (2*num_samples)*np.arange(5)
     
-    for i, x_pos in enumerate(list_x_pos):
-        ann = ax[0].annotate(f'd{i+1}', xy=(x_pos + int(num_samples/2), 1.05 ), xycoords=trans, fontsize=12, color='tab:blue')
-        ann = ax[0].annotate(f'n{i+1}', xy=(x_pos + int(3*num_samples/2), 1.05 ), xycoords=trans, fontsize=12, color='tab:orange')
+    # for i, x_pos in enumerate(list_x_pos):
+        # ann = ax[0].annotate(f'd{i+1}', xy=(x_pos + int(num_samples/2), 1.05 ), xycoords=trans, fontsize=12, color='tab:blue')
+        # ann = ax[0].annotate(f'n{i+1}', xy=(x_pos + int(3*num_samples/2), 1.05 ), xycoords=trans, fontsize=12, color='tab:orange')
             
     
   
-    ax[-1].set_xlabel('time [h]', fontsize=12)
+    ax[-1].set_xlabel('24-hour clock [hh]', fontsize=12)
     
     for i in range(len(ax)):
         ax[i].set_yticks([y_ini+10,y_end-10], [int(y_ini+10),int(y_end-10)], fontsize=12)
@@ -504,7 +516,8 @@ def plot_boxplots(df_days, df_nights, label_y, labels_rec, labels_con, title, gr
     
     data_day = df_days.assign(period='day')
     data_night = df_nights.assign(period='night')
-    cdf = pd.concat([data_day, data_night]) 
+    # cdf = pd.concat([data_day, data_night]) 
+    cdf = data_night
     # print(cdf)
     mdf = pd.melt(cdf, id_vars=['period'], var_name=['subject'])
     # print(mdf)
@@ -531,7 +544,8 @@ def plot_boxplots(df_days, df_nights, label_y, labels_rec, labels_con, title, gr
     
     size_font = 12
     
-    ax.set_xlabel("ASIA Impairment Scale + (Neurological Level of Injury)",fontsize=size_font)
+    # ax.set_xlabel("ASIA Impairment Scale + (Neurological Level of Injury)",fontsize=size_font)
+    ax.set_xlabel("Subject",fontsize=size_font)
     ax.set_ylabel(label_y,fontsize=size_font)
     ax.tick_params(labelsize=size_font)
     
@@ -625,6 +639,15 @@ def main(args):
         list_nli_rec=['B (C4)', 'A (C5)', 'A (T4)', 'C (C3)', 'C (C5)', 'SQC', 'SQC', 'CCS (C2)',]
         list_nli_con=['B (C4)', 'A (C5)', 'A (T5)', 'D (C3)', 'D (C5)', 'SQC', 'SQC', 'CCS (C2)',]
         list_pi=[]
+    elif group == '7':
+        files_names=['A006', 'A021', 'A022', 'A025', 'A028', 'A037', 'A039', 'A044', 'A003', 'A023', 'A026', 'A018',]
+        prefix_one = 'AB_'
+        group_title = 'AIS : A and B'
+        ## Neurological Level of Injury
+        list_nli_rec=['P01', 'P02', 'P03', 'P04', 'P05', 'P06', 'P07', 'P08', 'P09', 'P10', 'P11', 'P12',]
+        list_nli_con=['','','','','','','','','','','','',]
+        list_pi=[]
+    
     # elif group == '4':
         # files_names=['A006', 'A039', 'A023', 'A040', 'A019', 'A005', 'A035', 'A014', 'A041', 'A020', 'A016', 'A001', 'A015', 'A033',]
         # prefix_one = 'PI_'
@@ -683,14 +706,15 @@ def main(args):
             print(f'Problem reading the file {filename}.')
     
     prefix_name = prefix_one+prefix_two
-    ###########################        
-    ## plot Vector Magnitude
-    flag_save = False
-    plot_vector_magnitude(list_objs, list_nli_rec, list_nli_con, group_title, body_part_title, flag_save, path_out+prefix_name)
-    ###########################
+    # ###########################        
+    # ## plot Vector Magnitude
+    # flag_save = True
+    # plot_vector_magnitude(list_objs, list_nli_rec, list_nli_con, group_title, body_part_title, flag_save, path_out+prefix_name)
+    # ###########################
 
     print(f'list_objs: {len(list_objs)}')
 
+    df_ratio_act_n_all = pd.DataFrame()
 
     df_median_all_d = pd.DataFrame()
     df_median_all_n = pd.DataFrame()
@@ -702,13 +726,19 @@ def main(args):
 
         obj.immobility()
         # list_objs[0].histogram_immobility()
-        median_d, median_n = obj.statistics()
+        median_d, median_n, list_ratio_act_n = obj.statistics()
         # print(f'day:\n{median_d}')
         # print(f'night:\n{median_n}')
         
+        df_ratio_act_n = pd.DataFrame()
+        df_ratio_act_n['values']=list_ratio_act_n
+        df_ratio_act_n['subject']=f'P{str(i+1).zfill(2)}'
+        
+        df_ratio_act_n_all = pd.concat([df_ratio_act_n_all, df_ratio_act_n], ignore_index=True)
+        
         ## insert id to the list of values
-        median_d.insert(0,f'p{i+1}')
-        median_n.insert(0,f'p{i+1}')
+        median_d.insert(0,f'P{str(i+1).zfill(2)}')
+        median_n.insert(0,f'P{str(i+1).zfill(2)}')
         
         df_median_d = pd.DataFrame([median_d], columns=['id', '%act', '%imm_total', '%imm_15min', '%imm_30min', '%imm_60min', '%imm_120min'])
         df_median_n = pd.DataFrame([median_n], columns=['id', '%act', '%imm_total', '%imm_15min', '%imm_30min', '%imm_60min', '%imm_120min'])
@@ -717,13 +747,16 @@ def main(args):
         df_median_all_n = pd.concat([df_median_all_n, df_median_n], axis=0, ignore_index=True)
     
     # list_objs[0].boxplots()
+    
+    print(f'df_ratio_act_n_all\n{df_ratio_act_n_all}')
+    # boxplot = df_ratio_act_n_all.boxplot(by='subject')
 
-    print(f'df_median_all_d:\n{df_median_all_d}')
+    # print(f'df_median_all_d:\n{df_median_all_d}')
     print(f'df_median_all_n:\n{df_median_all_n}')
     
     ## save df_median_all_d and df_median_all_n tables in a csv file
-    df_median_all_d.to_csv(path_out_2+'median_d.csv', index=False)
-    df_median_all_n.to_csv(path_out_2+'median_n.csv', index=False)
+    # df_median_all_d.to_csv(path_out_2+'median_d.csv', index=False)
+    # df_median_all_n.to_csv(path_out_2+'median_n.csv', index=False)
     
     df_vma_days = pd.DataFrame(columns=files_names)
     df_vma_nights = pd.DataFrame(columns=files_names)
@@ -794,10 +827,15 @@ def main(args):
         # list_objs[0].plot_Inclinometers_results()
         
         
+        print(f'df_vma_days\n{df_vma_days}')
+        print(f'median df_vma_days\n{df_vma_days.median().tolist()}')
+        print(f'df_vma_nights\n{df_vma_nights}')
+        print(f'median df_vma_nights\n{df_vma_nights.median().tolist()}')
+        
         flag_boxplots = True
         
         if flag_boxplots:
-            flag_save_fig=False
+            flag_save_fig=True
             title = 'VM'
             label_y = "VM activity rate"
             plot_boxplots(df_vma_days, df_vma_nights, label_y, list_nli_rec, list_nli_con, title, group_title, body_part_title, path_out+prefix_name+'vm_', flag_save_fig)
