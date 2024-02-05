@@ -49,7 +49,7 @@ def plot_vector_magnitude(list_objs, labels_rec, labels_con, group_title, body_p
     fig.canvas.mpl_connect('key_press_event', on_press)
     fig.canvas.draw()
     
-    plt.rcParams.update({'font.size': 12})
+    plt.rcParams.update({'font.size': 19})
     
     num_samples = 43200 ## 12 hours, a sample every second
 
@@ -88,9 +88,9 @@ def plot_vector_magnitude(list_objs, labels_rec, labels_con, group_title, body_p
                 # print(f'ids size: {len(ids)}, {len(df_label)}')
                 
                 if label.startswith('d'):
-                    ax[i].plot(ids, vma, color='tab:blue', label='')
-                else:
                     ax[i].plot(ids, vma, color='tab:orange', label='')
+                else:
+                    ax[i].plot(ids, vma, color='tab:blue', label='')
                 
                 id_ini=id_ini+len(df_label)
                 # vertical line
@@ -119,7 +119,7 @@ def plot_vector_magnitude(list_objs, labels_rec, labels_con, group_title, body_p
     ticks_labels = ticks_labels*5
     ticks_labels.append(0)
     
-    ax[-1].set_xticks(xticks, ticks_labels, fontsize=12)
+    ax[-1].set_xticks(xticks, ticks_labels, fontsize=20)
     
     # ax[-1].set_xticks(xticks, ticks_labels, fontsize=12)
     # xticks = np.linspace(0, num_samples*10, 11).astype(int)
@@ -150,17 +150,16 @@ def plot_vector_magnitude(list_objs, labels_rec, labels_con, group_title, body_p
         # ann = ax[0].annotate(f'd{i+1}', xy=(x_pos + int(num_samples/2), 1.05 ), xycoords=trans, fontsize=12, color='tab:blue')
         # ann = ax[0].annotate(f'n{i+1}', xy=(x_pos + int(3*num_samples/2), 1.05 ), xycoords=trans, fontsize=12, color='tab:orange')
             
-    
-  
-    ax[-1].set_xlabel('24-hour clock [hh]', fontsize=12)
+    ax[0].set_title('Vector Magnitude (counts)', fontsize=22)
+    ax[-1].set_xlabel('24-hour clock [hh]', fontsize=22)
     
     for i in range(len(ax)):
-        ax[i].set_yticks([y_ini+10,y_end-10], [int(y_ini+10),int(y_end-10)], fontsize=12)
+        ax[i].set_yticks([y_ini+10,y_end-10], [int(y_ini+10),int(y_end-10)], fontsize=19)
     
     for tick in ax[-1].xaxis.get_major_ticks():
-        tick.label1.set_fontsize(12) 
+        tick.label1.set_fontsize(19) 
         
-    fig.suptitle(f'Activity VM {body_part_title}\n{group_title}')
+    # fig.suptitle(f'Vector Magnitude (counts)\n{group_title}')
         
     if flag_save:
         fig.savefig(path+'vm.png', bbox_inches='tight')
@@ -706,11 +705,11 @@ def main(args):
             print(f'Problem reading the file {filename}.')
     
     prefix_name = prefix_one+prefix_two
-    # ###########################        
-    # ## plot Vector Magnitude
-    # flag_save = True
-    # plot_vector_magnitude(list_objs, list_nli_rec, list_nli_con, group_title, body_part_title, flag_save, path_out+prefix_name)
-    # ###########################
+    ###########################        
+    ## plot Vector Magnitude
+    flag_save = True
+    plot_vector_magnitude(list_objs, list_nli_rec, list_nli_con, group_title, body_part_title, flag_save, path_out+prefix_name)
+    ###########################
 
     print(f'list_objs: {len(list_objs)}')
 
@@ -768,11 +767,11 @@ def main(args):
     win_a =  10 # 10 minutes
     win_b = 120 # 120 minutes
     
-    flag_filter=False
+    flag_filter = False
     # self.df_days  = pd.DataFrame(columns  =['sample_size', 'vma_mean', 'inc_mean'])
     # self.df_nights= pd.DataFrame(columns=['sample_size', 'vma_mean', 'inc_mean'])
     
-    flag_continue = True
+    flag_continue = False
     # flag_continue = False
     # list_objs = list_objs[:8]
     
