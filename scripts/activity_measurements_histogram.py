@@ -356,7 +356,7 @@ def plot_vma_cycle(list_objs):
 def plot_cycle_alpha(list_objs, labels_rec, labels_con, selected_label, group_title, body_part_title, flag_save, path):
     
     rows_number = len(list_objs)
-    fig, ax = plt.subplots(nrows=rows_number, ncols=1, figsize=(18, 10), sharex=True,)
+    fig, ax = plt.subplots(nrows=rows_number, ncols=1, figsize=(9, 5), sharex=True,)
     fig.canvas.mpl_connect('key_press_event', on_press)
     fig.canvas.draw()
     
@@ -365,7 +365,10 @@ def plot_cycle_alpha(list_objs, labels_rec, labels_con, selected_label, group_ti
     
     list_ticks_x =[]
     
-    hour_0 = 9
+    hen = 7
+    hed = 23
+    # hour_0 = 9
+    hour_0 = hen
     list_ticks_x.extend(np.arange(hour_0,24,1)) 
     list_ticks_x.extend(np.arange(0,hour_0+1,1)) 
     ## add one zero to the left for numbers of one digit
@@ -374,8 +377,18 @@ def plot_cycle_alpha(list_objs, labels_rec, labels_con, selected_label, group_ti
     
     label_step = selected_label
     
-    length_day=12*3600 ## 12 hours in seconds
-    length_night=12*3600 ## 12 hours in seconds
+    # self.time_ini='23:00:00'
+    # self.time_end='07:00:00'
+    # hen = 7
+    # hed = 23
+    hours_night = hen + 24-hed
+    hours_day   = 24-hours_night
+    
+    
+    print(hours_day, hours_night)
+    
+    length_day=hours_day*3600 ## hours in seconds
+    length_night=hours_night*3600 ## hours in seconds
     total_days=5
     total_nights=5
     
@@ -418,8 +431,8 @@ def plot_cycle_alpha(list_objs, labels_rec, labels_con, selected_label, group_ti
         # specifying horizontal line type 
         ax[i].axhline(y = 0.5, color = 'black', linestyle = '--', alpha=0.3) 
         
-        color_day='tab:blue'
-        color_night='tab:orange'
+        color_day='tab:orange'
+        color_night='tab:blue'
         
         pattern_day='//'
         pattern_night='..'
@@ -439,13 +452,15 @@ def plot_cycle_alpha(list_objs, labels_rec, labels_con, selected_label, group_ti
     ## annotate
     trans = ax[0].get_xaxis_transform() # x in data units, y in axes fraction
     # list_x_pos = (2*num_samples)*np.arange(5)
-    ax[0].annotate(f'day', xy=(int(length_day/2), 1.05 ), xycoords=trans, fontsize=12, color='tab:blue')
-    ax[0].annotate(f'night', xy=(length_day + int(length_night/2), 1.05 ), xycoords=trans, fontsize=12, color='tab:orange')
+    ax[0].annotate(f'day', xy=(int(length_day/2), 1.05 ), xycoords=trans, fontsize=12, color='tab:orange')
+    ax[0].annotate(f'night', xy=(length_day + int(length_night/2), 1.05 ), xycoords=trans, fontsize=12, color='tab:blue')
 
     ## legend
     if selected_label == vma_b:
         # signal_label = 'VM'
-        fig.suptitle(f'Activity VM {body_part_title}\n{group_title}')
+        # fig.suptitle(f'Activity VM {body_part_title}\n{group_title}')
+        # fig.suptitle(f'Mobility estimation from Vector Magnitude (VM) five nights')
+        fig.suptitle(f'')
     else:
         # signal_label = 'Incl.'
         fig.suptitle(f'Activity Inclinometers {body_part_title}\n{group_title}')
@@ -509,7 +524,7 @@ def plot_alpha(df, start, size, color, pattern, sel_label, ax):
 ## boxplots
 def plot_boxplots(df_days, df_nights, label_y, labels_rec, labels_con, title, group_title, body_part_title, path_out, flag_save_fig):
 
-    fig, ax = plt.subplots(figsize=(12, 6))
+    fig, ax = plt.subplots(figsize=(8, 4))
     fig.canvas.mpl_connect('key_press_event', on_press)
     fig.canvas.draw()
     
@@ -521,7 +536,17 @@ def plot_boxplots(df_days, df_nights, label_y, labels_rec, labels_con, title, gr
     mdf = pd.melt(cdf, id_vars=['period'], var_name=['subject'])
     # print(mdf)
     
-    ax = sns.boxplot(data=mdf, x='subject', y="value", hue="period", palette="pastel")
+    # Find the order
+    # my_order = mdf.groupby(by=["subject"])["value"].median().iloc[::-1].index
+    order = mdf.groupby('subject')['value'].median().sort_values().index
+    print(f'order: {order}')
+    
+    # list_order=['P08','P01','P04','P07','P05','P02','P09','P10','P06','P03','P12','P11']
+    dic_pat = {'A006':'P01', 'A021':'P02', 'A022':'P03', 'A025':'P04', 'A028':'P05', 'A037':'P06', 'A039':'P07', 'A044':'P08', 'A003':'P09', 'A023':'P10', 'A026':'P11', 'A018':'P12',}
+    
+    # ax = sns.boxplot(data=mdf, x='subject', y="value", hue="period", palette="pastel",)
+    ax = sns.boxplot(data=mdf, x='subject', y="value", hue="period", palette="pastel",order=order)
+    # ax = sns.boxplot(data=mdf, x='subject', y="value", hue="period", palette="pastel", order=list_order)
 
     # #########################
     # hatches = ['//','//', '..','..', '//','..', '//','..', '//','..', '//','..', '//','..']
@@ -534,10 +559,14 @@ def plot_boxplots(df_days, df_nights, label_y, labels_rec, labels_con, title, gr
     # ax.set(xticklabels = (['P1', 'P2', 'P3', 'P4']))
     # ax.set(xticklabels = (['P1', 'P2', 'P3', 'P4']))
     
-    
     ticks_x = []
-    for a, b in zip(labels_rec, labels_con):
-        ticks_x.append(f'{a}\n{b}')
+    for idx in order:
+        print(f'idx: {idx}, {dic_pat[idx]}')
+        ticks_x.append(dic_pat[idx])
+    
+    # ticks_x = []
+    # for a, b in zip(labels_rec, labels_con):
+        # ticks_x.append(f'{a}\n{b}')
     
     ax.set_xticklabels(ticks_x)
     
@@ -551,12 +580,16 @@ def plot_boxplots(df_days, df_nights, label_y, labels_rec, labels_con, title, gr
     # fig.suptitle(title)
 
     # plt.legend(fontsize=size_font, loc='upper center', bbox_to_anchor=(0.5, 1.18), ncol=2, fancybox=True, shadow=False)
-    ax.legend(fontsize=size_font, alignment='center', loc='upper left', bbox_to_anchor=(1.0, 1.0), ncol=1, fancybox=True, shadow=True)
+    legend=ax.legend(fontsize=size_font, alignment='center', loc='upper left', bbox_to_anchor=(1.0, 1.0), ncol=1, fancybox=True, shadow=True)
+    legend.remove()
     
     # ax.legend([], title=f'{labels[i]}', alignment='center', loc='upper left', bbox_to_anchor=(1.0, 1.1), ncol=1, fancybox=True, shadow=True,)
     
-    fig.suptitle(f'Activity {title} {body_part_title}\n{group_title}')
+    # fig.suptitle(f'Activity {title} {body_part_title}\n{group_title}')
     
+    # ax.set_title('Mobility estimation from Vector Magnitude (VM) collected during five nights')
+    
+        
     if flag_save_fig:
         plt.savefig(path_out+'boxplot.png', bbox_inches='tight')
     
@@ -645,7 +678,17 @@ def main(args):
         ## Neurological Level of Injury
         list_nli_rec=['P01', 'P02', 'P03', 'P04', 'P05', 'P06', 'P07', 'P08', 'P09', 'P10', 'P11', 'P12',]
         list_nli_con=['','','','','','','','','','','','',]
+        dic_pat = {'A006':'P01', 'A021':'P02', 'A022':'P03', 'A025':'P04', 'A028':'P05', 'A037':'P06', 'A039':'P07', 'A044':'P08', 'A003':'P09', 'A023':'P10', 'A026':'P11', 'A018':'P12',}
         list_pi=[]
+    elif group == '8':
+        files_names=['A044', 'A003', 'A026']
+        prefix_one = 'AB_'
+        group_title = 'AIS : A and B'
+        ## Neurological Level of Injury
+        list_nli_rec=['P08', 'P09', 'P11',]
+        list_nli_con=['','','',]
+        list_pi=[]    
+    
     
     # elif group == '4':
         # files_names=['A006', 'A039', 'A023', 'A040', 'A019', 'A005', 'A035', 'A014', 'A041', 'A020', 'A016', 'A001', 'A015', 'A033',]
@@ -707,8 +750,8 @@ def main(args):
     prefix_name = prefix_one+prefix_two
     ###########################        
     ## plot Vector Magnitude
-    flag_save = True
-    plot_vector_magnitude(list_objs, list_nli_rec, list_nli_con, group_title, body_part_title, flag_save, path_out+prefix_name)
+    # flag_save = True
+    # plot_vector_magnitude(list_objs, list_nli_rec, list_nli_con, group_title, body_part_title, flag_save, path_out+prefix_name)
     ###########################
 
     print(f'list_objs: {len(list_objs)}')
@@ -771,7 +814,7 @@ def main(args):
     # self.df_days  = pd.DataFrame(columns  =['sample_size', 'vma_mean', 'inc_mean'])
     # self.df_nights= pd.DataFrame(columns=['sample_size', 'vma_mean', 'inc_mean'])
     
-    flag_continue = False
+    flag_continue = True
     # flag_continue = False
     # list_objs = list_objs[:8]
     
@@ -818,8 +861,8 @@ def main(args):
         # plot_vma_step(list_objs, 2)
         # plot_vma_cycle(list_objs)
         #############################
-        # flag_save = True
-        # plot_cycle_alpha(list_objs, list_nli_rec, list_nli_con, vma_b,  group_title, body_part_title, flag_save, path_out+prefix_name+'vm_')
+        flag_save = False
+        plot_cycle_alpha(list_objs, list_nli_rec, list_nli_con, vma_b,  group_title, body_part_title, flag_save, path_out+prefix_name+'vm_')
         # plot_cycle_alpha(list_objs, list_nli_rec, list_nli_con, inc_b, group_title, body_part_title, flag_save, path_out+prefix_name+'incl_')
         #############################
         # list_objs[0].plot_Inclinometers()
@@ -834,7 +877,7 @@ def main(args):
         flag_boxplots = True
         
         if flag_boxplots:
-            flag_save_fig=True
+            flag_save_fig=False
             title = 'VM'
             label_y = "VM activity rate"
             plot_boxplots(df_vma_days, df_vma_nights, label_y, list_nli_rec, list_nli_con, title, group_title, body_part_title, path_out+prefix_name+'vm_', flag_save_fig)

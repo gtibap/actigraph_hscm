@@ -34,8 +34,10 @@ class Activity_Measurements:
         self.sta_filtered = 'sta_filtered'
         self.sum_filtered = 'sum_filtered'
         
-        self.time_ini='21:00:00'
-        self.time_end='09:00:00'
+        # self.time_ini='21:00:00'
+        # self.time_end='09:00:00'
+        self.time_ini='23:00:00'
+        self.time_end='07:00:00'
         
         self.list_days=['d1','d2','d3','d4','d5']
         self.list_nights=['n1','n2','n3','n4','n5']
@@ -143,6 +145,7 @@ class Activity_Measurements:
         ## creates labels for data days and nights
         # print(f'creating labels for days and nights data... ', end='')
         self.days_nights()
+        print(self.df1)
         # print('done.\n')
         
         return 0
@@ -202,6 +205,7 @@ class Activity_Measurements:
 
 
     def immobility(self):
+        ## spending time of continous immobility and continuous activity
         ## immobility identifies changes of activity-inactivity and inactivity-activity
         ## identifies duration of inactivity segments
         ## a histogram of inactivity segments duration is plotted after their calculation
