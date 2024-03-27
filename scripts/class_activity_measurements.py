@@ -16,9 +16,12 @@ import sys
 
 class Activity_Measurements:
 
-    def __init__(self):
+
+    def __init__(self, name):
         
         # print('Activity Measurements object constructor initialization')
+        
+        self.name = name
 
         self.header_location=10
 
@@ -808,4 +811,7 @@ class Activity_Measurements:
         
     def getMeansNights(self):
         return self.df_nights
+        
+    def getName(self):
+        return self.name
 

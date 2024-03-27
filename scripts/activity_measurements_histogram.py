@@ -13,6 +13,7 @@ import seaborn as sns
 import sys
 
 label_vma  ='Vector Magnitude'
+label_vma_b = 'vma_b'
 label_day_night = 'day_night'
 label_binary_day_night = 'binary_day_night'
 label_incl = 'Inclinometers Activity'
@@ -28,6 +29,11 @@ nl = ['C4','C6','T7','T10']
 list_days=['d1','d2','d3','d4','d5']
 list_nights=['n1','n2','n3','n4','n5']
 
+g_hen = 7
+g_hed = 23
+g_hours_night = g_hen + 24-g_hed
+g_hours_day   = 24-g_hours_night
+
 
 def on_press(event):
     # print('press', event.key)
@@ -38,6 +44,149 @@ def on_press(event):
     else:
         pass
     return 0
+
+
+def plot_sw_outcomes(list_objs, labels_rec, labels_con, group_title, body_part_title, flag_save, path):
+
+    # list_days=['d1','d2','d3','d4','d5']
+    # list_nights=['n1','n2','n3','n4','n5']
+        
+    rows_number = len(list_objs)
+    fig, ax = plt.subplots(nrows=rows_number, ncols=1, figsize=(18, 10), sharex=True, )
+    fig.canvas.mpl_connect('key_press_event', on_press)
+    fig.canvas.draw()
+    
+    plt.rcParams.update({'font.size': 19})
+    
+    # num_samples = 43200 ## 12 hours, a sample every second
+    num_samples_night = g_hours_night*3600
+    num_samples_day   = g_hours_day*3600
+    num_samples_24 = 24*3600
+    pad_h = 3600
+
+    # y_ini=  -10.0
+    # y_end=   60.0
+    y_ini=  -0.08
+    y_end=   1.08
+
+    ## show night 3 + a little of day3 and day4 (before and after of night 3, respectively)
+    # x_ini = 5*num_samples - int(num_samples/20) 
+    # x_end = 6*num_samples + int(num_samples/20) 
+    x_ini = 2*(num_samples_24) + num_samples_day - pad_h 
+    x_end = 3*(num_samples_24) + pad_h
+    
+    # x_text_pos = 0
+    # y_text_pos = y_end - 80
+    
+    for i, obj in enumerate(list_objs):
+        
+        df = list_objs[i].get_df1()
+        
+        # trans = ax[i].get_xaxis_transform() # x in data units, y in axes fraction. This is for legend location
+        id_d = 1
+        id_n = 1
+
+        id_ini = 0
+        
+        ax[i].vlines(x=[id_ini], ymin=y_ini, ymax=y_end, colors='purple', ls='--', lw=1, label='')
+        ## paint each day and each night
+        labels_list = df[label_day_night].unique().tolist()
+        # print(f'labels: {labels_list}')
+        for label in labels_list:
+            
+            if (label in list_days) or (label in list_nights):
+                
+                df_label = df[df[label_day_night]== label]
+                vma=df_label[label_vma_b].to_list()
+                # ids=df_label.index
+                ids=np.arange(id_ini, id_ini+len(df_label))
+                # print(f'ids size: {len(ids)}, {len(df_label)}')
+                
+                if label.startswith('d'):
+                    ax[i].plot(ids, vma, color='tab:orange', label='')
+                else:
+                    ax[i].plot(ids, vma, color='tab:blue', label='')
+                
+                id_ini=id_ini+len(df_label)
+                # vertical line
+                ax[i].vlines(x=[id_ini], ymin=y_ini, ymax=y_end, colors='purple', ls='--', lw=1, label='')
+                
+            else:
+                pass
+
+
+    # hide xtick values
+    # ax[0].set_xticklabels([])
+    # ax[1].set_xticklabels([])
+    # ax[2].set_xticklabels([])
+    
+    ## legend
+    # asia = ['B','A','A','A']
+    # nl = ['C4','C6','T7','T10']
+    
+    # ## font size labels and ticks every hour
+    ## 5 blocks of 24h each (5*24), plus 1 tick at the end -> (5*24)+1
+    xticks = np.linspace(0, num_samples_24*5, int(5*24)+1).astype(int)
+    
+    
+    # ticks_labels = np.concatenate((np.arange(9,24), np.arange(0,9)), axis=None)
+    # g_hen = 7
+    # g_hed = 23
+    ticks_labels = np.concatenate((np.arange(g_hen,24), np.arange(0,g_hen)), axis=None)
+    
+    ticks_labels = [str(x).zfill(2) for x in ticks_labels]
+    print(f'one ticks labels:{ticks_labels}')
+    ticks_labels = ticks_labels*5
+    print(f'two ticks labels:{ticks_labels}')
+    ticks_labels.append(0)
+    print(f'three ticks labels:{ticks_labels}')
+    ax[-1].set_xticks(xticks, ticks_labels, fontsize=20)
+    
+    # ax[-1].set_xticks(xticks, ticks_labels, fontsize=12)
+    # xticks = np.linspace(0, num_samples*10, 11).astype(int)
+    # ax[-1].set_xticks(xticks, (xticks/3600).astype(int), fontsize=12)
+    
+    for i in np.arange(len(list_objs)):
+        ##
+        # ax[i].legend([], title=f'{labels_rec[i]}\n{labels_con[i]}', alignment='center', loc='upper left', bbox_to_anchor=(1.0, 1.15), ncol=1, fancybox=True, shadow=True,)
+        ax[i].legend([], title=f'{labels_rec[i]}', alignment='center', loc='upper left', bbox_to_anchor=(1.0, 1.15), ncol=1, fancybox=True, shadow=True,)
+        
+        ## y scale
+        ax[i].set_ylim(y_ini,y_end)
+        
+        ## x scales
+        ax[i].set_xlim(x_ini,x_end)
+        
+        # hide xtick values
+        # ax[i].set_xticklabels([])
+        
+    # for i in np.arange(4):
+        # ax[i].legend([], title=f'P{i+1} - VM\n(counts)\nAIS: {asia[i]}\nNLI: {nl[i]}', alignment='center', loc='upper left', bbox_to_anchor=(1.0, 1.1), ncol=1, fancybox=True, shadow=True,)
+    
+    # ## annotate
+    # trans = ax[0].get_xaxis_transform() # x in data units, y in axes fraction
+    # list_x_pos = (2*num_samples)*np.arange(5)
+    
+    # for i, x_pos in enumerate(list_x_pos):
+        # ann = ax[0].annotate(f'd{i+1}', xy=(x_pos + int(num_samples/2), 1.05 ), xycoords=trans, fontsize=12, color='tab:blue')
+        # ann = ax[0].annotate(f'n{i+1}', xy=(x_pos + int(3*num_samples/2), 1.05 ), xycoords=trans, fontsize=12, color='tab:orange')
+            
+    ax[0].set_title('Vector Magnitude (counts)', fontsize=22)
+    ax[-1].set_xlabel('24-hour clock [hh]', fontsize=22)
+    
+    # for i in range(len(ax)):
+        # ax[i].set_yticks([y_ini+10,y_end-10], [int(y_ini+10),int(y_end-10)], fontsize=19)
+    
+    for tick in ax[-1].xaxis.get_major_ticks():
+        tick.label1.set_fontsize(19) 
+        
+    # fig.suptitle(f'Vector Magnitude (counts)\n{group_title}')
+        
+    if flag_save:
+        fig.savefig(path+'vm_b_night.png', bbox_inches='tight')
+        
+    return 0
+
 
 def plot_vector_magnitude(list_objs, labels_rec, labels_con, group_title, body_part_title, flag_save, path):
 
@@ -51,14 +200,20 @@ def plot_vector_magnitude(list_objs, labels_rec, labels_con, group_title, body_p
     
     plt.rcParams.update({'font.size': 19})
     
-    num_samples = 43200 ## 12 hours, a sample every second
+    # num_samples = 43200 ## 12 hours, a sample every second
+    num_samples_night = g_hours_night*3600
+    num_samples_day   = g_hours_day*3600
+    num_samples_24 = 24*3600
+    pad_h = 3600
 
     y_ini=  -10.0
     y_end=   60.0
 
     ## show night 3 + a little of day3 and day4 (before and after of night 3, respectively)
-    x_ini = 5*num_samples - int(num_samples/20) 
-    x_end = 6*num_samples + int(num_samples/20) 
+    # x_ini = 5*num_samples - int(num_samples/20) 
+    # x_end = 6*num_samples + int(num_samples/20) 
+    x_ini = 2*(num_samples_24) + num_samples_day - pad_h 
+    x_end = 3*(num_samples_24) + pad_h
     
     # x_text_pos = 0
     # y_text_pos = y_end - 80
@@ -110,15 +265,21 @@ def plot_vector_magnitude(list_objs, labels_rec, labels_con, group_title, body_p
     # nl = ['C4','C6','T7','T10']
     
     # ## font size labels and ticks every hour
-    ## 10 blocks of 12h each (10*12), plus 1 tick at the end -> (10*12)+1
-    xticks = np.linspace(0, num_samples*10, int(10*12)+1).astype(int)
+    ## 5 blocks of 24h each (5*24), plus 1 tick at the end -> (5*24)+1
+    xticks = np.linspace(0, num_samples_24*5, int(5*24)+1).astype(int)
     
     
-    ticks_labels = np.concatenate((np.arange(9,24), np.arange(0,9)), axis=None)
+    # ticks_labels = np.concatenate((np.arange(9,24), np.arange(0,9)), axis=None)
+    # g_hen = 7
+    # g_hed = 23
+    ticks_labels = np.concatenate((np.arange(g_hen,24), np.arange(0,g_hen)), axis=None)
+    
     ticks_labels = [str(x).zfill(2) for x in ticks_labels]
+    print(f'one ticks labels:{ticks_labels}')
     ticks_labels = ticks_labels*5
+    print(f'two ticks labels:{ticks_labels}')
     ticks_labels.append(0)
-    
+    print(f'three ticks labels:{ticks_labels}')
     ax[-1].set_xticks(xticks, ticks_labels, fontsize=20)
     
     # ax[-1].set_xticks(xticks, ticks_labels, fontsize=12)
@@ -162,7 +323,7 @@ def plot_vector_magnitude(list_objs, labels_rec, labels_con, group_title, body_p
     # fig.suptitle(f'Vector Magnitude (counts)\n{group_title}')
         
     if flag_save:
-        fig.savefig(path+'vm.png', bbox_inches='tight')
+        fig.savefig(path+'vm_night.png', bbox_inches='tight')
         
     return 0
   
@@ -353,10 +514,176 @@ def plot_vma_cycle(list_objs):
     return 0
 
 
+
+def plot_activity_boxplots(list_objs, selected_label, flag_night, flag_save, path):
+    
+    rows_number = len(list_objs)
+    fig, axs = plt.subplots(nrows=2, ncols=1, figsize=(9, 6),)
+    fig.canvas.mpl_connect('key_press_event', on_press)
+    fig.canvas.draw()
+    
+    ## to iterate easily
+    axs = np.array(axs)
+    axs = axs.reshape(-1)
+    # axs = axs.flatten()
+    
+    y_ini=  -0.08
+    y_end=   1.08
+    
+    list_ticks_x =[]
+    
+    # hen = 7
+    # hed = 23
+    # hour_0 = 9
+    # hour_0 = g_hen
+    # list_ticks_x.extend(np.arange(hour_0,24,1)) 
+    # list_ticks_x.extend(np.arange(0,hour_0+1,1)) 
+    ## add one zero to the left for numbers of one digit
+    # list_ticks_x = [str(x).zfill(2) for x in list_ticks_x]
+    
+    
+    label_step = selected_label
+    
+    # self.time_ini='23:00:00'
+    # self.time_end='07:00:00'
+    # hen = 7
+    # hed = 23
+    # hours_night = hen + 24-hed
+    # hours_day   = 24-hours_night
+    
+    
+    # print(g_hours_day, g_hours_night)
+    
+    # length_day=g_hours_day*3600 ## hours in seconds
+    # length_night=g_hours_night*3600 ## hours in seconds
+    total_days=5
+    total_nights=5
+    
+    # list_days=['d1','d2','d3','d4','d5']
+    # list_nights=['n1','n2','n3','n4','n5']
+    
+    df_p_all = pd.DataFrame()
+    
+    for i, obj in enumerate(list_objs):
+        ## get dataframe 
+        df = list_objs[i].get_df1()
+        name = list_objs[i].getName()
+        
+        ## paint each day and each night
+        labels_list = df[label_day_night].unique().tolist()
+        print(f'labels_list: {labels_list}')
+        
+        # df_day = pd.DataFrame(columns=list_days)
+        # df_night = pd.DataFrame(columns=list_nights)
+        
+        
+        arr_days=[]
+        arr_nights=[]
+        
+        for label in labels_list:
+            
+            df_label = df[df[label_day_night]== label]
+            ## data output stage 2 sliding window algorithms
+            arr=df_label[label_step].to_numpy()
+
+            if (label in list_days):
+                arr_days = np.concatenate((arr_days,arr), axis=None) 
+                
+            elif (label in list_nights):
+                arr_nights = np.concatenate((arr_nights,arr), axis=None)
+                
+            else:
+                pass
+                
+        df_day = pd.DataFrame(arr_days, columns=['value'])
+        df_night = pd.DataFrame(arr_nights, columns=['value'])
+        
+        df_day = df_day.assign(period='day')
+        df_night = df_night.assign(period='night')
+        
+        df_p = pd.concat([df_day,df_night], ignore_index=True)
+        df_p = df_p.assign(subject=name)
+        
+        df_p_all = pd.concat([df_p_all,df_p], ignore_index=True)
+        
+        # print(f'df_day: {df_day}')
+        # print(f'df_night: {df_night}')
+        # print(f'df_p: {df_p}')
+        
+        ## add name patient and concat big dataframe for all patients that includes days and nights
+        
+    # print(f'df_p_all: {df_p_all}')
+    
+    ## boxplot
+    
+    # if flag_night:
+        # mdf = df_p_all[df_p_all['period']=='night']
+    # else:
+        # mdf = df_p_all[df_p_all['period']=='day']
+        
+    
+    # mdf = pd.melt(cdf, id_vars=['period'], var_name=['subject'])
+    # print(mdf)
+    
+    dic_pat = {'A006':'P01', 'A021':'P02', 'A022':'P03', 'A025':'P04', 'A028':'P05', 'A037':'P06', 'A039':'P07', 'A044':'P08', 'A003':'P09', 'A023':'P10', 'A026':'P11', 'A018':'P12',}
+    
+    my_colors = {'day':'#ffb482', 'night':'#a1c9f4'}
+    
+    
+    mdf = df_p_all[df_p_all['period']=='day']
+    order = mdf.groupby('subject')['value'].median().sort_values().index
+    plot_boxplot_period(mdf, dic_pat, my_colors, order, axs[0])
+
+    mdf = df_p_all[df_p_all['period']=='night']
+    plot_boxplot_period(mdf, dic_pat, my_colors, order, axs[1])
+
+    size_font = 12
+    # ax.tick_params(labelsize=size_font)
+    
+    axs[-1].set_xlabel("Subject",fontsize=size_font)
+    # ax.set_ylabel(label_y,fontsize=size_font)
+    # ax.tick_params(labelsize=size_font)
+
+    # legend=ax.legend(fontsize=size_font, alignment='center', loc='upper left', bbox_to_anchor=(1.0, 1.0), ncol=1, fancybox=True, shadow=True)
+    # legend.remove()
+        
+    
+    if flag_save:
+        fig.savefig(path+'boxplot_all.png', bbox_inches='tight')
+    
+        
+    return 0
+
+def plot_boxplot_period(mdf, dic_pat, my_colors, order, ax):
+    
+    sns.boxplot(data=mdf, x='subject', y="value", hue="period", palette=my_colors,order=order, showfliers = False, ax=ax)
+    
+    ax.set(ylim=(-0.05, 1.05))
+    
+    ticks_x = []
+    for idx in order:
+        print(f'idx: {idx}, {dic_pat[idx]}')
+        ticks_x.append(dic_pat[idx])
+    
+    ax.set_xticklabels(ticks_x)
+    
+    size_font = 12
+    ax.set_xlabel('')
+    ax.set_ylabel('activity rate',fontsize=size_font)
+    ax.tick_params(labelsize=size_font)
+    
+    handles, labels = ax.get_legend_handles_labels()
+    ax.legend(handles=handles[1:], labels=labels[1:],fontsize=size_font)
+    
+    return 0
+
+
+
+
 def plot_cycle_alpha(list_objs, labels_rec, labels_con, selected_label, group_title, body_part_title, flag_save, path):
     
     rows_number = len(list_objs)
-    fig, ax = plt.subplots(nrows=rows_number, ncols=1, figsize=(9, 5), sharex=True,)
+    fig, ax = plt.subplots(nrows=rows_number, ncols=1, figsize=(8, 4), sharex=True,)
     fig.canvas.mpl_connect('key_press_event', on_press)
     fig.canvas.draw()
     
@@ -365,10 +692,10 @@ def plot_cycle_alpha(list_objs, labels_rec, labels_con, selected_label, group_ti
     
     list_ticks_x =[]
     
-    hen = 7
-    hed = 23
+    # hen = 7
+    # hed = 23
     # hour_0 = 9
-    hour_0 = hen
+    hour_0 = g_hen
     list_ticks_x.extend(np.arange(hour_0,24,1)) 
     list_ticks_x.extend(np.arange(0,hour_0+1,1)) 
     ## add one zero to the left for numbers of one digit
@@ -381,14 +708,14 @@ def plot_cycle_alpha(list_objs, labels_rec, labels_con, selected_label, group_ti
     # self.time_end='07:00:00'
     # hen = 7
     # hed = 23
-    hours_night = hen + 24-hed
-    hours_day   = 24-hours_night
+    # hours_night = hen + 24-hed
+    # hours_day   = 24-hours_night
     
     
-    print(hours_day, hours_night)
+    # print(g_hours_day, g_hours_night)
     
-    length_day=hours_day*3600 ## hours in seconds
-    length_night=hours_night*3600 ## hours in seconds
+    length_day=g_hours_day*3600 ## hours in seconds
+    length_night=g_hours_night*3600 ## hours in seconds
     total_days=5
     total_nights=5
     
@@ -467,6 +794,9 @@ def plot_cycle_alpha(list_objs, labels_rec, labels_con, selected_label, group_ti
     # ax[0].legend(loc='upper right', bbox_to_anchor=(1.0, 1.4),fancybox=False, shadow=False, ncol=2)
     # for i in np.arange(4):
         # ax[i].legend([], title=f'P{i+1} - S_out\nS_in: {signal_label}\nAIS: {asia[i]}\nNLI: {nl[i]}', alignment='center', loc='upper left', bbox_to_anchor=(1.0, 1.1), ncol=1, fancybox=True, shadow=True,)
+        
+    size_font = 12
+    
     for i in np.arange(len(list_objs)):
         ##
         ax[i].legend([], title=f'{labels_rec[i]}\n{labels_con[i]}', alignment='center', loc='upper left', bbox_to_anchor=(1.0, 1.15), ncol=1, fancybox=True, shadow=True,)
@@ -476,6 +806,10 @@ def plot_cycle_alpha(list_objs, labels_rec, labels_con, selected_label, group_ti
         
         # hide xtick values
         ax[i].set_xticklabels([])
+        
+        # ax.set_xlabel('')
+        ax[i].set_ylabel('activity rate',fontsize=size_font)
+        ax[i].tick_params(labelsize=size_font)
     
     
     
@@ -493,9 +827,11 @@ def plot_cycle_alpha(list_objs, labels_rec, labels_con, selected_label, group_ti
     # ax[2].set_ylabel('P3')
     # ax[3].set_ylabel('P4')
     
-    ax[-1].set_xlabel('24-hour clock [hh]')
+    
+    ax[-1].set_xlabel('24-hour clock [hh]',fontsize=size_font)
    
     # fig.suptitle(title)
+    
     
     
     
@@ -522,7 +858,7 @@ def plot_alpha(df, start, size, color, pattern, sel_label, ax):
     
 
 ## boxplots
-def plot_boxplots(df_days, df_nights, label_y, labels_rec, labels_con, title, group_title, body_part_title, path_out, flag_save_fig):
+def plot_boxplots(df_days, df_nights, sel_flag, color_boxes, label_y, labels_rec, labels_con, title, group_title, body_part_title, path_out, flag_save_fig):
 
     fig, ax = plt.subplots(figsize=(8, 4))
     fig.canvas.mpl_connect('key_press_event', on_press)
@@ -531,7 +867,11 @@ def plot_boxplots(df_days, df_nights, label_y, labels_rec, labels_con, title, gr
     data_day = df_days.assign(period='day')
     data_night = df_nights.assign(period='night')
     # cdf = pd.concat([data_day, data_night]) 
-    cdf = data_night
+    if sel_flag:
+        cdf = data_night
+    else:
+        cdf = data_day
+    
     # print(cdf)
     mdf = pd.melt(cdf, id_vars=['period'], var_name=['subject'])
     # print(mdf)
@@ -544,8 +884,14 @@ def plot_boxplots(df_days, df_nights, label_y, labels_rec, labels_con, title, gr
     # list_order=['P08','P01','P04','P07','P05','P02','P09','P10','P06','P03','P12','P11']
     dic_pat = {'A006':'P01', 'A021':'P02', 'A022':'P03', 'A025':'P04', 'A028':'P05', 'A037':'P06', 'A039':'P07', 'A044':'P08', 'A003':'P09', 'A023':'P10', 'A026':'P11', 'A018':'P12',}
     
+    # my_colors = {'day':'#8de5a1', 'night':'#a1c9f4'}
+    my_colors = {'day':'#ffb482', 'night':'#a1c9f4'}
+    
+    
+    # print(f'pastel: {sns.color_palette("pastel").as_hex()}')
     # ax = sns.boxplot(data=mdf, x='subject', y="value", hue="period", palette="pastel",)
-    ax = sns.boxplot(data=mdf, x='subject', y="value", hue="period", palette="pastel",order=order)
+    # ax = sns.boxplot(data=mdf, x='subject', y="value", hue="period", palette="pastel",order=order)
+    ax = sns.boxplot(data=mdf, x='subject', y="value", hue="period", palette=my_colors,order=order)
     # ax = sns.boxplot(data=mdf, x='subject', y="value", hue="period", palette="pastel", order=list_order)
 
     # #########################
@@ -739,7 +1085,7 @@ def main(args):
         try:
             print(f'reading file: {filename}... ', end='')
             # create object class
-            list_objs[i] = Activity_Measurements()
+            list_objs[i] = Activity_Measurements(files_names[i])
             list_objs[i].openFile(path, filename)
             
             print(f'done.')
@@ -748,11 +1094,12 @@ def main(args):
             print(f'Problem reading the file {filename}.')
     
     prefix_name = prefix_one+prefix_two
-    ###########################        
+    # ###########################        
     ## plot Vector Magnitude
-    # flag_save = True
+    # flag_save = False
     # plot_vector_magnitude(list_objs, list_nli_rec, list_nli_con, group_title, body_part_title, flag_save, path_out+prefix_name)
-    ###########################
+    # ###########################
+    
 
     print(f'list_objs: {len(list_objs)}')
 
@@ -849,6 +1196,13 @@ def main(args):
             df_inc_nights[fn] = df_nights.iloc[1:num_rec]['inc_mean'].to_list()
             
             print('done.')
+            
+        ###########################        
+        ## plot Vector Magnitude
+        # flag_save = False
+        # plot_sw_outcomes(list_objs, list_nli_rec, list_nli_con, group_title, body_part_title, flag_save, path_out+prefix_name)
+        ###########################
+        # 
 
         # ###########################
         # ## inclinometers activity: posture changing
@@ -860,27 +1214,41 @@ def main(args):
         # plot_vma_step(list_objs, 1)
         # plot_vma_step(list_objs, 2)
         # plot_vma_cycle(list_objs)
+        ##############################
         #############################
-        flag_save = False
+        flag_save = True
         plot_cycle_alpha(list_objs, list_nli_rec, list_nli_con, vma_b,  group_title, body_part_title, flag_save, path_out+prefix_name+'vm_')
         # plot_cycle_alpha(list_objs, list_nli_rec, list_nli_con, inc_b, group_title, body_part_title, flag_save, path_out+prefix_name+'incl_')
         #############################
         # list_objs[0].plot_Inclinometers()
         # list_objs[0].plot_Inclinometers_results()
+
+        #############################
+        # flag_save = True
+        # flag_night=True
+        # plot_activity_boxplots(list_objs, vma_b, flag_night, flag_save, path_out+prefix_name+'night_box_')
+        #############################
+
         
         
-        print(f'df_vma_days\n{df_vma_days}')
-        print(f'median df_vma_days\n{df_vma_days.median().tolist()}')
-        print(f'df_vma_nights\n{df_vma_nights}')
-        print(f'median df_vma_nights\n{df_vma_nights.median().tolist()}')
+        # print(f'df_vma_days\n{df_vma_days}')
+        # print(f'median df_vma_days\n{df_vma_days.median().tolist()}')
+        # print(f'df_vma_nights\n{df_vma_nights}')
+        # print(f'median df_vma_nights\n{df_vma_nights.median().tolist()}')
         
-        flag_boxplots = True
+        # flag_boxplots = True
         
-        if flag_boxplots:
-            flag_save_fig=False
-            title = 'VM'
-            label_y = "VM activity rate"
-            plot_boxplots(df_vma_days, df_vma_nights, label_y, list_nli_rec, list_nli_con, title, group_title, body_part_title, path_out+prefix_name+'vm_', flag_save_fig)
+        # if flag_boxplots:
+            # flag_save_fig=False
+            # title = 'VM'
+            # label_y = "VM activity rate"
+            # flag_nights = True
+            # color_boxes = 'tab:blue'
+            # plot_boxplots(df_vma_days, df_vma_nights, flag_nights, color_boxes, label_y, list_nli_rec, list_nli_con, title, group_title, body_part_title, path_out+prefix_name+'vm_', flag_save_fig)
+            
+            # flag_nights = False
+            # color_boxes = 'tab:orange'
+            # plot_boxplots(df_vma_days, df_vma_nights, flag_nights, color_boxes, label_y, list_nli_rec, list_nli_con, title, group_title, body_part_title, path_out+prefix_name+'vm_', flag_save_fig)
             
             # flag_save_fig=True
             # title = 'Inclinometers'
