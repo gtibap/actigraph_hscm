@@ -68,6 +68,7 @@ class Activity_Measurements:
         self.df_incl_filtered = pd.DataFrame()
         self.df_act = pd.DataFrame(columns=[self.label_duration, self.label_day_night])
         self.df_imm = pd.DataFrame(columns=[self.label_duration, self.label_day_night])
+        self.df_act_counts = pd.DataFrame()
 
         
         
@@ -148,7 +149,7 @@ class Activity_Measurements:
         ## creates labels for data days and nights
         # print(f'creating labels for days and nights data... ', end='')
         self.days_nights()
-        print(self.df1)
+        # print(self.df1)
         # print('done.\n')
         
         return 0
@@ -206,6 +207,43 @@ class Activity_Measurements:
     
         return 0
 
+    def activitySamples(self):
+        ## count number of activity samples per day and per night
+        labels_list = self.df1[self.label_day_night].unique().tolist()
+
+        days_counts = []
+        nights_counts = []
+        
+        for label in labels_list:
+            print(f'label: {label}')
+            
+            if (label in self.list_days) or (label in self.list_nights):
+                
+                df_label = self.df1[self.df1[self.label_day_night]== label]
+                
+                arr_vma=df_label[self.vec_mag].to_numpy()
+                
+                ## values of Vector Magnitude greater than zero means activity; zero means immobility
+                arr_vma = (arr_vma > 0).astype(int)
+                
+                if label.startswith('d'):
+                    days_counts.append(arr_vma.sum())
+                else:
+                    nights_counts.append(arr_vma.sum()) 
+                
+            else:
+                pass
+        
+        # print(f'days_counts {days_counts}')
+        # print(f'nights_counts {nights_counts}')
+        
+        data = {'days': days_counts,
+                'nights': nights_counts}
+                
+        self.df_act_counts = pd.DataFrame(data) 
+        
+        return 0
+        
 
     def immobility(self):
         ## spending time of continous immobility and continuous activity
@@ -814,4 +852,7 @@ class Activity_Measurements:
         
     def getName(self):
         return self.name
+        
+    def getActCounts(self):
+        return self.df_act_counts
 

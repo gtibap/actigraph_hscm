@@ -212,7 +212,8 @@ def plot_vector_magnitude(list_objs, labels_rec, labels_con, group_title, body_p
     ## show night 3 + a little of day3 and day4 (before and after of night 3, respectively)
     # x_ini = 5*num_samples - int(num_samples/20) 
     # x_end = 6*num_samples + int(num_samples/20) 
-    x_ini = 2*(num_samples_24) + num_samples_day - pad_h 
+    # x_ini = 2*(num_samples_24) + num_samples_day - pad_h 
+    x_ini = 2*(num_samples_24) - pad_h 
     x_end = 3*(num_samples_24) + pad_h
     
     # x_text_pos = 0
@@ -514,6 +515,153 @@ def plot_vma_cycle(list_objs):
     return 0
 
 
+def plot_activitySamples_boxplots(list_objs, selected_label, flag_night, flag_save, path):
+    
+    rows_number = len(list_objs)
+    fig, axs = plt.subplots(nrows=2, ncols=1, figsize=(9, 6),)
+    fig.canvas.mpl_connect('key_press_event', on_press)
+    fig.canvas.draw()
+    
+    ## to iterate easily
+    axs = np.array(axs)
+    axs = axs.reshape(-1)
+    # axs = axs.flatten()
+    
+    # y_ini=  -0.08
+    # y_end=   1.08
+    
+    list_ticks_x =[]
+    
+    # hen = 7
+    # hed = 23
+    # hour_0 = 9
+    # hour_0 = g_hen
+    # list_ticks_x.extend(np.arange(hour_0,24,1)) 
+    # list_ticks_x.extend(np.arange(0,hour_0+1,1)) 
+    ## add one zero to the left for numbers of one digit
+    # list_ticks_x = [str(x).zfill(2) for x in list_ticks_x]
+    
+    
+    label_step = selected_label
+    
+    # self.time_ini='23:00:00'
+    # self.time_end='07:00:00'
+    # hen = 7
+    # hed = 23
+    # hours_night = hen + 24-hed
+    # hours_day   = 24-hours_night
+    
+    
+    # print(g_hours_day, g_hours_night)
+    
+    # length_day=g_hours_day*3600 ## hours in seconds
+    # length_night=g_hours_night*3600 ## hours in seconds
+    total_days=5
+    total_nights=5
+    
+    # list_days=['d1','d2','d3','d4','d5']
+    # list_nights=['n1','n2','n3','n4','n5']
+    
+    df_p_all = pd.DataFrame()
+    
+    for i, obj in enumerate(list_objs):
+        ## get dataframe 
+        df = list_objs[i].get_df1()
+        name = list_objs[i].getName()
+        
+        ## paint each day and each night
+        labels_list = df[label_day_night].unique().tolist()
+        print(f'labels_list: {labels_list}')
+        
+        # df_day = pd.DataFrame(columns=list_days)
+        # df_night = pd.DataFrame(columns=list_nights)
+        
+        
+        arr_days=[]
+        arr_nights=[]
+        
+        for label in labels_list:
+            
+            df_label = df[df[label_day_night]== label]
+            ## data output stage 2 sliding window algorithms
+            arr=df_label[label_step].to_numpy()
+
+            if (label in list_days):
+                # arr_days = np.concatenate((arr_days,arr), axis=None) 
+                arr_days.append(arr.sum())
+                
+            elif (label in list_nights):
+                # arr_nights = np.concatenate((arr_nights,arr), axis=None)
+                arr_nights.append(arr.sum())
+                
+            else:
+                pass
+                
+        df_day = pd.DataFrame(arr_days, columns=['value'])
+        df_night = pd.DataFrame(arr_nights, columns=['value'])
+        
+        df_day = df_day.assign(period='day')
+        df_night = df_night.assign(period='night')
+        
+        df_p = pd.concat([df_day,df_night], ignore_index=True)
+        df_p = df_p.assign(subject=name)
+        
+        df_p_all = pd.concat([df_p_all,df_p], ignore_index=True)
+        
+        # print(f'df_day: {df_day}')
+        # print(f'df_night: {df_night}')
+        # print(f'df_p: {df_p}')
+        
+        ## add name patient and concat big dataframe for all patients that includes days and nights
+        
+    # print(f'df_p_all: {df_p_all}')
+    
+    ## boxplot
+    
+    # if flag_night:
+        # mdf = df_p_all[df_p_all['period']=='night']
+    # else:
+        # mdf = df_p_all[df_p_all['period']=='day']
+        
+    
+    # mdf = pd.melt(cdf, id_vars=['period'], var_name=['subject'])
+    # print(mdf)
+    
+    dic_pat = {'A006':'P01', 'A021':'P02', 'A022':'P03', 'A025':'P04', 'A028':'P05', 'A037':'P06', 'A039':'P07', 'A044':'P08', 'A003':'P09', 'A023':'P10', 'A026':'P11', 'A018':'P12',}
+    
+    my_colors = {'day':'#ffb482', 'night':'#a1c9f4'}
+    
+    title = 'activity samples'
+    
+    mdf = df_p_all[df_p_all['period']=='day']
+    order = mdf.groupby('subject')['value'].median().sort_values().index
+    
+    plot_boxplot_period(mdf, dic_pat, my_colors, order, axs[0], title)
+
+    mdf = df_p_all[df_p_all['period']=='night']
+    plot_boxplot_period(mdf, dic_pat, my_colors, order, axs[1], title)
+
+    size_font = 12
+    # ax.tick_params(labelsize=size_font)
+    
+    # ax.set(ylim=(-0.05, 1.05))
+    axs[-1].set_xlabel("Subject",fontsize=size_font)
+    # ax.set_ylabel(label_y,fontsize=size_font)
+    # ax.tick_params(labelsize=size_font)
+
+    # legend=ax.legend(fontsize=size_font, alignment='center', loc='upper left', bbox_to_anchor=(1.0, 1.0), ncol=1, fancybox=True, shadow=True)
+    # legend.remove()
+        
+    
+    if flag_save:
+        fig.savefig(path+'boxplot_initial.png', bbox_inches='tight')
+    
+        
+    return 0
+
+
+
+
 
 def plot_activity_boxplots(list_objs, selected_label, flag_night, flag_save, path):
     
@@ -629,17 +777,20 @@ def plot_activity_boxplots(list_objs, selected_label, flag_night, flag_save, pat
     
     my_colors = {'day':'#ffb482', 'night':'#a1c9f4'}
     
+    title='activity rate'
     
     mdf = df_p_all[df_p_all['period']=='day']
     order = mdf.groupby('subject')['value'].median().sort_values().index
-    plot_boxplot_period(mdf, dic_pat, my_colors, order, axs[0])
+    plot_boxplot_period(mdf, dic_pat, my_colors, order, axs[0],title)
 
     mdf = df_p_all[df_p_all['period']=='night']
-    plot_boxplot_period(mdf, dic_pat, my_colors, order, axs[1])
+    plot_boxplot_period(mdf, dic_pat, my_colors, order, axs[1],title)
 
     size_font = 12
     # ax.tick_params(labelsize=size_font)
     
+    ax[0].set(ylim=(-0.05, 1.05))
+    ax[1].set(ylim=(-0.05, 1.05))
     axs[-1].set_xlabel("Subject",fontsize=size_font)
     # ax.set_ylabel(label_y,fontsize=size_font)
     # ax.tick_params(labelsize=size_font)
@@ -654,11 +805,12 @@ def plot_activity_boxplots(list_objs, selected_label, flag_night, flag_save, pat
         
     return 0
 
-def plot_boxplot_period(mdf, dic_pat, my_colors, order, ax):
+
+def plot_boxplot_period(mdf, dic_pat, my_colors, order, ax, title):
     
     sns.boxplot(data=mdf, x='subject', y="value", hue="period", palette=my_colors,order=order, showfliers = False, ax=ax)
     
-    ax.set(ylim=(-0.05, 1.05))
+    # ax.set(ylim=(-0.05, 1.05))
     
     ticks_x = []
     for idx in order:
@@ -669,14 +821,14 @@ def plot_boxplot_period(mdf, dic_pat, my_colors, order, ax):
     
     size_font = 12
     ax.set_xlabel('')
-    ax.set_ylabel('activity rate',fontsize=size_font)
+    # ax.set_ylabel('activity rate',fontsize=size_font)
+    ax.set_ylabel(title,fontsize=size_font)
     ax.tick_params(labelsize=size_font)
     
     handles, labels = ax.get_legend_handles_labels()
     ax.legend(handles=handles[1:], labels=labels[1:],fontsize=size_font)
     
     return 0
-
 
 
 
@@ -1094,11 +1246,17 @@ def main(args):
             print(f'Problem reading the file {filename}.')
     
     prefix_name = prefix_one+prefix_two
-    # ###########################        
-    ## plot Vector Magnitude
-    # flag_save = False
-    # plot_vector_magnitude(list_objs, list_nli_rec, list_nli_con, group_title, body_part_title, flag_save, path_out+prefix_name)
-    # ###########################
+    ###########################        
+    # ## plot Vector Magnitude
+    flag_save = True
+    plot_vector_magnitude(list_objs, list_nli_rec, list_nli_con, group_title, body_part_title, flag_save, path_out+prefix_name)
+    ###########################
+    
+    # #############################
+    flag_save =False
+    flag_night=True
+    plot_activitySamples_boxplots(list_objs, label_vma, flag_night, flag_save, path_out+prefix_name+'initial_box_')
+    # #############################
     
 
     print(f'list_objs: {len(list_objs)}')
@@ -1112,6 +1270,10 @@ def main(args):
     for i, obj in enumerate(list_objs):
         
         print(f'patient {i+1}')
+        
+        # obj.activitySamples()
+        # df_actCounts = obj.getActCounts()
+        # print(f'activity:\n{df_actCounts}')
 
         obj.immobility()
         # list_objs[0].histogram_immobility()
@@ -1161,7 +1323,7 @@ def main(args):
     # self.df_days  = pd.DataFrame(columns  =['sample_size', 'vma_mean', 'inc_mean'])
     # self.df_nights= pd.DataFrame(columns=['sample_size', 'vma_mean', 'inc_mean'])
     
-    flag_continue = True
+    flag_continue = False
     # flag_continue = False
     # list_objs = list_objs[:8]
     
@@ -1216,7 +1378,7 @@ def main(args):
         # plot_vma_cycle(list_objs)
         ##############################
         #############################
-        flag_save = True
+        flag_save = False
         plot_cycle_alpha(list_objs, list_nli_rec, list_nli_con, vma_b,  group_title, body_part_title, flag_save, path_out+prefix_name+'vm_')
         # plot_cycle_alpha(list_objs, list_nli_rec, list_nli_con, inc_b, group_title, body_part_title, flag_save, path_out+prefix_name+'incl_')
         #############################
@@ -1228,6 +1390,8 @@ def main(args):
         # flag_night=True
         # plot_activity_boxplots(list_objs, vma_b, flag_night, flag_save, path_out+prefix_name+'night_box_')
         #############################
+        
+        
 
         
         
