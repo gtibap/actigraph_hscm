@@ -45,7 +45,6 @@ class Activity_Measurements:
         self.list_days=['d1','d2','d3','d4','d5']
         self.list_nights=['n1','n2','n3','n4','n5']
 
-        
         self.color_day = 'tab:green'
         self.color_night = 'tab:purple'
         
@@ -65,6 +64,8 @@ class Activity_Measurements:
         self.df1 = pd.DataFrame([])
         self.df_days  = pd.DataFrame(columns  =['sample_size', 'vma_mean', 'inc_mean'])
         self.df_nights= pd.DataFrame(columns=['sample_size', 'vma_mean', 'inc_mean'])
+        self.df_d_median  = pd.DataFrame(columns  =['sample_size', 'median'])
+        self.df_n_median = pd.DataFrame(columns=['sample_size', 'median'])
         self.df_incl_filtered = pd.DataFrame()
         self.df_act = pd.DataFrame(columns=[self.label_duration, self.label_day_night])
         self.df_imm = pd.DataFrame(columns=[self.label_duration, self.label_day_night])
@@ -699,7 +700,35 @@ class Activity_Measurements:
                 self.df_nights.loc[len(self.df_nights.index)] = [samples_size, mean_vma, mean_inc] 
                 
         return 0
+
+
+    def median_days_nights(self):
         
+        ## all dates in one list
+        labels_list = self.df1[self.label_day_night].unique().tolist()
+        # print(f'labels_list: {labels_list}')
+        
+        for label in labels_list:
+            
+            df_label = self.df1[self.df1[self.label_day_night]== label]
+            
+            samples_size = len(df_label)
+            median_act = df_label[self.vma_b].median()
+            
+            if label.startswith('d'):
+                # arr_days.append(mean_value)
+                self.df_d_median.loc[len(self.df_d_median.index)] = [samples_size, median_act] 
+            else:
+                # arr_nights.append(mean_value)
+                self.df_n_median.loc[len(self.df_n_median.index)] = [samples_size, median_act] 
+                
+        return 0
+    
+    def getMedian_days(self):
+        return self.df_d_median
+    
+    def getMedian_nights(self):
+        return self.df_n_median
     
     def vma_processing(self, size_a, size_b):
         
@@ -737,6 +766,30 @@ class Activity_Measurements:
         self.df1[self.inc_b]=arr_b
         
         return 0
+
+
+    def plot_activity_rates(self):
+        
+        fig, ax = plt.subplots(nrows=2, ncols=1, sharex=True, figsize=(12, 6))
+        fig.canvas.mpl_connect('key_press_event', self.on_press)
+                
+        arr_a = self.df1[self.vec_mag].to_list()
+        arr_b = self.df1[self.vma_b].to_list()
+
+        ax[0].plot(arr_a, color='tab:orange')
+        ax[1].plot(arr_b, color='tab:orange')
+        
+        ya_ini=  -5.0
+        ya_end=  50.0
+
+        yb_ini= -0.1
+        yb_end=  1.2
+
+        ax[0].set_ylim(ya_ini,ya_end)
+        ax[1].set_ylim(yb_ini,yb_end)
+        
+        return 0
+    
 
         
     def plot_Inclinometers_results(self):
@@ -843,6 +896,9 @@ class Activity_Measurements:
     
     def getDayNightLabels(self):
         return self.df1[self.label_day_night].tolist()
+    
+    def getDayNightLabelsList(self):
+        return self.df1[self.label_day_night].unique().tolist()
         
     def getMeansDays(self):
         return self.df_days
