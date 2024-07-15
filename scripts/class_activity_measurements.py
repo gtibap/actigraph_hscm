@@ -36,7 +36,8 @@ class Activity_Measurements:
         self.sit_filtered = 'sit_filtered'
         self.sta_filtered = 'sta_filtered'
         self.sum_filtered = 'sum_filtered'
-        
+
+        self.delta_samples = 1        
         # self.time_ini='21:00:00'
         # self.time_end='09:00:00'
         self.time_ini='23:00:00'
@@ -772,18 +773,42 @@ class Activity_Measurements:
         
         fig, ax = plt.subplots(nrows=2, ncols=1, sharex=True, figsize=(12, 6))
         fig.canvas.mpl_connect('key_press_event', self.on_press)
-                
-        arr_a = self.df1[self.vec_mag].to_list()
-        arr_b = self.df1[self.vma_b].to_list()
 
-        ax[0].plot(arr_a, color='tab:orange')
-        ax[1].plot(arr_b, color='tab:orange')
-        
         ya_ini=  -5.0
         ya_end=  50.0
 
         yb_ini= -0.1
-        yb_end=  1.2
+        yb_end=  1.1
+                
+        arr_a = self.df1[self.vec_mag].to_list()
+        arr_b = self.df1[self.vma_b].to_list()
+
+        ## plot days and nights with different colors
+        labels_list = self.df1[self.label_day_night].unique().tolist()
+        # print(f'labels_list: {labels_list}')
+        id_ini = 0
+
+        for label in labels_list:
+            df_period = self.df1[self.df1[self.label_day_night]== label]
+
+            arr_a = df_period[self.vec_mag].to_list()
+            arr_b = df_period[self.vma_b].to_list()
+
+            ids=np.arange(id_ini, id_ini+len(df_period))
+                # print(f'ids size: {len(ids)}, {len(df_label)}')
+                
+            if label.startswith('d'):
+                ax[0].plot(ids, arr_a, color='tab:orange', label='')
+                ax[1].plot(ids, arr_b, color='tab:orange', label='')
+            else:
+                ax[0].plot(ids, arr_a, color='tab:blue', label='')
+                ax[1].plot(ids, arr_b, color='tab:blue', label='')
+
+            id_ini=id_ini+len(df_period)
+            
+            # vertical line
+            ax[0].vlines(x=[id_ini], ymin=ya_ini, ymax=ya_end, colors='purple', ls='--', lw=1, label='')
+            ax[1].vlines(x=[id_ini], ymin=yb_ini, ymax=yb_end, colors='purple', ls='--', lw=1, label='')
 
         ax[0].set_ylim(ya_ini,ya_end)
         ax[1].set_ylim(yb_ini,yb_end)
@@ -893,6 +918,9 @@ class Activity_Measurements:
         
     def getVectorMagnitude(self):
         return self.df1[self.vec_mag].tolist()
+    
+    def getVectorActivityRates(self):
+        return self.df1[self.vma_b].to_list()
     
     def getDayNightLabels(self):
         return self.df1[self.label_day_night].tolist()
