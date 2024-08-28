@@ -660,6 +660,9 @@ class Activity_Measurements:
         # arr_time = self.df1[self.label_time].to_numpy()
         
         arr_period = self.df1[self.label_day_night].to_numpy()
+        # arr_period = self.df1[self.label_day_night].tolist()
+        # print(f'arr_numpy: {arr_period}')
+        # print(f'arr_list: {arr_period_list}')
 
         ## grouping the resultant data
         self.df_inclinometers = pd.DataFrame()
@@ -677,6 +680,7 @@ class Activity_Measurements:
         
         return 0
     
+    
     def get_posture_duration(self):
 
         # self.posture_changing(self.df_inclinometers)
@@ -685,11 +689,12 @@ class Activity_Measurements:
         arr_sit = self.df_inclinometers[self.incl_sit].to_numpy()
         arr_sta = self.df_inclinometers[self.incl_sta].to_numpy()
         arr_per = self.df_inclinometers[self.period].to_numpy()
+        # arr_per = self.df_inclinometers[self.period].tolist()
 
         df_off = self.indexes_activity_incl(arr_off, arr_per)
-        # df_lyi = self.indexes_activity_incl(arr_lyi, arr_per)
-        # df_sit = self.indexes_activity_incl(arr_sit, arr_per)
-        # df_sta = self.indexes_activity_incl(arr_sta, arr_per)
+        df_lyi = self.indexes_activity_incl(arr_lyi, arr_per)
+        df_sit = self.indexes_activity_incl(arr_sit, arr_per)
+        df_sta = self.indexes_activity_incl(arr_sta, arr_per)
 
         # print(f'df off:\n{df_off}')
         # print(f'df lyi:\n{df_lyi}')
@@ -697,25 +702,41 @@ class Activity_Measurements:
         # print(f'df sta:\n{df_sta}')
 
         ## every night
-        print(f'arr per: {arr_per}, {len(arr_per)}, {arr_per.size}')
+        ## extracting unique labels days and nights
         arr_unique = np.unique(arr_per)
-        print(f'arr unique: {arr_unique}, {type(arr_unique)}')
-        arr_bol = np.char.startswith(arr_unique, 'n', start = 0, end = None)
-        print(f'arr bol: {arr_bol}')
-        # arr_nights = arr_unique[np.char.startswith(arr_unique, 'n', start = 0, end = None)]
-        # print(f'arr nights: {arr_nights}')
-        # for night in arr_nights:
-        #     df_night = df_off.loc[df_off['begin']==night]
-        #     print(f'df night:\n{df_night}')
+        arr_nights = [a for a in arr_unique if a.startswith('n')]
+        # print(f'arr unique: {arr_unique}, {type(arr_unique)}')
+        ## extracting unique labels only nights
+        # print(f'arr_nights: {arr_nights}')
+        df_immobility_means = pd.DataFrame([])
+        df_immobility_means['inclinometer']=['off','lyi','sit','sta']
+        ## extracting sections during the nights that could include periods of the day
+        for night in arr_nights:
+            df_off_night = df_off.loc[(df_off['begin']==night) | (df_off['end']==night)]
+            df_lyi_night = df_lyi.loc[(df_lyi['begin']==night) | (df_lyi['end']==night)]
+            df_sit_night = df_sit.loc[(df_sit['begin']==night) | (df_sit['end']==night)]
+            df_sta_night = df_sta.loc[(df_sta['begin']==night) | (df_sta['end']==night)]
+            print(f'off night:\n{df_off_night}')
+            print(f'lyi night:\n{df_lyi_night}')
+            mean_off_night = round(df_off_night['length'].mean(),2)
+            mean_lyi_night = round(df_lyi_night['length'].mean(),2)
+            mean_sit_night = round(df_sit_night['length'].mean(),2)
+            mean_sta_night = round(df_sta_night['length'].mean(),2)
+            # print(f'mean_night: {mean_night}')
 
-        return 0
-    
+            df_immobility_means[night] = [mean_off_night, mean_lyi_night, mean_sit_night, mean_sta_night]
+        
+        # print(f'immobility mean values:\n{df_immobility_means}')
+        return df_immobility_means
+
+
     def indexes_activity_incl(self, arr, arr_period):
 
         arr_com = (arr[:-1] != arr[1:])
         arr_ini = arr_com & (arr[:-1]==0)
         arr_end = arr_com & (arr[:-1]==1)
 
+        ## adding one element at the begining of the array
         arr_ini = np.concatenate((0, arr_ini), axis=None)
         arr_end = np.concatenate((0, arr_end), axis=None)
 
@@ -1003,6 +1024,69 @@ class Activity_Measurements:
         ax[9].plot(arr_2[1], color='tab:orange')
         ax[10].plot(arr_2[2], color='tab:green')
         ax[11].plot(arr_2[3], color='tab:red')
+        
+        return 0
+    
+    def plot_Inclinometers_filtered(self):
+        
+        fig, ax = plt.subplots(nrows=4, ncols=1, sharex=True, figsize=(12, 6))
+        fig.canvas.mpl_connect('key_press_event', self.on_press)
+                
+        arr = np.empty((4, 0)).tolist()
+        # arr_1 = np.empty((4, 0)).tolist()
+        # arr_2 = np.empty((4, 0)).tolist()
+        
+        df = self.df_inclinometers
+
+        # arr[0] =df[self.incl_off].to_numpy()
+        # arr[1] =df[self.incl_lyi].to_numpy()
+        # arr[2] =df[self.incl_sit].to_numpy()
+        # arr[3] =df[self.incl_sta].to_numpy()
+        
+        
+        # ax[0].plot(arr[0], color='tab:blue')
+        # ax[1].plot(arr[1], color='tab:orange')
+        # ax[2].plot(arr[2], color='tab:green')
+        # ax[3].plot(arr[3], color='tab:red')
+
+        labels_list = df[self.period].unique().tolist()
+        # print(f'labels_list: {labels_list}')
+        id_ini = 0
+
+        for label in labels_list:
+            df_period = df[df[self.period]== label]
+
+            # arr_a = df_period[self.vec_mag].to_list()
+            # arr_b = df_period[self.vma_b].to_list()
+            arr[0] =df_period[self.incl_off].to_list()
+            arr[1] =df_period[self.incl_lyi].to_list()
+            arr[2] =df_period[self.incl_sit].to_list()
+            arr[3] =df_period[self.incl_sta].to_list()
+
+            ids=np.arange(id_ini, id_ini+len(df_period))
+                # print(f'ids size: {len(ids)}, {len(df_label)}')
+                
+            if label.startswith('d'):
+                ax[0].plot(ids, arr[0], color='tab:orange', label='')
+                ax[1].plot(ids, arr[1], color='tab:orange', label='')
+                ax[2].plot(ids, arr[2], color='tab:orange', label='')
+                ax[3].plot(ids, arr[3], color='tab:orange', label='')
+            else:
+                ax[0].plot(ids, arr[0], color='tab:blue', label='')
+                ax[1].plot(ids, arr[1], color='tab:blue', label='')
+                ax[2].plot(ids, arr[2], color='tab:blue', label='')
+                ax[3].plot(ids, arr[3], color='tab:blue', label='')
+
+            id_ini=id_ini+len(df_period)
+            
+            ax[0].title.set_text(self.name)
+            ax[0].set_ylabel('off')
+            ax[1].set_ylabel('lyi')
+            ax[2].set_ylabel('sit')
+            ax[3].set_ylabel('sta')
+            # # vertical line
+            # ax[0].vlines(x=[id_ini], ymin=ya_ini, ymax=ya_end, colors='purple', ls='--', lw=1, label='')
+            # ax[1].vlines(x=[id_ini], ymin=yb_ini, ymax=yb_end, colors='purple', ls='--', lw=1, label='')
         
         return 0
     
