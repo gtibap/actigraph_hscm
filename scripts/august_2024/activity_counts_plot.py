@@ -329,7 +329,7 @@ def plot_vector_magnitude(list_objs, labels_rec, labels_con, group_title, body_p
     # fig.suptitle(f'Vector Magnitude (counts)\n{group_title}')
         
     if flag_save:
-        fig.savefig(path+'vm_night.png', bbox_inches='tight')
+        fig.savefig(path+'vm3.png', bbox_inches='tight')
         
     return 0
   
@@ -1229,7 +1229,7 @@ def plot_boxplots(df_days, df_nights, sel_flag, color_boxes, label_y, labels_rec
 def main(args):
     
     path = "../../data/projet_officiel/ancient_2/"
-    path_out = "figures/"
+    path_out = "figures_tables/"
     path_out_2 = "tables/"
     
     # files_names=[]
@@ -1330,7 +1330,16 @@ def main(args):
         ## Neurological Level of Injury
         list_nli_rec=['P15','P15',]
         list_nli_con=['','',]
-        list_pi=[]    
+        list_pi=[]
+    elif group == '10':
+        files_names=['A006', 'A021', 'A022', 'A025', 'A028', 'A037', 'A039', 'A044', 'A003', 'A023', 'A026', 'A018', 'A051', 'A052',]
+        prefix_one = 'AB_'
+        group_title = 'AIS : A and B'
+        ## Neurological Level of Injury
+        list_nli_rec=['P01', 'P02', 'P03', 'P04', 'P05', 'P06', 'P07', 'P08', 'P09', 'P10', 'P11', 'P12', 'P13', 'P14']
+        list_nli_con=['','','','','','','','','','','','','','',]
+        dic_pat = {'A006':'P01', 'A021':'P02', 'A022':'P03', 'A025':'P04', 'A028':'P05', 'A037':'P06', 'A039':'P07', 'A044':'P08', 'A003':'P09', 'A023':'P10', 'A026':'P11', 'A018':'P12', 'A051':'P13', 'A052':'P14',}
+        list_pi=[]      
     
     # elif group == '4':
         # files_names=['A006', 'A039', 'A023', 'A040', 'A019', 'A005', 'A035', 'A014', 'A041', 'A020', 'A016', 'A001', 'A015', 'A033',]
@@ -1395,7 +1404,7 @@ def main(args):
     prefix_name = prefix_one+prefix_two
     ##########################        
     # plot Vector Magnitude
-    flag_save = False
+    flag_save = True
     plot_vector_magnitude(list_objs, list_nli_rec, list_nli_con, group_title, body_part_title, flag_save, path_out+prefix_name)
     ##########################
 

@@ -6,6 +6,7 @@
 from class_activity_histogram import Activity_Measurements
 from matplotlib.ticker import LinearLocator
 from scipy import stats
+from scipy.stats import iqr
 
 import numpy as np
 import pandas as pd
@@ -665,7 +666,7 @@ def plot_activitySamples_boxplots(list_objs, selected_label, flag_night, flag_sa
 
 
 
-def plot_activity_boxplots(list_objs, selected_label, flag_night, flag_save, path):
+def plot_activity_boxplots(list_objs, selected_label, dic_pat, flag_night, flag_save, path):
     
     rows_number = len(list_objs)
     fig, axs = plt.subplots(nrows=2, ncols=1, figsize=(9, 6),)
@@ -712,7 +713,8 @@ def plot_activity_boxplots(list_objs, selected_label, flag_night, flag_save, pat
     # list_days=['d1','d2','d3','d4','d5']
     # list_nights=['n1','n2','n3','n4','n5']
 
-    df_median = pd.DataFrame(columns=['id','median_day','median_night'])
+    # df_median = pd.DataFrame(columns=['id','median_day','median_night'])
+    df_median = pd.DataFrame([])
 
     df_p_all = pd.DataFrame()
     
@@ -749,12 +751,20 @@ def plot_activity_boxplots(list_objs, selected_label, flag_night, flag_save, pat
             else:
                 pass
 
+        ######################
+        ### median values 
         median_days = np.median(arr_days)
         median_nights = np.median(arr_nights)
-        print(f'{i} median d: {median_days}')            
-        print(f'{i} median n: {median_nights}')
 
-        df_row = pd.DataFrame([[name,median_days,median_nights]],columns=['id','median_day','median_night'])
+        ### # Calculate Interquartile Range (IQR) using scipy
+        iqr_days = iqr(arr_days)
+        iqr_nights = iqr(arr_nights)
+
+        print(f'{name} median iqr d: {round(median_days,2)},   {round(iqr_days,2)}')            
+        print(f'{name} median iqr n: {round(median_nights,2)}, {round(iqr_nights,2)}')
+
+
+        df_row = pd.DataFrame([[name,median_days, iqr_days, median_nights, iqr_nights]],columns=['id','median_day','iqr_day','median_night','iqr_night'])
         df_median = pd.concat([df_median, df_row], ignore_index = True)          
     
         df_day = pd.DataFrame(arr_days, columns=['value'])
@@ -774,6 +784,7 @@ def plot_activity_boxplots(list_objs, selected_label, flag_night, flag_save, pat
         
         ## add name patient and concat big dataframe for all patients that includes days and nights
 
+    df_median.to_csv(path+'stats.csv', index=False)
     # df_median['median_sum'] = df_median['median_day'] + df_median['median_night']
     # df_sorted = df_median.sort_values('median_sum')
     # id_sorted = df_sorted['id'].tolist()
@@ -800,7 +811,7 @@ def plot_activity_boxplots(list_objs, selected_label, flag_night, flag_save, pat
     # mdf = pd.melt(cdf, id_vars=['period'], var_name=['subject'])
     # print(mdf)
     
-    dic_pat = {'A006':'P01', 'A021':'P02', 'A022':'P03', 'A025':'P04', 'A028':'P05', 'A037':'P06', 'A039':'P07', 'A044':'P08', 'A003':'P09', 'A023':'P10', 'A026':'P11', 'A018':'P12',}
+    # dic_pat = {'A006':'P01', 'A021':'P02', 'A022':'P03', 'A025':'P04', 'A028':'P05', 'A037':'P06', 'A039':'P07', 'A044':'P08', 'A003':'P09', 'A023':'P10', 'A026':'P11', 'A018':'P12',}
     
     my_colors = {'day':'#ffb482', 'night':'#a1c9f4'}
     
@@ -1226,7 +1237,7 @@ def plot_boxplots(df_days, df_nights, sel_flag, color_boxes, label_y, labels_rec
 def main(args):
     
     path = "../../data/projet_officiel/ancient_2/"
-    path_out = "figures/"
+    path_out = "figures_tables/"
     path_out_2 = "tables/"
     
     # files_names=[]
@@ -1327,6 +1338,15 @@ def main(args):
         ## Neurological Level of Injury
         list_nli_rec=['P15','P15',]
         list_nli_con=['','',]
+        list_pi=[]
+    elif group == '10':
+        files_names=['A006', 'A021', 'A022', 'A025', 'A028', 'A037', 'A039', 'A044', 'A003', 'A023', 'A026', 'A018', 'A051', 'A052',]
+        prefix_one = 'AB_'
+        group_title = 'AIS : A and B'
+        ## Neurological Level of Injury
+        list_nli_rec=['P01', 'P02', 'P03', 'P04', 'P05', 'P06', 'P07', 'P08', 'P09', 'P10', 'P11', 'P12', 'P13', 'P14']
+        list_nli_con=['','','','','','','','','','','','','','',]
+        dic_pat = {'A006':'P01', 'A021':'P02', 'A022':'P03', 'A025':'P04', 'A028':'P05', 'A037':'P06', 'A039':'P07', 'A044':'P08', 'A003':'P09', 'A023':'P10', 'A026':'P11', 'A018':'P12', 'A051':'P13', 'A052':'P14',}
         list_pi=[]    
     
     # elif group == '4':
@@ -1486,7 +1506,7 @@ def main(args):
         df_win_all = pd.DataFrame([])
 
         for win_a in [1,4,7,10,13,16]:
-        # for win_a in [1,4]:
+        # for win_a in [10]:
     
             for i, obj in enumerate(list_objs):
                 
@@ -1550,7 +1570,8 @@ def main(args):
             # for each case, df_median has the following columns: 
             # 'id','median_day','median_night'
 
-            df_win, df_median = plot_activity_boxplots(list_objs, vma_b, flag_night, flag_save, path_out+prefix_name+'box_plot_sorted_by_days')
+            # df_win, df_median = plot_activity_boxplots(list_objs, vma_b, flag_night, flag_save, path_out+prefix_name+'box_plot_sorted_by_days')
+            df_win, df_median = plot_activity_boxplots(list_objs, vma_b, dic_pat, flag_night, flag_save, path_out)
 
             df_win = df_win.assign(window=win_a)
 
@@ -1651,7 +1672,7 @@ def main(args):
             
             #############################
         
-        # fig.savefig(path_out+'boxplot_windows_2.png', bbox_inches='tight')
+        fig.savefig(path_out+'boxplot_windows_3.png', bbox_inches='tight')
 
 
         plot_boxplot_windows_2(df_win_all, ax1[0])
