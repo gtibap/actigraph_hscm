@@ -11,6 +11,7 @@ from scipy.stats import iqr
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
 import seaborn as sns
 import sys
 
@@ -755,16 +756,25 @@ def plot_activity_boxplots(list_objs, selected_label, dic_pat, flag_night, flag_
         ### median values 
         median_days = np.median(arr_days)
         median_nights = np.median(arr_nights)
-
         ### # Calculate Interquartile Range (IQR) using scipy
         iqr_days = iqr(arr_days)
         iqr_nights = iqr(arr_nights)
-
+        ###
         print(f'{name} median iqr d: {round(median_days,2)},   {round(iqr_days,2)}')            
         print(f'{name} median iqr n: {round(median_nights,2)}, {round(iqr_nights,2)}')
 
+        ### median values 
+        mean_days = np.mean(arr_days)
+        mean_nights = np.mean(arr_nights)
+        ### # Calculate Interquartile Range (IQR) using scipy
+        std_days = np.std(arr_days)
+        std_nights = np.std(arr_nights)
+        ###
+        print(f'{name} mean std d: {round(mean_days,2)},   {round(std_days,2)}')            
+        print(f'{name} mean std n: {round(mean_nights,2)}, {round(std_nights,2)}')
 
-        df_row = pd.DataFrame([[name,median_days, iqr_days, median_nights, iqr_nights]],columns=['id','median_day','iqr_day','median_night','iqr_night'])
+
+        df_row = pd.DataFrame([[name,median_days, iqr_days, median_nights, iqr_nights, mean_days, std_days, mean_nights, std_nights]],columns=['id','median_day','iqr_day','median_night','iqr_night','mean_day','std_day','mean_night','std_night'])
         df_median = pd.concat([df_median, df_row], ignore_index = True)          
     
         df_day = pd.DataFrame(arr_days, columns=['value'])
@@ -784,7 +794,7 @@ def plot_activity_boxplots(list_objs, selected_label, dic_pat, flag_night, flag_
         
         ## add name patient and concat big dataframe for all patients that includes days and nights
 
-    df_median.to_csv(path+'stats.csv', index=False)
+    df_median.to_csv(path+'stats_mean.csv', index=False)
     # df_median['median_sum'] = df_median['median_day'] + df_median['median_night']
     # df_sorted = df_median.sort_values('median_sum')
     # id_sorted = df_sorted['id'].tolist()
@@ -916,7 +926,13 @@ def plot_boxplot_windows(mdf, my_colors, ax, title):
     
     title='activity rate'
 
-    sns.boxplot(data=mdf, x='window', y="value", hue="period", palette=my_colors, showfliers = False, medianprops=dict(color="green", alpha=0.7), ax=ax)
+    print(f'mdf inside:\n{mdf}')
+    # sns.boxplot(data=mdf, x='window', y="value", hue="period", palette=my_colors, showfliers = False, medianprops=dict(color="green", alpha=0.7), ax=ax)
+    # sns.boxplot(data=mdf, x='window', y="value", hue="period", color='black', showfliers = False, medianprops=dict(color='black', alpha=0.7), ax=ax)
+    sns.boxplot(data=mdf, x='window', y="value", hue="period", color='black', showfliers = False, ax=ax)
+    
+
+    # color=".8", linecolor="#137", linewidth=.75
 
     
 
@@ -1113,27 +1129,174 @@ def plot_cycle_alpha(list_objs, labels_rec, labels_con, selected_label, group_ti
     # ax[-1].set_xticks(xticks, (xticks/3600).astype(int), fontsize=12)
     # ax[-1].set_xlabel('time [h]', fontsize=12)
     
+    # ax[0].set_ylabel('P1')
+    # ax[1].set_ylabel('P2')
+    # ax[2].set_ylabel('P3')
+    # ax[3].set_ylabel('P4')
+    
+    ax[-1].set_xlabel('24-hour clock [hh]',fontsize=size_font)
+   
+    # fig.suptitle(title)
+
+    if flag_save:
+        fig.savefig(path+'24h.png', bbox_inches='tight')
+        
+    return 0
+
+
+def plot_cycle_alpha_all(list_objs, labels_rec, labels_con, selected_label, flag_save, ax):
+    
+    rows_number = len(list_objs)
+
+    y_ini=  -0.08
+    y_end=   1.08
+    
+    list_ticks_x =[]
+    
+    # hen = 7
+    # hed = 23
+    # hour_0 = 9
+    hour_0 = g_hen
+    list_ticks_x.extend(np.arange(hour_0,24,1)) 
+    list_ticks_x.extend(np.arange(0,hour_0+1,1)) 
+    ## add one zero to the left for numbers of one digit
+    list_ticks_x = [str(x).zfill(2) for x in list_ticks_x]
+    
+    
+    label_step = selected_label
+    
+    # self.time_ini='23:00:00'
+    # self.time_end='07:00:00'
+    # hen = 7
+    # hed = 23
+    # hours_night = hen + 24-hed
+    # hours_day   = 24-hours_night
+    
+    
+    # print(g_hours_day, g_hours_night)
+    
+    length_day=g_hours_day*3600 ## hours in seconds
+    length_night=g_hours_night*3600 ## hours in seconds
+    total_days=5
+    total_nights=5
+    
+    # list_days=['d1','d2','d3','d4','d5']
+    # list_nights=['n1','n2','n3','n4','n5']
+    
+    
+    for i, obj in enumerate(list_objs):
+        ## get dataframe 
+        df = list_objs[i].get_df1()
+        ## paint each day and each night
+        labels_list = df[label_day_night].unique().tolist()
+        
+        df_day = pd.DataFrame(columns=list_days)
+        df_night = pd.DataFrame(columns=list_nights)
+        
+        for label in labels_list:
+            
+            df_label = df[df[label_day_night]== label]
+            arr=df_label[label_step].to_list()
+
+            if (label in list_days):
+                df_day[label]=arr
+                # ax[i].plot(np.arange(0,length_day), vma, color='tab:blue')
+            elif (label in list_nights):
+                df_night[label]=arr
+                # ax[i].plot(np.arange(length_day,length_day+length_night), vma, color='tab:orange')
+            else:
+                pass
+
+        df_day['median'] = df_day.median(axis=1)
+        df_day['min']    = df_day.min(axis=1)
+        df_day['max']    = df_day.max(axis=1)
+        
+        df_night['median'] = df_night.median(axis=1)
+        df_night['min']    = df_night.min(axis=1)
+        df_night['max']    = df_night.max(axis=1)
+        
+        
+        # specifying horizontal line type 
+        ax[i].axhline(y = 0.5, color = 'black', linestyle = '--', alpha=0.3) 
+        
+        color_day='tab:orange'
+        color_night='tab:blue'
+        
+        pattern_day='//'
+        pattern_night='..'
+        
+        # vertical line
+        ax[i].vlines(x=[0, length_day, length_day+length_night], ymin=y_ini, ymax=y_end, colors='purple', ls='--', lw=1, label='')
+        
+        ax[i] = plot_alpha(df_day, 0, length_day, color_day, pattern_day, 'day', ax[i])
+        ax[i] = plot_alpha(df_night, length_day, length_night, color_night, pattern_night, 'night', ax[i])
+        
+        ax[i].set_ylim(y_ini,y_end)
+        
+        
+    # length_x = length_day + length_night
+    # length_day / 
+    
+    ## annotate
+    trans = ax[0].get_xaxis_transform() # x in data units, y in axes fraction
+    # list_x_pos = (2*num_samples)*np.arange(5)
+    ax[0].annotate(f'day', xy=(int(length_day/2), 1.05 ), xycoords=trans, fontsize=12, color='tab:orange')
+    ax[0].annotate(f'night', xy=(length_day + int(length_night/2), 1.05 ), xycoords=trans, fontsize=12, color='tab:blue')
+
+    ## legend
+    # if selected_label == vma_b:
+        # signal_label = 'VM'
+        # fig.suptitle(f'Activity VM {body_part_title}\n{group_title}')
+        # fig.suptitle(f'Mobility estimation from Vector Magnitude (VM) five nights')
+        # fig.suptitle(f'')
+    # else:
+        # signal_label = 'Incl.'
+        # fig.suptitle(f'Activity Inclinometers {body_part_title}\n{group_title}')
+    # ax[0].legend(loc='upper right', bbox_to_anchor=(1.0, 1.4),fancybox=False, shadow=False, ncol=2)
+    # for i in np.arange(4):
+        # ax[i].legend([], title=f'P{i+1} - S_out\nS_in: {signal_label}\nAIS: {asia[i]}\nNLI: {nl[i]}', alignment='center', loc='upper left', bbox_to_anchor=(1.0, 1.1), ncol=1, fancybox=True, shadow=True,)
+        
+    size_font = 12
+    
+    for i in np.arange(len(list_objs)):
+        ##
+        # ax[i].legend([], title=f'{labels_rec[i]}\n{labels_con[i]}', alignment='center', loc='upper left', bbox_to_anchor=(1.0, 1.15), ncol=1, fancybox=True, shadow=True, title_fontsize=12,)
+        
+        ## y scale
+        ax[i].set_ylim(y_ini,y_end)
+        
+        # hide xtick values
+        ax[i].set_xticklabels([])
+        
+        # ax.set_xlabel('')
+        # ax[i].set_ylabel('activity rates',fontsize=size_font)
+        ax[i].tick_params(labelsize=size_font)
+    
+    
+    
+    x_ticks= b=np.arange(0,(25*3600), 3600)
+    ax[-1].set_xticks(x_ticks[::2], list_ticks_x[::2],) 
+    
+    ## font size labels and ticks
+    # xticks = np.linspace(0, num_samples*10, 11).astype(int)
+    # ax[-1].set_xticks(xticks, (xticks/3600).astype(int), fontsize=12)
+    # ax[-1].set_xlabel('time [h]', fontsize=12)
     
     # ax[0].set_ylabel('P1')
     # ax[1].set_ylabel('P2')
     # ax[2].set_ylabel('P3')
     # ax[3].set_ylabel('P4')
     
-    
     ax[-1].set_xlabel('24-hour clock [hh]',fontsize=size_font)
    
     # fig.suptitle(title)
-    
-    
-    
-    
+
     if flag_save:
         fig.savefig(path+'24h.png', bbox_inches='tight')
-        
-    
-        
+
     return 0
-    
+
+
 def plot_alpha(df, start, size, color, pattern, sel_label, ax):
     
     x = np.arange(start,start+size)
@@ -1231,6 +1394,54 @@ def plot_boxplots(df_days, df_nights, sel_flag, color_boxes, label_y, labels_rec
     if flag_save_fig:
         plt.savefig(path_out+'boxplot.png', bbox_inches='tight')
     
+    return 0
+
+
+def plot_curves_two_columns(list_objs, list_nli_rec, list_nli_con, vma_b, flag_save):
+
+    fig = plt.figure(layout='constrained', figsize=(10, 4))
+    fig.canvas.mpl_connect('key_press_event', on_press)
+    fig.canvas.draw()
+
+    subfigs = fig.subfigures(4, 1, wspace=0.07)
+    subfigs = np.array(subfigs)
+    subfigs = subfigs.flatten()
+
+    # subfigs_A = subfigs[0].subfigures(1, 3,)
+    # subfigs_B = subfigs[1].subfigures(1, 3,)
+    # subfigs_C = subfigs[2].subfigures(1, 3,)
+    # subfigs_D = subfigs[3].subfigures(1, 3,)
+
+    # subfigs_A = np.array(subfigs_A)
+    # subfigs_B = np.array(subfigs_B)
+    # subfigs_C = np.array(subfigs_C)
+    # subfigs_D = np.array(subfigs_D)
+    # subfigs_A = subfigs_A.flatten()
+    # subfigs_B = subfigs_B.flatten()
+    # subfigs_C = subfigs_C.flatten()
+    # subfigs_D = subfigs_D.flatten()
+
+    rows_number = 2
+    ax_A = subfigs[0].subplots(1, 3, sharey=True)
+    ax_B = subfigs[1].subplots(1, 3, sharey=True)
+    ax_C = subfigs[2].subplots(1, 3, sharey=True)
+    ax_D = subfigs[3].subplots(1, 3, sharey=True)
+
+    # plot_cycle_alpha_all(list_objs, list_nli_rec, list_nli_con, vma_b, flag_save, ax_A)
+    # plot_cycle_alpha_all(list_objs, list_nli_rec, list_nli_con, vma_b, flag_save, ax_B)
+    # plot_cycle_alpha_all(list_objs, list_nli_rec, list_nli_con, vma_b, flag_save, ax_C)
+    # plot_cycle_alpha_all(list_objs, list_nli_rec, list_nli_con, vma_b, flag_save, ax_D)
+
+    # subfigs[0].suptitle('AIS A')
+    # subfigs[1].suptitle('AIS B')
+    # subfigs[2].suptitle('AIS C')
+    # subfigs[3].suptitle('AIS D')
+
+    subfigs[0].supylabel('A', rotation='horizontal',)
+    subfigs[1].supylabel('B', rotation='horizontal',)
+    subfigs[2].supylabel('C', rotation='horizontal',)
+    subfigs[3].supylabel('D', rotation='horizontal',)
+
     return 0
 
 
@@ -1332,13 +1543,14 @@ def main(args):
         list_nli_con=['','','',]
         list_pi=[]    
     elif group == '9':
-        files_names=['A040','A040',]
+        files_names=['A006','A006',]
         prefix_one = 'AB_'
         group_title = 'AIS : A and B'
         ## Neurological Level of Injury
-        list_nli_rec=['P15','P15',]
+        list_nli_rec=['P01','P01',]
         list_nli_con=['','',]
         list_pi=[]
+        dic_pat = {'A006':'P01', 'A021':'P02', 'A022':'P03', 'A025':'P04', 'A028':'P05', 'A037':'P06', 'A039':'P07', 'A044':'P08', 'A003':'P09', 'A023':'P10', 'A026':'P11', 'A018':'P12', 'A051':'P13', 'A052':'P14',}
     elif group == '10':
         files_names=['A006', 'A021', 'A022', 'A025', 'A028', 'A037', 'A039', 'A044', 'A003', 'A023', 'A026', 'A018', 'A051', 'A052',]
         prefix_one = 'AB_'
@@ -1495,17 +1707,22 @@ def main(args):
     
     if flag_continue:
         
-        fig, ax = plt.subplots(nrows=1, ncols=2, sharex=True, figsize=(9, 2))
+        fig, ax = plt.subplots(nrows=1, ncols=1, sharex=True, figsize=(9, 2))
         fig.canvas.mpl_connect('key_press_event', on_press)
         ax = np.array(ax).reshape(-1)
 
-        fig1, ax1 = plt.subplots(nrows=1, ncols=1, sharex=True, figsize=(5, 2))
-        fig1.canvas.mpl_connect('key_press_event', on_press)
-        ax1 = np.array(ax1).reshape(-1)
+        # fig1, ax1 = plt.subplots(nrows=1, ncols=1, sharex=True, figsize=(5, 2))
+        # fig1.canvas.mpl_connect('key_press_event', on_press)
+        # ax1 = np.array(ax1).reshape(-1)
             
         df_win_all = pd.DataFrame([])
 
-        for win_a in [1,4,7,10,13,16]:
+        # win_labels = ['1/60','0.5','1','4','7','10','13','16','19','22','25']
+        # win_sizes = [1/60, 0.5, 1, 4, 7, 10, 13, 16, 19, 22, 25]
+        win_labels = ['10']
+        win_sizes = [10]
+        for win_a in win_sizes:
+        # for win_a in [1,4,7,10,13,16]:
         # for win_a in [10]:
     
             for i, obj in enumerate(list_objs):
@@ -1557,8 +1774,14 @@ def main(args):
             # plot_vma_cycle(list_objs)
             ##############################
             #############################
-            # flag_save = False
+            flag_save = False
             # plot_cycle_alpha(list_objs, list_nli_rec, list_nli_con, vma_b,  group_title, body_part_title, flag_save, path_out+prefix_name+'vm7_')
+
+            plot_curves_two_columns(list_objs, list_nli_rec, list_nli_con, vma_b, flag_save)
+
+            # fig, ax = plt.subplots(nrows=rows_number, ncols=1, figsize=(9, 5), sharex=True,)
+
+
             # plot_cycle_alpha(list_objs, list_nli_rec, list_nli_con, inc_b, group_title, body_part_title, flag_save, path_out+prefix_name+'incl_')
             #############################
             # list_objs[0].plot_Inclinometers()
@@ -1631,22 +1854,25 @@ def main(args):
         # ## dashed lines at 0.25 and 0.75 activity rates
         # #######################################
         
+        print(f'df_win_all:\n{df_win_all}')
 
         title='day'
         my_colors = {'day':'#ffb482', 'night':'#a1c9f4'}
 
         mdf = df_win_all[df_win_all['period']=='day']
+        print(f'mdf:\n{mdf}')
+
         plot_boxplot_windows(mdf, my_colors, ax[0],title)
 
         title='night'
 
-        mdf = df_win_all[df_win_all['period']=='night']
-        plot_boxplot_windows(mdf, my_colors, ax[1],title)
+        # mdf = df_win_all[df_win_all['period']=='night']
+        # plot_boxplot_windows(mdf, my_colors, ax[1],title)
 
         # ax[0].set_ylim([-0.5,3.0])
         # ax[1].set_ylim([-0.5,4.0])
         # ax[0].set_xlim([0,1])
-        ax[-1].set_xlim([-0.5,5.5])
+        # ax[-1].set_xlim([-0.5,5.5])
         
         
 
@@ -1655,10 +1881,11 @@ def main(args):
         # # ax.set_ylabel('activity rate',fontsize=size_font)
         # ax.set_ylabel(title,fontsize=size_font)
         ax[0].set_xlabel('T1 (minutes)', fontsize=size_font)
-        ax[1].set_xlabel('T1 (minutes)', fontsize=size_font)
+        # ax[1].set_xlabel('T1 (minutes)', fontsize=size_font)
 
         ax[0].set_ylabel('activity rates', fontsize=size_font)
-        ax[1].set_ylabel('')
+        # ax[1].set_ylabel('')
+        ax[0].set_xticks(np.arange(len(win_sizes)), win_labels)
 
         # ax[0].legend(title='T1 (min)')
         # ax[1].legend(title='T1 (min)')
@@ -1666,7 +1893,7 @@ def main(args):
         # ax[3].legend(title='T1 (min)')
 
         ax[0].title.set_text('days')
-        ax[1].title.set_text('nights')
+        # ax[1].title.set_text('nights')
         # ax[2].title.set_text('median activity rates days')
         # ax[3].title.set_text('median activity rates nights')
             
@@ -1675,7 +1902,7 @@ def main(args):
         fig.savefig(path_out+'boxplot_windows_3.png', bbox_inches='tight')
 
 
-        plot_boxplot_windows_2(df_win_all, ax1[0])
+        # plot_boxplot_windows_2(df_win_all, ax1[0])
         
         
         # print(f'df_vma_days\n{df_vma_days}')
