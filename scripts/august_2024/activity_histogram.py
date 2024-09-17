@@ -1397,7 +1397,10 @@ def plot_boxplots(df_days, df_nights, sel_flag, color_boxes, label_y, labels_rec
     return 0
 
 
-def plot_curves_two_columns(list_objs, list_nli_rec, list_nli_con, vma_b, flag_save):
+def plot_curves_ABCD(list_objs, dic_abcd, dic_nli, dic_subplots, flag_save):
+
+    print (f"dic abcd:\n{dic_abcd}\n{dic_abcd['A']}")
+    print (f'dic nli:\n{dic_nli}')
 
     fig = plt.figure(layout='constrained', figsize=(10, 4))
     fig.canvas.mpl_connect('key_press_event', on_press)
@@ -1407,40 +1410,42 @@ def plot_curves_two_columns(list_objs, list_nli_rec, list_nli_con, vma_b, flag_s
     subfigs = np.array(subfigs)
     subfigs = subfigs.flatten()
 
-    # subfigs_A = subfigs[0].subfigures(1, 3,)
-    # subfigs_B = subfigs[1].subfigures(1, 3,)
-    # subfigs_C = subfigs[2].subfigures(1, 3,)
-    # subfigs_D = subfigs[3].subfigures(1, 3,)
-
-    # subfigs_A = np.array(subfigs_A)
-    # subfigs_B = np.array(subfigs_B)
-    # subfigs_C = np.array(subfigs_C)
-    # subfigs_D = np.array(subfigs_D)
-    # subfigs_A = subfigs_A.flatten()
-    # subfigs_B = subfigs_B.flatten()
-    # subfigs_C = subfigs_C.flatten()
-    # subfigs_D = subfigs_D.flatten()
-
     rows_number = 2
     ax_A = subfigs[0].subplots(1, 3, sharey=True)
     ax_B = subfigs[1].subplots(1, 3, sharey=True)
     ax_C = subfigs[2].subplots(1, 3, sharey=True)
     ax_D = subfigs[3].subplots(1, 3, sharey=True)
 
+    plot_curves_ais(list_objs, dic_abcd['A'], dic_nli, dic_subplots, ax_A)
+
     # plot_cycle_alpha_all(list_objs, list_nli_rec, list_nli_con, vma_b, flag_save, ax_A)
     # plot_cycle_alpha_all(list_objs, list_nli_rec, list_nli_con, vma_b, flag_save, ax_B)
     # plot_cycle_alpha_all(list_objs, list_nli_rec, list_nli_con, vma_b, flag_save, ax_C)
     # plot_cycle_alpha_all(list_objs, list_nli_rec, list_nli_con, vma_b, flag_save, ax_D)
 
-    # subfigs[0].suptitle('AIS A')
-    # subfigs[1].suptitle('AIS B')
-    # subfigs[2].suptitle('AIS C')
-    # subfigs[3].suptitle('AIS D')
-
     subfigs[0].supylabel('A', rotation='horizontal',)
     subfigs[1].supylabel('B', rotation='horizontal',)
     subfigs[2].supylabel('C', rotation='horizontal',)
     subfigs[3].supylabel('D', rotation='horizontal',)
+
+    return 0
+
+def plot_curves_ais(list_objs, list_ids, dic_nli, dic_subplots, ax_A):
+    
+    # for obj in list_objs:
+    #     print(f'name: {obj.getName()}')
+
+    # print (f'curves: {list_ids}')
+    for id in list_ids:
+        print(f'id:{id}')
+        ## split, ex. 'P01' -> 'P','0','1'
+        l=list(id)
+        ## take only the number
+        n=int(l[1]+l[2]) - 1
+        obj = list_objs[n]
+        print(obj)
+
+
 
     return 0
 
@@ -1543,14 +1548,24 @@ def main(args):
         list_nli_con=['','','',]
         list_pi=[]    
     elif group == '9':
-        files_names=['A006','A006',]
+        files_names=['A006','A021',]
         prefix_one = 'AB_'
         group_title = 'AIS : A and B'
         ## Neurological Level of Injury
-        list_nli_rec=['P01','P01',]
+        list_nli_rec=['P01','P02',]
         list_nli_con=['','',]
         list_pi=[]
         dic_pat = {'A006':'P01', 'A021':'P02', 'A022':'P03', 'A025':'P04', 'A028':'P05', 'A037':'P06', 'A039':'P07', 'A044':'P08', 'A003':'P09', 'A023':'P10', 'A026':'P11', 'A018':'P12', 'A051':'P13', 'A052':'P14',}
+        dic_abcd = {'A':['P05','P07','P09','P10','P11',],'B':['P01','P02','P04',], 'C':['P08','P13','P12',],'D':['P3','P6','P14',]}
+        dic_nli = {'P05':'C5','P07':'C5','P09':'C6','P10':'C6','P11':'T7', 
+                   'P01':'C4','P02':'C4','P04':'C5',
+                   'P08':'C4','P13':'C5','P12':'T10',
+                   'P3':'C4','P6':'C5','P14':'T4',}
+        dic_subplots = {'A':[0,0,1,1,2,],
+                        'B':[0,0,1,],
+                        'C':[0,1,2,],
+                        'D':[0,1,2,]
+                        }
     elif group == '10':
         files_names=['A006', 'A021', 'A022', 'A025', 'A028', 'A037', 'A039', 'A044', 'A003', 'A023', 'A026', 'A018', 'A051', 'A052',]
         prefix_one = 'AB_'
@@ -1559,7 +1574,20 @@ def main(args):
         list_nli_rec=['P01', 'P02', 'P03', 'P04', 'P05', 'P06', 'P07', 'P08', 'P09', 'P10', 'P11', 'P12', 'P13', 'P14']
         list_nli_con=['','','','','','','','','','','','','','',]
         dic_pat = {'A006':'P01', 'A021':'P02', 'A022':'P03', 'A025':'P04', 'A028':'P05', 'A037':'P06', 'A039':'P07', 'A044':'P08', 'A003':'P09', 'A023':'P10', 'A026':'P11', 'A018':'P12', 'A051':'P13', 'A052':'P14',}
-        list_pi=[]    
+        list_pi=[]
+        dic_abcd = {'A':['P05','P07','P09','P10','P11',],
+                    'B':['P01','P02','P04',], 
+                    'C':['P08','P13','P12',],
+                    'D':['P3','P6','P14',]}
+        dic_nli = {'P05':'C5','P07':'C5','P09':'C6','P10':'C6','P11':'T7', 
+                   'P01':'C4','P02':'C4','P04':'C5',
+                   'P08':'C4','P13':'C5','P12':'T10',
+                   'P3':'C4','P6':'C5','P14':'T4',}
+        dic_subplots = {'A':[0,0,1,1,2,],
+                        'B':[0,0,1,],
+                        'C':[0,1,2,],
+                        'D':[0,1,2,]
+                        }
     
     # elif group == '4':
         # files_names=['A006', 'A039', 'A023', 'A040', 'A019', 'A005', 'A035', 'A014', 'A041', 'A020', 'A016', 'A001', 'A015', 'A033',]
@@ -1707,9 +1735,9 @@ def main(args):
     
     if flag_continue:
         
-        fig, ax = plt.subplots(nrows=1, ncols=1, sharex=True, figsize=(9, 2))
-        fig.canvas.mpl_connect('key_press_event', on_press)
-        ax = np.array(ax).reshape(-1)
+        # fig, ax = plt.subplots(nrows=1, ncols=1, sharex=True, figsize=(9, 2))
+        # fig.canvas.mpl_connect('key_press_event', on_press)
+        # ax = np.array(ax).reshape(-1)
 
         # fig1, ax1 = plt.subplots(nrows=1, ncols=1, sharex=True, figsize=(5, 2))
         # fig1.canvas.mpl_connect('key_press_event', on_press)
@@ -1777,7 +1805,10 @@ def main(args):
             flag_save = False
             # plot_cycle_alpha(list_objs, list_nli_rec, list_nli_con, vma_b,  group_title, body_part_title, flag_save, path_out+prefix_name+'vm7_')
 
-            plot_curves_two_columns(list_objs, list_nli_rec, list_nli_con, vma_b, flag_save)
+            plot_curves_ABCD(list_objs, dic_abcd, dic_nli, dic_subplots, flag_save)
+
+        '''
+
 
             # fig, ax = plt.subplots(nrows=rows_number, ncols=1, figsize=(9, 5), sharex=True,)
 
@@ -1928,10 +1959,13 @@ def main(args):
             # title = 'Inclinometers'
             # label_y = "Incl. activity rate"
             # plot_boxplots(df_inc_days, df_inc_nights, label_y, list_nli_rec, list_nli_con, title, group_title, body_part_title, path_out+prefix_name+'incl_', flag_save_fig)
-        
+        '''
+                
     else:
         pass
-
+        
+    
+            
     plt.show()
     
     return 0
