@@ -1397,55 +1397,217 @@ def plot_boxplots(df_days, df_nights, sel_flag, color_boxes, label_y, labels_rec
     return 0
 
 
-def plot_curves_ABCD(list_objs, dic_abcd, dic_nli, dic_subplots, flag_save):
+def plot_curves_ABCD(list_objs, dic_abcd, dic_nli, dic_pat, dic_subplots, flag_save, path):
 
     print (f"dic abcd:\n{dic_abcd}\n{dic_abcd['A']}")
     print (f'dic nli:\n{dic_nli}')
+    print (f'dic nli:\n{dic_pat}')
 
-    fig = plt.figure(layout='constrained', figsize=(10, 4))
+    # fig = plt.figure(layout='constrained', figsize=(8, 5))
+    fig,ax = plt.subplots(4,3, layout='constrained', figsize=(7.5, 5), sharey=True, sharex=True)
     fig.canvas.mpl_connect('key_press_event', on_press)
     fig.canvas.draw()
 
-    subfigs = fig.subfigures(4, 1, wspace=0.07)
-    subfigs = np.array(subfigs)
-    subfigs = subfigs.flatten()
+    # fig.supylabel('ASIA Impairment Score (AIS)')
+    fig.supylabel('activity rates')
+    fig.supxlabel('24-hour clock [hh]')
 
-    rows_number = 2
-    ax_A = subfigs[0].subplots(1, 3, sharey=True)
-    ax_B = subfigs[1].subplots(1, 3, sharey=True)
-    ax_C = subfigs[2].subplots(1, 3, sharey=True)
-    ax_D = subfigs[3].subplots(1, 3, sharey=True)
+    # subfigs = fig.subfigures(4, 1, wspace=0.07)
+    # subfigs = np.array(subfigs)
+    # subfigs = subfigs.flatten()
 
-    plot_curves_ais(list_objs, dic_abcd['A'], dic_nli, dic_subplots, ax_A)
+    # rows_number = 2
+    # ax_A = subfigs[0].subplots(1, 3, sharey=True, sharex=True)
+    # ax_B = subfigs[1].subplots(1, 3, sharey=True, sharex=True)
+    # ax_C = subfigs[2].subplots(1, 3, sharey=True, sharex=True)
+    # ax_D = subfigs[3].subplots(1, 3, sharey=True, sharex=True)
 
-    # plot_cycle_alpha_all(list_objs, list_nli_rec, list_nli_con, vma_b, flag_save, ax_A)
-    # plot_cycle_alpha_all(list_objs, list_nli_rec, list_nli_con, vma_b, flag_save, ax_B)
-    # plot_cycle_alpha_all(list_objs, list_nli_rec, list_nli_con, vma_b, flag_save, ax_C)
-    # plot_cycle_alpha_all(list_objs, list_nli_rec, list_nli_con, vma_b, flag_save, ax_D)
+    ax_A = ax[0,:]
+    ax_B = ax[1,:]
+    ax_C = ax[2,:]
+    ax_D = ax[3,:]
 
-    subfigs[0].supylabel('A', rotation='horizontal',)
-    subfigs[1].supylabel('B', rotation='horizontal',)
-    subfigs[2].supylabel('C', rotation='horizontal',)
-    subfigs[3].supylabel('D', rotation='horizontal',)
+    plot_curves_ais(list_objs, dic_abcd['A'], dic_subplots['A'], ax_A)
+    plot_curves_ais(list_objs, dic_abcd['B'], dic_subplots['B'], ax_B)
+    plot_curves_ais(list_objs, dic_abcd['C'], dic_subplots['C'], ax_C)
+    plot_curves_ais(list_objs, dic_abcd['D'], dic_subplots['D'], ax_D)
+
+    # subfigs[0].supylabel('A', rotation='horizontal',)
+    # subfigs[1].supylabel('B', rotation='horizontal',)
+    # subfigs[2].supylabel('C', rotation='horizontal',)
+    # subfigs[3].supylabel('D', rotation='horizontal',)
+
+    y_min = -0.1
+    y_max =  1.1
+
+    ax_A[0].set_ylim([y_min,y_max])
+    ax_B[0].set_ylim([y_min,y_max])
+    ax_C[0].set_ylim([y_min,y_max])
+    ax_D[0].set_ylim([y_min,y_max])
+
+    ## coordinates location for each
+    dic_pos_labels={'A':[(0.05, 0.85),(0.05, 0.85),(0.05, 0.10)],
+                    'B':[(0.05, 0.85),(0.05, 0.85),(0.05, 0.85)],
+                    'C':[(0.05, 0.85),(0.05, 0.85),(0.05, 0.10)],
+                    'D':[(0.05, 0.10),(0.05, 0.85),(0.05, 0.10)],}
+    
+    annotate_labels(ax_A, dic_nli['A'], dic_pos_labels['A'])
+    annotate_labels(ax_B, dic_nli['B'], dic_pos_labels['B'])
+    annotate_labels(ax_C, dic_nli['C'], dic_pos_labels['C'])
+    annotate_labels(ax_D, dic_nli['D'], dic_pos_labels['D'])
+
+    # coordinates location for each
+    dic_pos_labels={'A':[(0.70, 0.85),(0.70, 0.80),(0.40, 0.10)],
+                    'B':[(0.70, 0.85),(0.80, 0.85),(0.40, 0.10)],
+                    'C':[(0.80, 0.85),(0.80, 0.85),(0.40, 0.10)],
+                    'D':[(0.40, 0.10),(0.80, 0.85),(0.40, 0.10)],}
+    
+    annotate_labels(ax_A, dic_pat['A'], dic_pos_labels['A'])
+    annotate_labels(ax_B, dic_pat['B'], dic_pos_labels['B'])
+    annotate_labels(ax_C, dic_pat['C'], dic_pos_labels['C'])
+    annotate_labels(ax_D, dic_pat['D'], dic_pos_labels['D'])
+
+    delta=3
+    set_xticks(ax_A, delta)
+    set_xticks(ax_B, delta)
+    set_xticks(ax_C, delta)
+    # set_xticks(ax_D, delta)
+    set_xticks_numbers(ax_D, delta)
+
+    # ax_A[0].set_ylabel('activity rates')
+    # ax_B[0].set_ylabel('activity rates')
+    # ax_C[0].set_ylabel('activity rates')
+    # ax_D[0].set_ylabel('activity rates')
+
+    if flag_save:
+        fig.savefig(path+'act_rates.png', bbox_inches='tight')
+
 
     return 0
 
-def plot_curves_ais(list_objs, list_ids, dic_nli, dic_subplots, ax_A):
+################
+def annotate_labels(ax, nli_list, pos_labels):
+    for i, label in enumerate(nli_list):
+        ax[i].annotate(label, xy=pos_labels[i], xycoords='axes fraction', bbox=dict(boxstyle='round', fc='0.8'))
+
+    return 0
+
+################
+def set_xticks(ax_all, delta):
+    x_ticks= np.arange(0,(25*3600), 3600)
+    for ax in ax_all:
+        ax.set_xticks(x_ticks[::delta], '',) 
+    return 0
+
+################
+def set_xticks_numbers(ax_all,delta):
+    hour_ini = 7
+    list_ticks_x =[]
+    list_ticks_x.extend(np.arange(hour_ini,24,1)) 
+    list_ticks_x.extend(np.arange(0,hour_ini+1,1)) 
+    ## add one zero to the left for numbers of one digit
+    list_ticks_x = [str(x).zfill(2) for x in list_ticks_x]
+
+    x_ticks= np.arange(0,(25*3600), 3600)
     
+    for ax in ax_all:
+        ax.set_xticks(x_ticks[::delta], list_ticks_x[::delta],) 
+
+    return 0
+
+################
+def plot_curves_ais(list_objs, list_ids, subplot_list, ax):
+    
+    # specifying horizontal line type 
+    unique_sp = np.unique(subplot_list)
+    for sp in unique_sp:
+        ax[sp].axhline(y = 0.5, color = 'tab:gray', linestyle = '--', alpha=0.2) 
+
     # for obj in list_objs:
     #     print(f'name: {obj.getName()}')
 
     # print (f'curves: {list_ids}')
-    for id in list_ids:
-        print(f'id:{id}')
+    for id,n_subplot in zip(list_ids,subplot_list):
+        # print(f'id:{id}')
         ## split, ex. 'P01' -> 'P','0','1'
         l=list(id)
         ## take only the number
         n=int(l[1]+l[2]) - 1
+        # print(f'obj: {n}')
         obj = list_objs[n]
-        print(obj)
+        # print(obj)
 
+        df_d, df_n = median_values(obj)
+        ## plot curves median values
 
+        start = 0
+        color = 'tab:gray'
+        ## plot day
+        start = plot_curves(df_d, start, ax, n_subplot, color)
+        ## plot night
+        color = 'tab:gray'
+        plot_curves(df_n, start, ax, n_subplot, color)
+    
+    for sp in unique_sp:
+        # vertical line to separate day and night
+        ax[sp].vlines(x=[start], ymin=-0.5, ymax=1.5, colors='tab:gray', ls='--', lw=1, label='')
+
+    return 0
+
+def median_values(obj):
+
+    df = obj.get_df1()
+    ## paint each day and each night
+    labels_list = df[label_day_night].unique().tolist()
+
+    print(f'labels_list: {labels_list}')
+    
+    df_day = pd.DataFrame(columns=list_days)
+    df_night = pd.DataFrame(columns=list_nights)
+    
+    for label in labels_list:
+        
+        df_label = df[df[label_day_night]== label]
+        arr=df_label[vma_b].to_list()
+
+        if (label in list_days):
+            df_day[label]=arr
+            # ax[i].plot(np.arange(0,length_day), vma, color='tab:blue')
+        elif (label in list_nights):
+            df_night[label]=arr
+            # ax[i].plot(np.arange(length_day,length_day+length_night), vma, color='tab:orange')
+        else:
+            pass
+
+    df_day['median'] = df_day.median(axis=1)
+    df_day['min']    = df_day.min(axis=1)
+    df_day['max']    = df_day.max(axis=1)
+    
+    df_night['median'] = df_night.median(axis=1)
+    df_night['min']    = df_night.min(axis=1)
+    df_night['max']    = df_night.max(axis=1)
+    
+    return df_day, df_night
+
+def plot_curves(df, start, ax, n_subplot, color):
+
+    y = df['median'].to_list()
+    ymax = df['max'].to_list()
+    ymin = df['min'].to_list()
+    alpha_fill = 0.3
+    
+    size=len(y)
+    x = np.arange(start,start+size)
+    
+    color='black'
+    ax[n_subplot].plot(x, y, color=color)
+    # ax.fill_between(x, ymax, ymin, color=color, hatch=pattern, alpha=alpha_fill, label=sel_label)
+    color='tab:gray'
+    ax[n_subplot].fill_between(x, ymax, ymin, color=color, alpha=alpha_fill,)
+
+    return size
+
+def plot_segment(df):
 
     return 0
 
@@ -1556,11 +1718,14 @@ def main(args):
         list_nli_con=['','',]
         list_pi=[]
         dic_pat = {'A006':'P01', 'A021':'P02', 'A022':'P03', 'A025':'P04', 'A028':'P05', 'A037':'P06', 'A039':'P07', 'A044':'P08', 'A003':'P09', 'A023':'P10', 'A026':'P11', 'A018':'P12', 'A051':'P13', 'A052':'P14',}
-        dic_abcd = {'A':['P05','P07','P09','P10','P11',],'B':['P01','P02','P04',], 'C':['P08','P13','P12',],'D':['P3','P6','P14',]}
+        dic_abcd = {'A':['P01','P02',],
+                    'B':['P02','P01',], 
+                    'C':['P01','P02',],
+                    'D':['P02','P01',]}
         dic_nli = {'P05':'C5','P07':'C5','P09':'C6','P10':'C6','P11':'T7', 
                    'P01':'C4','P02':'C4','P04':'C5',
                    'P08':'C4','P13':'C5','P12':'T10',
-                   'P3':'C4','P6':'C5','P14':'T4',}
+                   'P03':'C4','P06':'C5','P14':'T4',}
         dic_subplots = {'A':[0,0,1,1,2,],
                         'B':[0,0,1,],
                         'C':[0,1,2,],
@@ -1578,16 +1743,30 @@ def main(args):
         dic_abcd = {'A':['P05','P07','P09','P10','P11',],
                     'B':['P01','P02','P04',], 
                     'C':['P08','P13','P12',],
-                    'D':['P3','P6','P14',]}
+                    'D':['P03','P06','P14',]}
         dic_nli = {'P05':'C5','P07':'C5','P09':'C6','P10':'C6','P11':'T7', 
                    'P01':'C4','P02':'C4','P04':'C5',
                    'P08':'C4','P13':'C5','P12':'T10',
-                   'P3':'C4','P6':'C5','P14':'T4',}
+                   'P03':'C4','P06':'C5','P14':'T4',}
         dic_subplots = {'A':[0,0,1,1,2,],
                         'B':[0,0,1,],
                         'C':[0,1,2,],
                         'D':[0,1,2,]
                         }
+        # dic_labels_nli = {'A':['C5','C6','T7',],
+        #                   'B':['C4','C5',],
+        #                   'C':['C4','C5','T10',],
+        #                   'D':['C4','C5','T4',],}
+        dic_labels_nli = {'A':['A:C5','A:C6','A:T7',],
+                          'B':['B:C4','B:C5',],
+                          'C':['C:C4','C:C5','C:T10',],
+                          'D':['D:C4','D:C5','D:T4',],}
+        
+        dic_labels_pat = {'A':['P05, P07','P09, P10','P11',],
+                          'B':['P01, P02','P04',],
+                          'C':['P08','P13','P12',],
+                          'D':['P03','P06','P14',],}
+    
     
     # elif group == '4':
         # files_names=['A006', 'A039', 'A023', 'A040', 'A019', 'A005', 'A035', 'A014', 'A041', 'A020', 'A016', 'A001', 'A015', 'A033',]
@@ -1802,10 +1981,10 @@ def main(args):
             # plot_vma_cycle(list_objs)
             ##############################
             #############################
-            flag_save = False
+            flag_save = True
             # plot_cycle_alpha(list_objs, list_nli_rec, list_nli_con, vma_b,  group_title, body_part_title, flag_save, path_out+prefix_name+'vm7_')
 
-            plot_curves_ABCD(list_objs, dic_abcd, dic_nli, dic_subplots, flag_save)
+            plot_curves_ABCD(list_objs, dic_abcd, dic_labels_nli, dic_labels_pat, dic_subplots, flag_save, path_out)
 
         '''
 
