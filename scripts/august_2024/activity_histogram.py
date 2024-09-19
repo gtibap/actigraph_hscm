@@ -1403,8 +1403,10 @@ def plot_curves_ABCD(list_objs, dic_abcd, dic_nli, dic_pat, dic_subplots, flag_s
     print (f'dic nli:\n{dic_nli}')
     print (f'dic nli:\n{dic_pat}')
 
+    n_rows = 4
+    n_cols = 3
     # fig = plt.figure(layout='constrained', figsize=(8, 5))
-    fig,ax = plt.subplots(4,3, layout='constrained', figsize=(7.5, 5), sharey=True, sharex=True)
+    fig,ax = plt.subplots(n_rows,n_cols, layout='constrained', figsize=(7.5, 5), sharey=True, sharex=True)
     fig.canvas.mpl_connect('key_press_event', on_press)
     fig.canvas.draw()
 
@@ -1412,15 +1414,21 @@ def plot_curves_ABCD(list_objs, dic_abcd, dic_nli, dic_pat, dic_subplots, flag_s
     fig.supylabel('activity rates')
     fig.supxlabel('24-hour clock [hh]')
 
-    # subfigs = fig.subfigures(4, 1, wspace=0.07)
-    # subfigs = np.array(subfigs)
-    # subfigs = subfigs.flatten()
+    ## grid
+    start = 16 * 3600 # 16 h day in seconds
+    for i in np.arange(n_rows):
+        for j in np.arange(n_cols):
+            # grid in every subplot
+            ax[i][j].grid(color = 'gray', linestyle = '--', linewidth = 0.5, alpha=0.2)
+            # vertical line to separate day and night in every subplot
+            ax[i][j].vlines(x=[start], ymin=-0.5, ymax=1.5, colors='tab:gray', ls='--', lw=1, label='')
 
-    # rows_number = 2
-    # ax_A = subfigs[0].subplots(1, 3, sharey=True, sharex=True)
-    # ax_B = subfigs[1].subplots(1, 3, sharey=True, sharex=True)
-    # ax_C = subfigs[2].subplots(1, 3, sharey=True, sharex=True)
-    # ax_D = subfigs[3].subplots(1, 3, sharey=True, sharex=True)
+    ## titles day and night for each column of subplots
+    ax[0][0].title.set_text('             day            night     ')
+    ax[0][1].title.set_text('             day            night     ')
+    ax[0][2].title.set_text('             day            night     ')
+    
+
 
     ax_A = ax[0,:]
     ax_B = ax[1,:]
@@ -1445,8 +1453,8 @@ def plot_curves_ABCD(list_objs, dic_abcd, dic_nli, dic_pat, dic_subplots, flag_s
     ax_C[0].set_ylim([y_min,y_max])
     ax_D[0].set_ylim([y_min,y_max])
 
-    ## coordinates location for each
-    dic_pos_labels={'A':[(0.05, 0.85),(0.05, 0.85),(0.05, 0.10)],
+    ## coordinates location for each AIS:NLI
+    dic_pos_labels={'A':[(0.05, 0.85),(0.40, 0.10),(0.05, 0.10)],
                     'B':[(0.05, 0.85),(0.05, 0.85),(0.05, 0.85)],
                     'C':[(0.05, 0.85),(0.05, 0.85),(0.05, 0.10)],
                     'D':[(0.05, 0.10),(0.05, 0.85),(0.05, 0.10)],}
@@ -1456,11 +1464,11 @@ def plot_curves_ABCD(list_objs, dic_abcd, dic_nli, dic_pat, dic_subplots, flag_s
     annotate_labels(ax_C, dic_nli['C'], dic_pos_labels['C'])
     annotate_labels(ax_D, dic_nli['D'], dic_pos_labels['D'])
 
-    # coordinates location for each
+    # coordinates location for each Patient ID
     dic_pos_labels={'A':[(0.70, 0.85),(0.70, 0.80),(0.40, 0.10)],
                     'B':[(0.70, 0.85),(0.80, 0.85),(0.40, 0.10)],
                     'C':[(0.80, 0.85),(0.80, 0.85),(0.40, 0.10)],
-                    'D':[(0.40, 0.10),(0.80, 0.85),(0.40, 0.10)],}
+                    'D':[(0.80, 0.85),(0.80, 0.85),(0.40, 0.10)],}
     
     annotate_labels(ax_A, dic_pat['A'], dic_pos_labels['A'])
     annotate_labels(ax_B, dic_pat['B'], dic_pos_labels['B'])
@@ -1519,9 +1527,10 @@ def set_xticks_numbers(ax_all,delta):
 def plot_curves_ais(list_objs, list_ids, subplot_list, ax):
     
     # specifying horizontal line type 
-    unique_sp = np.unique(subplot_list)
-    for sp in unique_sp:
-        ax[sp].axhline(y = 0.5, color = 'tab:gray', linestyle = '--', alpha=0.2) 
+    # unique_sp = np.unique(subplot_list)
+    # for sp in unique_sp:
+    #     # ax[sp].axhline(y = 0.5, color = 'tab:gray', linestyle = '--', alpha=0.2) 
+    #     ax[sp].grid(color = 'gray', linestyle = '--', linewidth = 0.5, alpha=0.2)
 
     # for obj in list_objs:
     #     print(f'name: {obj.getName()}')
@@ -1537,6 +1546,8 @@ def plot_curves_ais(list_objs, list_ids, subplot_list, ax):
         obj = list_objs[n]
         # print(obj)
 
+        print(f'name obj subplot: {obj.getName()} {n}, {n_subplot}')
+
         df_d, df_n = median_values(obj)
         ## plot curves median values
 
@@ -1548,9 +1559,12 @@ def plot_curves_ais(list_objs, list_ids, subplot_list, ax):
         color = 'tab:gray'
         plot_curves(df_n, start, ax, n_subplot, color)
     
-    for sp in unique_sp:
-        # vertical line to separate day and night
-        ax[sp].vlines(x=[start], ymin=-0.5, ymax=1.5, colors='tab:gray', ls='--', lw=1, label='')
+    # for sp in unique_sp:
+    #     # ax[sp].axhline(y = 0.5, color = 'tab:gray', linestyle = '--', alpha=0.2) 
+    #     ax[sp].grid(color = 'gray', linestyle = '--', linewidth = 0.5, alpha=0.2)
+    # for sp in unique_sp:
+    #     # vertical line to separate day and night
+    #     ax[sp].vlines(x=[start], ymin=-0.5, ymax=1.5, colors='tab:gray', ls='--', lw=1, label='')
 
     return 0
 
@@ -1560,7 +1574,7 @@ def median_values(obj):
     ## paint each day and each night
     labels_list = df[label_day_night].unique().tolist()
 
-    print(f'labels_list: {labels_list}')
+    # print(f'labels_list: {labels_list}')
     
     df_day = pd.DataFrame(columns=list_days)
     df_night = pd.DataFrame(columns=list_nights)
