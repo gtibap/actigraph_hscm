@@ -72,8 +72,8 @@ class Counting_Actigraphy:
         self.df_dwt_vma = pd.DataFrame([])
         self.df_nights_dwt_vma = pd.DataFrame([])
 
-        self.min_vma = 3 # counts
-        self.min_samples = 2 # min number of samples inside the window (function: rollingWindow())
+        self.min_vma = 1 # counts
+        self.min_samples = 1 # min number of samples inside the window (function: rollingWindow())
         self.compliance_win = 180 # min equal to 3h
         self.arr_fig = [[] for i in range(10)]
         self.arr_axs = [[] for i in range(10)]

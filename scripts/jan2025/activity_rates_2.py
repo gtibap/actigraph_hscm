@@ -116,6 +116,114 @@ def activity_rates_cal(obj_chest, obj_thigh, prefix):
     return df_th_nights
 
 ############################
+def wiggling(obj_chest, obj_thigh, prefix):
+
+    df_chest = obj_chest.get_df_inclinometers()
+    df_thigh = obj_thigh.get_df_inclinometers()
+
+    ## labels days and nights from the chest
+    labels_chest = df_chest[label_day_night].unique().tolist()
+    ## only labels nights from the chest
+    lc_nights = [lc for lc in labels_chest if lc.startswith('n')]
+    print(f'periods chest: {lc_nights}')
+    
+    df_th_nights = pd.DataFrame()
+
+    ## labels nights
+    for label in lc_nights:
+        ## dataframes of selected night (label) from chest and thigh
+        df_ch = df_chest.loc[df_chest[label_day_night]== label]
+        df_th = df_thigh.loc[df_thigh[label_day_night]== label]
+        ## date first row for comparison
+        date_ch = df_ch.iloc[0][label_date]
+        date_th = df_th.iloc[0][label_date]
+       
+        # each night should correspond with same dates for chest and thigh
+        if date_ch == date_th:
+
+            ## inclinometers off and sitting only from the chest
+            arr_off = df_ch[incl_off].to_numpy()
+            arr_sit = df_ch[incl_sit].to_numpy()
+            ## fusion of inclinometers off and sitting
+            arr_incl = arr_off | arr_sit
+
+            ## identify active segments from arr_incl, which includes off + sit
+            ini_idx, end_idx = indexes_incl(arr_incl)
+            # print(f'{prefix} indexes {label}:\n{ini_idx}\n{end_idx}')
+            vma_ch = df_ch[vec_mag].to_numpy()
+            vma_th = df_th[vec_mag].to_numpy()
+
+            count_wigg(vma_ch, vma_th, ini_idx, end_idx)
+
+        else:
+            print('Error: mismatch between dates of nights {label} from chest and thigh.')
+            return 0
+
+    return
+
+def indexes_incl(arr):
+
+    arr_com = (arr[:-1] != arr[1:])
+    arr_ini = arr_com & (arr[:-1]==0)
+    arr_end = arr_com & (arr[:-1]==1)
+
+    ## adding one element at the begining of the array
+    arr_ini = np.concatenate((0, arr_ini), axis=None)
+    arr_end = np.concatenate((0, arr_end), axis=None)
+
+    ini_idx = np.argwhere(arr_ini==True).flatten()
+    # print(f'lyi_idx: {lyi_idx}')
+    ## find index where current lying finishes
+    # arr_acc = arr_b_a | arr_b_c | arr_b_d
+    end_idx = np.argwhere(arr_end==True).flatten()
+    # print(f'arr_idx: {arr_idx}')
+
+    ## adding value to begin if arr[0]==1
+    if arr[0]==1:
+        ini_idx = np.concatenate((0, ini_idx), axis=None)
+    else:
+        pass
+
+    ## adding value to end if arr[-1]==1
+    if arr[-1]==1:
+        end_idx = np.concatenate((end_idx,len(arr)), axis=None)
+    else:
+        pass
+
+    return ini_idx, end_idx
+
+
+def count_wigg(vma_ch, vma_th, ini_idx, end_idx):
+    ## for each lying segment find its respective end
+    df_out = pd.DataFrame([])
+    for id0 in ini_idx:
+        ## all idx greater than id where lying changes
+        idx = end_idx[end_idx > id0]
+        ## minimum length lying segment
+        if len(idx) > 0:
+            id1 = np.min(idx)
+
+            arr_seg_ch = vma_ch[id0:id1]
+            arr_seg_th = vma_th[id0:id1]
+
+            
+
+
+            # delta = id1 - id0
+            # ## when it start and when it finish: day or night and number (for instance d0, n0)
+            # period_0 = arr_period[id0]
+            # period_1 = arr_period[id1]
+
+            # df_row = pd.DataFrame([[delta, period_0, period_1]],columns=['length','begin','end'])
+
+            # df_out = pd.concat([df_out, df_row], ignore_index=True) 
+        else:
+            pass
+
+    return df_out
+
+
+############################
 ## plotting functions
 
 def on_press(event):
@@ -175,7 +283,8 @@ def main(args):
     path_out = "../data/countingactivity/"
     
     #patient_list = ['A01','A02','A03','A04','A13','A49','A50','A51','A48']
-    patient_list = ['A44','A32',]
+    # patient_list = ['A44','A32',]
+    patient_list = ['A44',]
     
     df_all = pd.DataFrame()
 
@@ -210,12 +319,8 @@ def main(args):
             obj_thigh.inclinometers_sliding_window(win_size_minutes)
 
             ## plot inclinometers before and after the "inclinometers_sliding_window" function for comparison
-            # x_min = 124000
-            # x_max = x_min + 3600
             # x_min = 0
             # x_max = x_min + 3600*24*7
-            # x_min = 210000
-            # x_max = 250000
             # obj_chest.plotActigraphy(0,x_min,x_max)
             # obj_chest.plotActigraphy(1,x_min,x_max)
             # plt.show()
@@ -241,8 +346,12 @@ def main(args):
             df_act_rates = activity_rates_cal(obj_chest, obj_thigh, prefix)
             print(f'df_act_rates:\n{df_act_rates}')
 
+            ## wiggling off + sit
+            wiggling(obj_chest, obj_thigh, prefix)
+
+
             #df_all = pd.concat([df_all, df_act_rates],ignore_index=True)
-            df_act_rates.to_csv(path_out+name+'_act_rates.csv', index=False)
+            # df_act_rates.to_csv(path_out+name+'_act_rates.csv', index=False)
 
             ## activity rates when Inclinometer_off is ON (when the patients are lying in their back)
             #############################
