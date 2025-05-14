@@ -23,7 +23,8 @@ def get_time(df):
     frame_time = hour.split(":")
     frame_time = np.array(frame_time).astype(int)
 
-    total_sec = frame_time[0]*3600 + frame_time[1]*60 + frame_time[2] + (frame_time[3] / 1000 )
+    ## total seconds = hh*3600 + mm*60 + ss
+    total_sec = frame_time[0]*3600 + frame_time[1]*60 + frame_time[2]
     # print(f"{frame_time} total_sec: {total_sec}")
     
     return total_sec
@@ -44,25 +45,51 @@ def resize_img(img):
     return resized
 
 ####################################
-def img_plot(df):
+def draw_square(image, ini_coord, end_coord):
+    # Start coordinate, here (5, 5)
+    # represents the top left corner of rectangle
+
+    #########################
+    ## test gerardo 1                                                  modify for each patient+++
+    start_point = (9,30)
+    end_point = (16,36)
+
+    # Blue color in BGR
+    color = (255, 0, 255)
+
+    # Line thickness of 2 px
+    thickness = 1
+
+    # Using cv2.rectangle() method
+    # Draw a rectangle with blue line borders of thickness of 2 px
+    image = cv2.rectangle(image, start_point, end_point, color, thickness)
+
+    return image
+
+
+####################################
+def img_plot(df, ini_coord, end_coord):
 
     frame = df.to_numpy()
     # print(f"frame numpy:\n{frame}")
 
-    s_f = frame*2.5
+    s_f = frame*2.0
     s_f[s_f>255.0]=255.0
-    s_f = s_f.astype(np.uint8)
-    s_f=resize_img(s_f)
-    
+    img = s_f.astype(np.uint8)
+
     colormap = plt.get_cmap('plasma')
-    heatmap = (colormap(s_f) * 2**16).astype(np.uint16)[:,:,:3]
-    heatmap = cv2.cvtColor(heatmap, cv2.COLOR_RGB2BGR)
+    img = (colormap(img) * 2**16).astype(np.uint16)[:,:,:3]
+    img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+
+    ## drawing square selected region
+    img = draw_square(img, ini_coord, end_coord)
+    
+    img = resize_img(img)
 
     # Use Flip code 0 to flip vertically 
-    heatmap = cv2.flip(heatmap, -1) 
-    # heatmap = cv2.flip(heatmap, 1) 
+    img = cv2.flip(img, 0) 
 
-    cv2.imshow('image',heatmap)
+    cv2.imshow('image',img)
     cv2.waitKey(1)
 
     return 0
@@ -120,6 +147,29 @@ def mouse_interact(event, x, y, flags, param):
     
     return
 
+#######################
+def split_square(frame):
+
+    # start_point = (9,30)
+    # end_point = (16,36)
+
+    roi = frame[30:36,9:16]
+    print(f"roi:\n{roi}, {roi.shape}")
+
+    c1= np.mean(roi[0:2,0:2]) 
+    c2= np.mean(roi[0:2,2:5]) 
+    c3= np.mean(roi[0:2,5:7]) 
+    c4= np.mean(roi[2:4,0:2]) 
+    c5= np.mean(roi[2:4,2:5]) 
+    c6= np.mean(roi[2:4,5:7]) 
+    c7= np.mean(roi[4:6,0:2]) 
+    c8= np.mean(roi[4:6,2:5]) 
+    c9= np.mean(roi[4:6,5:7]) 
+
+    print(c1,c2,c3,c4,c5,c6,c7,c8,c9)
+    return 0
+
+
 ####### main function ###########
 def main(args):
     
@@ -157,7 +207,7 @@ def main(args):
     filename_mat = path + "gerar_mat_test1.csv"
     # filename_mat = path + "islam_mat_test1.csv"
 
-    frames =  np.arange(0,10000,5)
+    frames_range =  np.arange(0,5896,1)
     size = 66 # number of rows per frame (including two lines of header and 64 of data)
 
     # activate interactive mouse actions on window
@@ -174,28 +224,76 @@ def main(args):
     ini_time = get_time(df_date)
     print(f"ini time: {ini_time}")
 
-    for idx in frames:
+    # ini_coord = [10,33]
+    # end_coord = [16,37]
+
+    ini_coord = np.array([30, 9])
+    end_coord = np.array([36, 16]) 
+    
+    print(f"ini_coord, end_coord: {ini_coord}, {end_coord} ")
+
+    # coord_square = np.array([10, 10,0, 20])
+
+    total_sec = 0
+
+    frame_target = 1196
+    flag_found=False
+
+    i=0
+    # for idx in frames_range:
+    while flag_found==False:
         try:
+            idx = frames_range[i]
             ## read line of time
-            df_date = pd.read_csv(filename_mat, nrows= 1, skiprows=1+(idx*size), header=None)
-            # print(f"time: {df_date.iloc[0][0]}")
-
-            ## read matix of data
-            df_data = pd.read_csv(filename_mat, nrows=64, skiprows=2+(idx*size), delim_whitespace=True, header=None)
-            # print(f"data:\n{df_data}")
+            df_frame = pd.read_csv(filename_mat, nrows= 1, skiprows=0+(idx*size), header=None)
             
-            ## get the acquisition time ([hh,mm,ss,mm])
-            total_sec = get_time(df_date)
+            # print(f"frame: {df_frame.iloc[0][0]}, {type(df_frame.iloc[0][0])} {df_frame.iloc[0][0].split()}")
+            
+            ## get the frame number from the frames' file
+            list_frame = df_frame.iloc[0][0].split()
+            split_list = list_frame[1].split("(")
+            frame_number = int(split_list[0])
+            # print(f"frame number: {frame_number}")
 
-            # plot_actigraphy signals
-            plot_actigraphy(obj_chest, obj_thigh, ini_time, total_sec)
+            if frame_number >= frame_target:
 
-            ## plot image
-            img_plot(df_data)
+                flag_found=True
+                print(f"frame_number: {frame_number}")
+
+                # print(f"split_list: {split_list}")
+                
+
+                ## read line of time
+                df_date = pd.read_csv(filename_mat, nrows= 1, skiprows=1+(idx*size), header=None)
+                # print(f"time: {df_date.iloc[0][0]}")
+
+                ## read matix of data
+                df_data = pd.read_csv(filename_mat, nrows=64, skiprows=2+(idx*size), delim_whitespace=True, header=None)
+                # print(f"data:\n{df_data}")
+
+                frame = df_data.to_numpy()
+
+                ## selected frame: extraction region of interest
+                print(f"frame:\n{frame}")
+                split_square(frame)
+                
+                ## get the acquisition time ([hh,mm,ss,mm])
+                total_sec = get_time(df_date)
+
+                # plot_actigraphy signals
+                plot_actigraphy(obj_chest, obj_thigh, ini_time, total_sec)
+
+                ## plot image
+                img_plot(df_data, ini_coord, end_coord)
+
+            else:
+                pass
         except:
             break
+
+        i=i+1
     
-    print(f"end time: {total_sec}")
+    # print(f"end time: {total_sec}")
 
 
     cv2.waitKey(0)
