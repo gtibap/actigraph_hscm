@@ -20,7 +20,13 @@ def get_time(df):
     hour = date_time[3]
     am_pm = date_time[4]
 
-    return hour.split(":")
+    frame_time = hour.split(":")
+    frame_time = np.array(frame_time).astype(int)
+
+    total_sec = frame_time[0]*3600 + frame_time[1]*60 + frame_time[2] + (frame_time[3] / 1000 )
+    # print(f"{frame_time} total_sec: {total_sec}")
+    
+    return total_sec
 
 ####################################
 def resize_img(img):
@@ -52,13 +58,17 @@ def img_plot(df):
     heatmap = (colormap(s_f) * 2**16).astype(np.uint16)[:,:,:3]
     heatmap = cv2.cvtColor(heatmap, cv2.COLOR_RGB2BGR)
 
+    # Use Flip code 0 to flip vertically 
+    heatmap = cv2.flip(heatmap, -1) 
+    # heatmap = cv2.flip(heatmap, 1) 
+
     cv2.imshow('image',heatmap)
     cv2.waitKey(1)
 
     return 0
 
 #######################################
-def plot_actigraphy(df_chest,df_thigh,frame):
+def plot_actigraphy(df_chest, df_thigh, ini_time, frame):
     global figure, ax
     ax[0].cla()
     ax[1].cla()
@@ -71,6 +81,8 @@ def plot_actigraphy(df_chest,df_thigh,frame):
 
     ax[0].plot(time_chest, df_chest.df1[vec_mag].to_numpy())
     ax[1].plot(time_thigh, df_thigh.df1[vec_mag].to_numpy())
+
+    ax[0].set_xlim([ini_time-60, ini_time+300])
 
     ax[0].legend(['chest'])
     ax[1].legend(['thigh'])
@@ -143,42 +155,48 @@ def main(args):
     ## second read matrix of data (64x27)
 
     filename_mat = path + "gerar_mat_test1.csv"
+    # filename_mat = path + "islam_mat_test1.csv"
 
-    frames =  np.arange(0,10,1)
+    frames =  np.arange(0,10000,5)
     size = 66 # number of rows per frame (including two lines of header and 64 of data)
-
-    ## load first frame to get time reference
-    # df_time = pd.read_csv(path_file_csv, nrows= 1, skiprows=1, header=None)
-    # frame_time = get_time(df_time)
-    ## frame_time = [hh,mm,ss,mm] get seconds ([ss])
-    # sec_ref = int(frame_time[2])
 
     # activate interactive mouse actions on window
     cv2.namedWindow('image')
-    cv2.setMouseCallback('image',mouse_interact)
+    # cv2.setMouseCallback('image',mouse_interact)
 
     # to run GUI event loop
     plt.ion()
     plt.show()
 
-    id_frame = 39000
-    # plot_actigraphy(df_chest_a.iloc[0:id_frame][vec_mag].to_numpy(), df_thigh_a.iloc[0:id_frame][vec_mag].to_numpy())
-    plot_actigraphy(obj_chest, obj_thigh, id_frame)
+    ## read line of time
+    df_date = pd.read_csv(filename_mat, nrows= 1, skiprows=1, header=None)
+    ## get the acquisition time ([hh,mm,ss,mm])
+    ini_time = get_time(df_date)
+    print(f"ini time: {ini_time}")
 
     for idx in frames:
-        ## read line of time
-        df_date = pd.read_csv(filename_mat, nrows= 1, skiprows=1+(idx*size), header=None)
-        # print(f"time: {df_date.iloc[0][0]}")
+        try:
+            ## read line of time
+            df_date = pd.read_csv(filename_mat, nrows= 1, skiprows=1+(idx*size), header=None)
+            # print(f"time: {df_date.iloc[0][0]}")
 
-        ## get the acquisition time ([hh,mm,ss,mm])
-        frame_time = get_time(df_date)
-        # print(f"frame time: {frame_time}")
+            ## read matix of data
+            df_data = pd.read_csv(filename_mat, nrows=64, skiprows=2+(idx*size), delim_whitespace=True, header=None)
+            # print(f"data:\n{df_data}")
+            
+            ## get the acquisition time ([hh,mm,ss,mm])
+            total_sec = get_time(df_date)
 
-        ## read matix of data
-        df_data = pd.read_csv(filename_mat, nrows=64, skiprows=2+(idx*size), delim_whitespace=True, header=None)
-        # print(f"data:\n{df_data}")
-        ## plot image
-        # img_plot(df_data)
+            # plot_actigraphy signals
+            plot_actigraphy(obj_chest, obj_thigh, ini_time, total_sec)
+
+            ## plot image
+            img_plot(df_data)
+        except:
+            break
+    
+    print(f"end time: {total_sec}")
+
 
     cv2.waitKey(0)
     cv2.destroyAllWindows()
